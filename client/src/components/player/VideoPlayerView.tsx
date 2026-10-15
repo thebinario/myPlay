@@ -1,37 +1,52 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Course, Lesson, SubtitleTrack } from '../../types/library';
-import { 
-  ArrowLeft, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  RotateCw, 
-  Volume2, 
-  VolumeX, 
-  Subtitles, 
-  SkipBack, 
-  SkipForward, 
-  AlertTriangle, 
-  RefreshCw, 
-  Check, 
-  Upload 
+import {
+  ArrowLeft,
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Volume2,
+  VolumeX,
+  Subtitles,
+  SkipBack,
+  SkipForward,
+  AlertTriangle,
+  RefreshCw,
+  Check,
+  Upload,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { mockLibraryService } from '../../services/mockData';
 import { IconButton } from '../ui/IconButton';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Spinner } from '../ui/Spinner';
+import { usePlayerLifecycle } from './usePlayerLifecycle';
 
 interface VideoPlayerViewProps {
   course: Course;
   initialLessonId: string;
   onBack: () => void;
   onCompleteLesson?: (lessonId: string) => void;
+  /** Simulação: atraso do carregamento inicial (ms). */
+  loadingDelayMs?: number;
+  /** Simulação: atraso do buffer (ms). */
+  bufferingDelayMs?: number;
+  /** Simulação: atraso da busca (ms). */
+  seekDelayMs?: number;
 }
+
+const LOADING_LABELS = ['Carregando aula...', 'Preparando reprodução...', 'Sincronizando legendas...'];
 
 export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   course,
   initialLessonId,
   onBack,
   onCompleteLesson,
+  loadingDelayMs,
+  bufferingDelayMs,
+  seekDelayMs,
 }) => {
   // Lista linear de todas as aulas do curso
   const allLessons: Lesson[] = [];
@@ -45,88 +60,110 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   const currentLessonIndex = allLessons.findIndex(l => l.id === currentLessonId);
   const currentLesson = allLessons[currentLessonIndex] || allLessons[0];
 
-  // Estado do motor de reprodução simulado
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<number>(() => {
-    return mockLibraryService.getPlaybackPosition(course.id, initialLessonId) || 0;
+  const duration = currentLesson.duration || 900;
+  const initialTime = useMemo(() => {
+    const saved = mockLibraryService.getPlaybackPosition(course.id, currentLesson.id);
+    return saved || currentLesson.lastPlaybackPosition || 0;
+  }, [course.id, currentLesson.id, currentLesson.lastPlaybackPosition]);
+
+  // Estado de erro / arquivo indisponível (reconexão local)
+  const [reconnected, setReconnected] = useState(false);
+  useEffect(() => {
+    setReconnected(false);
+  }, [currentLessonId]);
+  const isUnavailable = !!currentLesson.isUnavailable && !reconnected;
+
+  // ── Ciclo de vida de reprodução ─────────────────────────────────────────────
+  const {
+    status,
+    isPlaying,
+    currentTime,
+    playbackRate,
+    isLoading,
+    isBuffering,
+    isSeeking,
+    hasEnded,
+    hasError,
+    toggle,
+    replay,
+    seek,
+    skip,
+    setPlaybackRate,
+  } = usePlayerLifecycle({
+    mediaKey: currentLesson.id,
+    duration,
+    initialTime,
+    unavailable: isUnavailable,
+    loadingDelayMs,
+    bufferingDelayMs,
+    seekDelayMs,
+    onEnded: () => onCompleteLesson?.(currentLesson.id),
   });
-  const [duration, setDuration] = useState<number>(() => currentLesson.duration || 900);
-  const [playbackRate, setPlaybackRate] = useState<number>(1);
+
+  // ── Áudio (volume/mute) ─────────────────────────────────────────────────────
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
 
-  // Estado de legendas (CC flutuante)
+  // ── Menus ───────────────────────────────────────────────────────────────────
+  const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
   const [showSubtitleMenu, setShowSubtitleMenu] = useState<boolean>(false);
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(() => {
     return mockLibraryService.getSubtitlePreference(course.id, initialLessonId) || 'sub-pt';
   });
 
-  // Estado de erro / arquivo indisponível
-  const [isUnavailable, setIsUnavailable] = useState<boolean>(!!currentLesson.isUnavailable);
-
-  // Timer para simulação de reprodução quando isPlaying for true
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Atualiza tempo e restaura preferência ao trocar de aula
+  // Restaura preferência de legenda ao trocar de aula
   useEffect(() => {
-    const savedPos = mockLibraryService.getPlaybackPosition(course.id, currentLesson.id);
-    setCurrentTime(savedPos);
-    setDuration(currentLesson.duration || 900);
-    setIsUnavailable(!!currentLesson.isUnavailable);
-    setIsPlaying(false);
-
     const savedSub = mockLibraryService.getSubtitlePreference(course.id, currentLesson.id);
     setSelectedSubtitleId(savedSub !== undefined ? savedSub : 'sub-pt');
-  }, [currentLessonId, course.id]);
+  }, [currentLessonId, course.id, currentLesson.id]);
 
   // Persiste progresso no mockLibraryService a cada alteração
   useEffect(() => {
     mockLibraryService.savePlaybackPosition(course.id, currentLesson.id, currentTime);
   }, [currentTime, course.id, currentLesson.id]);
 
-  // Simulação de playback com timer
+  // ── Tela cheia ──────────────────────────────────────────────────────────────
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
-    if (isPlaying && !isUnavailable) {
-      intervalRef.current = setInterval(() => {
-        setCurrentTime(prev => {
-          if (prev >= duration) {
-            setIsPlaying(false);
-            if (onCompleteLesson) onCompleteLesson(currentLesson.id);
-            return duration;
-          }
-          return prev + 1;
-        });
-      }, 1000 / playbackRate);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else el.requestFullscreen?.();
+    } catch {
+      /* Fullscreen API indisponível — ignora */
     }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying, isUnavailable, duration, playbackRate, onCompleteLesson, currentLesson.id]);
+  };
 
   const formatSeconds = (sec: number): string => {
-    const minutes = Math.floor(sec / 60);
-    const remainder = Math.floor(sec % 60);
+    const safe = Math.max(0, Math.floor(sec));
+    const minutes = Math.floor(safe / 60);
+    const remainder = Math.floor(safe % 60);
     return `${minutes.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
   };
 
-  const handlePlayPause = () => {
-    if (isUnavailable) return;
-    setIsPlaying(prev => !prev);
+  const play = () => toggle();
+
+  const handleForward10 = () => skip(10);
+  const handleRewind10 = () => skip(-10);
+
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = (e.clientX - rect.left) / rect.width;
+    seek(ratio * duration);
   };
 
-  const handleForward10 = () => {
-    setCurrentTime(prev => Math.min(prev + 10, duration));
+  const handleTimelineKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); skip(10); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); skip(-10); }
   };
-
-  const handleRewind10 = () => {
-    setCurrentTime(prev => Math.max(prev - 10, 0));
-  };
-
-  // Mouse click handler for seeking within the video
 
   const handleNextLesson = () => {
     if (currentLessonIndex < allLessons.length - 1) {
@@ -143,7 +180,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   const handleSelectSubtitle = (subtitleId: string | null) => {
     setSelectedSubtitleId(subtitleId);
     mockLibraryService.saveSubtitlePreference(course.id, currentLesson.id, subtitleId);
-    setShowSubtitleMenu(false); // Fechamento automático em 1 clique
+    setShowSubtitleMenu(false);
   };
 
   const handleSimulateImportSubtitle = () => {
@@ -158,21 +195,22 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   };
 
   const handleReconnect = () => {
-    setIsUnavailable(false);
+    setReconnected(true);
   };
 
-  // Legendas da aula atual
   const availableSubtitles = currentLesson.subtitles || [
     { id: 'sub-pt', label: 'Português (Brasil)', language: 'pt-BR', content: 'Reprodução simulada da MIDOTECA.' },
     { id: 'sub-en', label: 'English', language: 'en', content: 'MIDOTECA simulated playback.' },
   ];
 
   const activeSubtitle = availableSubtitles.find(s => s.id === selectedSubtitleId);
+  const isLastLesson = currentLessonIndex === allLessons.length - 1;
+  const loadingLabel = LOADING_LABELS[currentLessonIndex % LOADING_LABELS.length];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#0D111B' }}>
       {/* Top Header bar with Course & Lesson info */}
-      <div 
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -212,22 +250,38 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
           </h2>
         </div>
 
-        <div style={{ fontSize: '12px', color: '#64748B' }}>
-          Aula {currentLessonIndex + 1} de {allLessons.length}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span
+            data-testid="player-status"
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: hasError ? '#F87171' : hasEnded ? '#10B981' : isPlaying ? '#A594FF' : '#64748B',
+            }}
+          >
+            {hasError ? 'Indisponível' : hasEnded ? 'Concluída' : isLoading ? 'Carregando' : isBuffering ? 'Armazenando' : isSeeking ? 'Buscando' : isPlaying ? 'Reproduzindo' : 'Pausado'}
+          </span>
+          <span style={{ fontSize: '12px', color: '#64748B' }}>
+            Aula {currentLessonIndex + 1} de {allLessons.length}
+          </span>
         </div>
       </div>
 
       {/* Main 16:9 Video Canvas Area */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
         <div
+          ref={containerRef}
           data-testid="video-player-container"
           data-aspect-ratio="16:9"
+          data-status={status}
           style={{
             width: '100%',
             maxWidth: '1060px',
             aspectRatio: '16 / 9',
             backgroundColor: '#070A10',
-            borderRadius: '14px',
+            borderRadius: isFullscreen ? 0 : '14px',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             position: 'relative',
             display: 'flex',
@@ -239,8 +293,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
         >
           {/* Video Mock Content / Center State */}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            {isUnavailable ? (
-              <div 
+            {hasError ? (
+              <div
+                data-testid="player-error"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -283,9 +338,53 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                   Tentar reconectar
                 </button>
               </div>
+            ) : isLoading ? (
+              <div
+                data-testid="player-loading"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', color: '#94A3B8' }}
+              >
+                <Spinner size={38} />
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>{loadingLabel}</span>
+              </div>
+            ) : hasEnded ? (
+              <div
+                data-testid="player-ended"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  textAlign: 'center',
+                }}
+              >
+                <Check size={36} color="#10B981" />
+                <h3 style={{ color: '#F0F4FC', fontSize: '16px', fontWeight: 600 }}>Aula concluída</h3>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button
+                    onClick={replay}
+                    aria-label="Reproduzir novamente"
+                    style={endedButtonStyle}
+                  >
+                    <RotateCcw size={14} />
+                    Reproduzir novamente
+                  </button>
+                  {!isLastLesson && (
+                    <button
+                      onClick={handleNextLesson}
+                      aria-label="Ir para a próxima aula"
+                      style={{ ...endedButtonStyle, backgroundColor: 'transparent', color: '#E2E8F0', border: '1px solid rgba(255,255,255,0.15)' }}
+                    >
+                      Próxima aula
+                      <SkipForward size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
-              <div 
-                onClick={handlePlayPause}
+              <div
+                onClick={play}
+                role="button"
+                aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
                 style={{
                   width: '72px',
                   height: '72px',
@@ -302,7 +401,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                {isPlaying ? (
+                {isBuffering ? (
+                  <Spinner size={30} />
+                ) : isPlaying ? (
                   <Pause size={30} color="#A594FF" fill="#A594FF" />
                 ) : (
                   <Play size={30} color="#A594FF" fill="#A594FF" style={{ marginLeft: '4px' }} />
@@ -310,8 +411,51 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
               </div>
             )}
 
+            {/* Buffer overlay */}
+            {isBuffering && (
+              <div
+                data-testid="player-buffering"
+                style={{
+                  position: 'absolute',
+                  bottom: '18px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  borderRadius: '999px',
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  color: '#E2E8F0',
+                }}
+              >
+                <Spinner size={12} />
+                Armazenando em buffer...
+              </div>
+            )}
+
+            {/* Seek overlay */}
+            {isSeeking && (
+              <div
+                data-testid="player-seeking"
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#F0F4FC',
+                }}
+              >
+                {formatSeconds(currentTime)}
+              </div>
+            )}
+
             {/* Display Active Subtitle overlay */}
-            {activeSubtitle && !isUnavailable && (
+            {activeSubtitle && !hasError && (
               <div
                 data-testid="subtitles-display"
                 style={{
@@ -337,7 +481,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
             )}
           </div>
 
-          {/* Floating Contextual Subtitles Menu (Tela 11 - Popover posicionado acima do botão CC) */}
+          {/* Floating Contextual Subtitles Menu */}
           {showSubtitleMenu && (
             <div
               data-testid="subtitles-floating-menu"
@@ -357,7 +501,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 gap: '4px',
               }}
             >
-              <div 
+              <div
                 style={{
                   fontSize: '11px',
                   fontWeight: 700,
@@ -372,7 +516,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 Legendas e Áudio
               </div>
 
-              {/* Option to Disable */}
               <IconButton
                 icon={Check}
                 onClick={() => handleSelectSubtitle(null)}
@@ -382,7 +525,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 {selectedSubtitleId === null && <Check size={14} color="#A594FF" />}
               </IconButton>
 
-              {/* Available Tracks */}
               {availableSubtitles.map(track => {
                 const isSelected = selectedSubtitleId === track.id;
                 return (
@@ -400,7 +542,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
 
               <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', margin: '4px 0' }} />
 
-              {/* Simulate Import SRT */}
               <IconButton
                 icon={Upload}
                 onClick={handleSimulateImportSubtitle}
@@ -417,6 +558,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
           {/* Speed Selector Menu Popover */}
           {showSpeedMenu && (
             <div
+              data-testid="speed-floating-menu"
               style={{
                 position: 'absolute',
                 bottom: '72px',
@@ -449,7 +591,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
           )}
 
           {/* Bottom Player Controls Overlay */}
-          <div 
+          <div
             style={{
               background: 'linear-gradient(to top, rgba(7, 10, 16, 0.95) 0%, rgba(7, 10, 16, 0.4) 70%, transparent 100%)',
               padding: '16px 20px',
@@ -459,18 +601,30 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
             }}
           >
             {/* Interactive Timeline Progress Bar */}
-            <ProgressBar
-              value={currentTime}
-              max={duration}
-              width="100%"
-              height="6px"
-              bgColor="rgba(255, 255, 255, 0.15)"
-              progressColor="#A594FF"
-            />
+            <div
+              role="slider"
+              aria-label="Linha do tempo"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration)}
+              aria-valuenow={Math.round(currentTime)}
+              tabIndex={0}
+              data-testid="player-timeline"
+              onClick={handleTimelineClick}
+              onKeyDown={handleTimelineKeyDown}
+              style={{ cursor: 'pointer', padding: '6px 0' }}
+            >
+              <ProgressBar
+                value={currentTime}
+                max={duration}
+                width="100%"
+                height="6px"
+                bgColor="rgba(255, 255, 255, 0.15)"
+                progressColor="#A594FF"
+              />
+            </div>
 
             {/* Bottom Controls Buttons */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              {/* Left group: Navigation, Play/Pause, Skip 10, Timers */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <IconButton
                   icon={SkipBack}
@@ -494,7 +648,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
 
                 <IconButton
                   icon={isPlaying ? Pause : Play}
-                  onClick={handlePlayPause}
+                  onClick={play}
                   aria-label={isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'}
                   title={isPlaying ? 'Pausar' : 'Reproduzir'}
                   variant="violet"
@@ -519,14 +673,13 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 <IconButton
                   icon={SkipForward}
                   onClick={handleNextLesson}
-                  disabled={currentLessonIndex === allLessons.length - 1}
+                  disabled={isLastLesson}
                   aria-label="Próxima aula"
-                  variant={currentLessonIndex === allLessons.length - 1 ? 'muted' : 'default'}
+                  variant={isLastLesson ? 'muted' : 'default'}
                 >
                   <SkipForward size={18} />
                 </IconButton>
 
-                {/* Timers */}
                 <div style={{ marginLeft: '8px', fontSize: '13px', color: '#94A3B8' }}>
                   <span data-testid="current-time" style={{ color: '#F0F4FC', fontWeight: 600 }}>
                     {formatSeconds(currentTime)}
@@ -536,12 +689,10 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 </div>
               </div>
 
-              {/* Right group: Volume, CC Subtitles, Speed */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                {/* Volume toggle & slider */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <IconButton
-                    icon={Volume2}
+                    icon={isMuted ? VolumeX : Volume2}
                     onClick={() => setIsMuted(prev => !prev)}
                     aria-label={isMuted ? 'Desmutar' : 'Mutar'}
                     variant="muted"
@@ -568,7 +719,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                   />
                 </div>
 
-                {/* CC Subtitles Button (Abre menu flutuante contextual) */}
                 <IconButton
                   icon={Subtitles}
                   onClick={() => {
@@ -583,7 +733,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                   CC
                 </IconButton>
 
-                {/* Playback speed selector */}
                 <IconButton
                   icon={RotateCcw}
                   onClick={() => {
@@ -596,6 +745,16 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 >
                   {playbackRate}x
                 </IconButton>
+
+                <IconButton
+                  icon={isFullscreen ? Minimize : Maximize}
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+                  title="Tela cheia"
+                  variant="muted"
+                >
+                  {isFullscreen ? <Minimize size={17} /> : <Maximize size={17} />}
+                </IconButton>
               </div>
             </div>
           </div>
@@ -603,4 +762,18 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
       </div>
     </div>
   );
+};
+
+const endedButtonStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  backgroundColor: '#A594FF',
+  color: '#0D111B',
+  border: 'none',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
 };

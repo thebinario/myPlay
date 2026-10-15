@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { within, userEvent, expect } from 'storybook/test';
+import { within, userEvent, expect, waitFor } from 'storybook/test';
 import { VideoPlayerView } from '../../../components/player/VideoPlayerView';
 import { Course } from '../../../types/library';
 
@@ -51,14 +51,14 @@ const unavailableCourse: Course = {
   })),
 };
 
-const completedCourse: Course = {
+// Aula cuja posição de retomada já é o fim → inicia no estado "ended".
+const endedCourse: Course = {
   ...mockCourse,
-  id: 'course-completed',
-  title: 'Curso 100% concluído',
-  progress: 100,
+  id: 'course-ended',
+  title: 'Curso com aula finalizada',
   modules: mockCourse.modules.map(module => ({
     ...module,
-    lessons: module.lessons.map(lesson => ({ ...lesson, completed: true })),
+    lessons: module.lessons.map(lesson => ({ ...lesson, lastPlaybackPosition: lesson.duration })),
   })),
 };
 
@@ -77,63 +77,101 @@ const meta: Meta<typeof VideoPlayerView> = {
     initialLessonId: { control: { type: 'text' } },
     onBack: { action: 'back' },
     onCompleteLesson: { action: 'complete-lesson' },
+    loadingDelayMs: { control: { type: 'number' } },
+    bufferingDelayMs: { control: { type: 'number' } },
+    seekDelayMs: { control: { type: 'number' } },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof VideoPlayerView>;
 
-export const Default: Story = {
-  args: {
-    course: mockCourse,
-    initialLessonId: mockInitialLessonId,
-    onBack: () => {},
-    onCompleteLesson: () => {},
+const baseArgs = {
+  course: mockCourse,
+  initialLessonId: mockInitialLessonId,
+  onBack: () => {},
+  onCompleteLesson: () => {},
+};
+
+/** Mídia carregada e pronta (pausada na posição de retomada). */
+export const Ready: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0 },
+};
+
+/** Carregando a mídia (fase inicial do ciclo). */
+export const Loading: Story = {
+  args: { ...baseArgs, loadingDelayMs: 600000 },
+};
+
+/** Reproduzindo após o buffer inicial. */
+export const Playing: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    await canvas.findByRole('button', { name: /pausar vídeo/i });
+    await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Reproduzindo'));
   },
 };
 
-export const CompletedState: Story = {
-  parameters: {
-    backgrounds: { default: 'custom' },
-    background: {
-      name: 'dark',
-      value: '#0D111B',
-    },
-  },
-  args: {
-    course: completedCourse,
-    initialLessonId: mockInitialLessonId,
-    onBack: () => {},
-    onCompleteLesson: () => {},
+/** Buffer/armazenamento durante a reprodução. */
+export const Buffering: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 600000 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    await expect(canvas.getByTestId('player-buffering')).toBeTruthy();
+    await expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando');
   },
 };
 
+/** Busca/seek na linha do tempo. */
+export const Seeking: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0, seekDelayMs: 600000 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /avançar 10 segundos/i }));
+    await expect(canvas.getByTestId('player-seeking')).toBeTruthy();
+    await expect(canvas.getByTestId('player-status').textContent).toBe('Buscando');
+  },
+};
+
+/** Fim da aula com opções de replay / próxima. */
+export const Ended: Story = {
+  args: { ...baseArgs, course: endedCourse, loadingDelayMs: 0 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByTestId('player-ended')).toBeTruthy();
+    await expect(canvas.getByTestId('player-status').textContent).toBe('Concluída');
+  },
+};
+
+/** Erro: arquivo indisponível / HD desconectado. */
 export const UnavailableState: Story = {
-  parameters: {
-    backgrounds: { default: 'custom' },
-    background: {
-      name: 'dark',
-      value: '#0D111B',
-    },
-  },
-  args: {
-    course: unavailableCourse,
-    initialLessonId: mockInitialLessonId,
-    onBack: () => {},
-    onCompleteLesson: () => {},
+  args: { ...baseArgs, course: unavailableCourse, loadingDelayMs: 0 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByTestId('player-error')).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: /tentar reconectar/i })).toBeTruthy();
   },
 };
 
+/** Menu contextual de legendas aberto. */
 export const SubtitleMenuOpen: Story = {
-  args: {
-    course: mockCourse,
-    initialLessonId: mockInitialLessonId,
-    onBack: () => {},
-    onCompleteLesson: () => {},
-  },
+  args: { ...baseArgs, loadingDelayMs: 0 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /legendas e idiomas \(cc\)/i }));
     await expect(canvas.getByTestId('subtitles-floating-menu')).toBeTruthy();
+  },
+};
+
+/** Menu de velocidade de reprodução aberto. */
+export const SpeedMenuOpen: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /velocidade de reprodução: 1x/i }));
+    await expect(canvas.getByTestId('speed-floating-menu')).toBeTruthy();
   },
 };

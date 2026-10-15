@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Movie } from '../../types/library';
 import {
   ArrowLeft,
@@ -9,54 +9,85 @@ import {
   RotateCcw,
   RotateCw,
   Film,
+  Check,
 } from 'lucide-react';
+import { Spinner } from '../ui/Spinner';
+import { usePlayerLifecycle } from './usePlayerLifecycle';
 
 interface MoviePlayerViewProps {
   movie: Movie;
   onBack: () => void;
+  /** Simulação: atraso do carregamento inicial (ms). */
+  loadingDelayMs?: number;
+  /** Simulação: atraso do buffer (ms). */
+  bufferingDelayMs?: number;
+  /** Simulação: atraso da busca (ms). */
+  seekDelayMs?: number;
 }
 
 function formatTime(sec: number): string {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = Math.floor(sec % 60);
+  const safe = Math.max(0, Math.floor(sec));
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = Math.floor(safe % 60);
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(
-    Math.floor((movie.progress / 100) * movie.duration),
+export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
+  movie,
+  onBack,
+  loadingDelayMs,
+  bufferingDelayMs,
+  seekDelayMs,
+}) => {
+  const duration = movie.duration || 1;
+  const initialTime = useMemo(
+    () => Math.floor((movie.progress / 100) * duration),
+    [movie.id, movie.progress, duration],
   );
+
+  const {
+    status,
+    isPlaying,
+    currentTime,
+    isLoading,
+    isBuffering,
+    isSeeking,
+    hasEnded,
+    toggle,
+    replay,
+    seek,
+    skip,
+  } = usePlayerLifecycle({
+    mediaKey: movie.id,
+    duration,
+    initialTime,
+    loadingDelayMs,
+    bufferingDelayMs,
+    seekDelayMs,
+  });
+
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Simulação de progresso
-  useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setCurrentTime(prev => {
-          if (prev >= movie.duration) {
-            setIsPlaying(false);
-            return movie.duration;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying, movie.duration]);
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const progress = movie.duration > 0 ? (currentTime / movie.duration) * 100 : 0;
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = (e.clientX - rect.left) / rect.width;
+    seek(ratio * duration);
+  };
+
+  const handleTimelineKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); skip(10); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); skip(-10); }
+  };
 
   return (
     <div
+      data-status={status}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -78,6 +109,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%)',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '14px',
         }}
       >
@@ -106,6 +138,18 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
             {movie.title}
           </span>
         </div>
+        <span
+          data-testid="movie-status"
+          style={{
+            fontSize: '10px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            color: hasEnded ? '#10B981' : isPlaying ? '#A594FF' : '#94A3B8',
+          }}
+        >
+          {hasEnded ? 'Finalizado' : isLoading ? 'Carregando' : isBuffering ? 'Armazenando' : isSeeking ? 'Buscando' : isPlaying ? 'Reproduzindo' : 'Pausado'}
+        </span>
       </div>
 
       {/* Video Placeholder */}
@@ -117,12 +161,11 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          cursor: 'pointer',
+          cursor: isLoading || hasEnded ? 'default' : 'pointer',
         }}
-        onClick={() => setIsPlaying(p => !p)}
+        onClick={() => { if (!isLoading && !hasEnded) toggle(); }}
         data-testid="movie-player-canvas"
       >
-        {/* Cover image as placeholder */}
         <img
           src={movie.coverUrl}
           alt={movie.title}
@@ -132,30 +175,91 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            opacity: 0.3,
+            opacity: isLoading || isSeeking ? 0.15 : 0.3,
           }}
         />
-        <div
-          style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.12)',
-            border: '2px solid rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            zIndex: 2,
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          {isPlaying ? (
-            <Pause size={30} color="#FFFFFF" />
-          ) : (
-            <Play size={30} color="#FFFFFF" style={{ marginLeft: '3px' }} />
-          )}
-        </div>
+
+        {isLoading ? (
+          <div
+            data-testid="movie-loading"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#94A3B8', zIndex: 2 }}
+          >
+            <Spinner size={36} color="#10B981" />
+            <span style={{ fontSize: '13px' }}>Carregando filme...</span>
+          </div>
+        ) : hasEnded ? (
+          <div
+            data-testid="movie-ended"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', zIndex: 2, textAlign: 'center' }}
+          >
+            <Check size={34} color="#10B981" />
+            <h3 style={{ color: '#F0F4FC', fontSize: '16px', fontWeight: 600, margin: 0 }}>Fim do filme</h3>
+            <button
+              onClick={(e) => { e.stopPropagation(); replay(); }}
+              aria-label="Reproduzir novamente"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#10B981',
+                color: '#04110C',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCcw size={14} />
+              Reproduzir novamente
+            </button>
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.12)',
+                border: '2px solid rgba(255,255,255,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                zIndex: 2,
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              {isBuffering ? (
+                <Spinner size={30} color="#FFFFFF" />
+              ) : isPlaying ? (
+                <Pause size={30} color="#FFFFFF" />
+              ) : (
+                <Play size={30} color="#FFFFFF" style={{ marginLeft: '3px' }} />
+              )}
+            </div>
+
+            {isBuffering && (
+              <div
+                data-testid="movie-buffering"
+                style={{
+                  position: 'absolute',
+                  bottom: '24px',
+                  zIndex: 3,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  borderRadius: '999px',
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  color: '#E2E8F0',
+                }}
+              >
+                Armazenando em buffer...
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Bottom Controls */}
@@ -170,8 +274,17 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
           background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
         }}
       >
-        {/* Progress bar */}
+        {/* Timeline */}
         <div
+          role="slider"
+          aria-label="Linha do tempo"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration)}
+          aria-valuenow={Math.round(currentTime)}
+          tabIndex={0}
+          data-testid="movie-timeline"
+          onClick={handleTimelineClick}
+          onKeyDown={handleTimelineKeyDown}
           style={{
             width: '100%',
             height: '4px',
@@ -195,7 +308,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               aria-label="Retroceder 10s"
-              onClick={() => setCurrentTime(t => Math.max(0, t - 10))}
+              onClick={() => skip(-10)}
               style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
             >
               <RotateCcw size={20} />
@@ -203,7 +316,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
 
             <button
               aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
-              onClick={() => setIsPlaying(p => !p)}
+              onClick={toggle}
               style={{
                 background: 'rgba(255,255,255,0.12)',
                 border: '1px solid rgba(255,255,255,0.15)',
@@ -222,18 +335,17 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({ movie, onBack 
 
             <button
               aria-label="Avançar 10s"
-              onClick={() => setCurrentTime(t => Math.min(movie.duration, t + 10))}
+              onClick={() => skip(10)}
               style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
             >
               <RotateCw size={20} />
             </button>
 
             <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 500 }}>
-              {formatTime(currentTime)} / {formatTime(movie.duration)}
+              {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
 
-          {/* Volume */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               aria-label={isMuted ? 'Desativar mudo' : 'Ativar mudo'}
