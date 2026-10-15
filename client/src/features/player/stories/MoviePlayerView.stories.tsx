@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { within, userEvent, expect, waitFor } from 'storybook/test';
+import { within, userEvent, expect, waitFor, fireEvent } from 'storybook/test';
 import { MoviePlayerView } from '../../../components/player/MoviePlayerView';
 import { MOCK_MOVIES } from '../../../services/mockData';
 import { Movie } from '../../../types/library';
@@ -34,6 +34,7 @@ const meta: Meta<typeof MoviePlayerView> = {
     loadingDelayMs: { control: { type: 'number' } },
     bufferingDelayMs: { control: { type: 'number' } },
     seekDelayMs: { control: { type: 'number' } },
+    controlsAutoHideDelayMs: { control: { type: 'number' } },
   },
 };
 
@@ -63,6 +64,22 @@ export const Playing: Story = {
     await userEvent.click(canvas.getByRole('button', { name: /reproduzir/i }));
     await canvas.findByRole('button', { name: /pausar/i });
     await waitFor(() => expect(canvas.getByTestId('movie-status').textContent).toBe('Reproduzindo'));
+  },
+};
+
+/** Controles se auto-ocultam durante a reprodução e reaparecem ao mover o mouse. */
+export const ControlsAutoHide: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60, controlsAutoHideDelayMs: 150 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /reproduzir/i }));
+    await waitFor(() =>
+      expect(canvas.getByTestId('movie-controls').style.opacity).toBe('0'),
+    );
+    fireEvent.mouseMove(canvas.getByTestId('movie-player-canvas'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('movie-controls').style.opacity).toBe('1'),
+    );
   },
 };
 

@@ -23,6 +23,7 @@ import { IconButton } from '../ui/IconButton';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Spinner } from '../ui/Spinner';
 import { usePlayerLifecycle } from './usePlayerLifecycle';
+import { useAutoHideControls } from './useAutoHideControls';
 
 interface VideoPlayerViewProps {
   course: Course;
@@ -35,6 +36,8 @@ interface VideoPlayerViewProps {
   bufferingDelayMs?: number;
   /** Simulação: atraso da busca (ms). */
   seekDelayMs?: number;
+  /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
+  controlsAutoHideDelayMs?: number;
 }
 
 const LOADING_LABELS = ['Carregando aula...', 'Preparando reprodução...', 'Sincronizando legendas...'];
@@ -47,6 +50,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   loadingDelayMs,
   bufferingDelayMs,
   seekDelayMs,
+  controlsAutoHideDelayMs,
 }) => {
   // Lista linear de todas as aulas do curso
   const allLessons: Lesson[] = [];
@@ -110,6 +114,27 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(() => {
     return mockLibraryService.getSubtitlePreference(course.id, initialLessonId) || 'sub-pt';
   });
+
+  // Auto-ocultação dos controles durante a reprodução
+  const controlsLocked =
+    showSpeedMenu ||
+    showSubtitleMenu ||
+    !isPlaying ||
+    hasEnded ||
+    hasError ||
+    isLoading ||
+    isBuffering ||
+    isSeeking;
+  const { areControlsVisible, showControls } = useAutoHideControls({
+    isPlaying,
+    keepVisible: controlsLocked,
+    autoHideDelayMs: controlsAutoHideDelayMs,
+  });
+  const controlsVisibilityStyle: React.CSSProperties = {
+    opacity: areControlsVisible ? 1 : 0,
+    transition: 'opacity 0.25s ease',
+    pointerEvents: areControlsVisible ? 'auto' : 'none',
+  };
 
   // Restaura preferência de legenda ao trocar de aula
   useEffect(() => {
@@ -276,6 +301,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
           data-testid="video-player-container"
           data-aspect-ratio="16:9"
           data-status={status}
+          onMouseMove={showControls}
           style={{
             width: '100%',
             maxWidth: '1060px',
@@ -386,6 +412,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 role="button"
                 aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
                 style={{
+                  ...controlsVisibilityStyle,
                   width: '72px',
                   height: '72px',
                   borderRadius: '50%',
@@ -592,7 +619,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
 
           {/* Bottom Player Controls Overlay */}
           <div
+            data-testid="player-controls"
             style={{
+              ...controlsVisibilityStyle,
               background: 'linear-gradient(to top, rgba(7, 10, 16, 0.95) 0%, rgba(7, 10, 16, 0.4) 70%, transparent 100%)',
               padding: '16px 20px',
               display: 'flex',

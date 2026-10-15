@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Spinner } from '../ui/Spinner';
 import { usePlayerLifecycle } from './usePlayerLifecycle';
+import { useAutoHideControls } from './useAutoHideControls';
 
 interface MoviePlayerViewProps {
   movie: Movie;
@@ -23,6 +24,8 @@ interface MoviePlayerViewProps {
   bufferingDelayMs?: number;
   /** Simulação: atraso da busca (ms). */
   seekDelayMs?: number;
+  /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
+  controlsAutoHideDelayMs?: number;
 }
 
 function formatTime(sec: number): string {
@@ -40,6 +43,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   loadingDelayMs,
   bufferingDelayMs,
   seekDelayMs,
+  controlsAutoHideDelayMs,
 }) => {
   const duration = movie.duration || 1;
   const initialTime = useMemo(
@@ -71,6 +75,18 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
 
+  const controlsLocked = !isPlaying || hasEnded || isLoading || isBuffering || isSeeking;
+  const { areControlsVisible, showControls } = useAutoHideControls({
+    isPlaying,
+    keepVisible: controlsLocked,
+    autoHideDelayMs: controlsAutoHideDelayMs,
+  });
+  const controlsVisibilityStyle: React.CSSProperties = {
+    opacity: areControlsVisible ? 1 : 0,
+    transition: 'opacity 0.25s ease',
+    pointerEvents: areControlsVisible ? 'auto' : 'none',
+  };
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -88,6 +104,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   return (
     <div
       data-status={status}
+      onMouseMove={showControls}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -219,6 +236,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
           <>
             <div
               style={{
+                ...controlsVisibilityStyle,
                 width: '72px',
                 height: '72px',
                 borderRadius: '50%',
@@ -264,7 +282,9 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
 
       {/* Bottom Controls */}
       <div
+        data-testid="movie-controls"
         style={{
+          ...controlsVisibilityStyle,
           position: 'absolute',
           bottom: 0,
           left: 0,

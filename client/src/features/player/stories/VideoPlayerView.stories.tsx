@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { within, userEvent, expect, waitFor } from 'storybook/test';
+import { within, userEvent, expect, waitFor, fireEvent } from 'storybook/test';
 import { VideoPlayerView } from '../../../components/player/VideoPlayerView';
 import { Course } from '../../../types/library';
 
@@ -80,6 +80,7 @@ const meta: Meta<typeof VideoPlayerView> = {
     loadingDelayMs: { control: { type: 'number' } },
     bufferingDelayMs: { control: { type: 'number' } },
     seekDelayMs: { control: { type: 'number' } },
+    controlsAutoHideDelayMs: { control: { type: 'number' } },
   },
 };
 
@@ -122,6 +123,22 @@ export const Buffering: Story = {
     await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
     await expect(canvas.getByTestId('player-buffering')).toBeTruthy();
     await expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando');
+  },
+};
+
+/** Controles se auto-ocultam durante a reprodução e reaparecem ao mover o mouse. */
+export const ControlsAutoHide: Story = {
+  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60, controlsAutoHideDelayMs: 150 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    await waitFor(() =>
+      expect(canvas.getByTestId('player-controls').style.opacity).toBe('0'),
+    );
+    fireEvent.mouseMove(canvas.getByTestId('video-player-container'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('player-controls').style.opacity).toBe('1'),
+    );
   },
 };
 
