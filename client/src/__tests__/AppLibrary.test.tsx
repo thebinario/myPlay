@@ -1,0 +1,36 @@
+/**
+ * MIDOTECA — Fase 1: integração App ↔ repositório (fonte única de verdade).
+ * Garante que mutações no repositório se refletem na UI sem estado duplicado.
+ */
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, beforeEach } from 'vitest';
+import App from '../App';
+import { MOCK_COURSES, mockLibraryService } from '../services/mockData';
+
+const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+describe('App — fonte única de verdade do catálogo', () => {
+  beforeEach(() => mockLibraryService.resetAll());
+
+  it('atualiza o progresso na tela de detalhes ao concluir uma aula (sem estado local duplicado)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByTestId(`home-course-${inProgressCourse.id}`));
+    expect(screen.getByText(`${inProgressCourse.progress}% concluído`)).toBeInTheDocument();
+
+    const lesson = inProgressCourse.modules.flatMap((m) => m.lessons).find((l) => !l.completed)!;
+    await user.click(
+      screen.getByLabelText(new RegExp(`marcar ${escapeRegExp(lesson.title)} como concluída`, 'i')),
+    );
+
+    const updated = mockLibraryService.getCourseById(inProgressCourse.id)!;
+    expect(updated.progress).not.toBe(inProgressCourse.progress);
+    expect(screen.getByText(`${updated.progress}% concluído`)).toBeInTheDocument();
+  });
+});

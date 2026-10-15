@@ -1,176 +1,81 @@
-# MyPlay - Player de Vídeo Portátil
+# MIDOTECA (ex-myPlay)
 
-Este projeto é um player de vídeo portátil projetado para rodar diretamente de dispositivos externos (pendrives, HDs externos, etc). Ele escaneia automaticamente os vídeos do dispositivo onde está rodando, permitindo uma experiência plug-and-play.
+Biblioteca **local-first** de mídia para desktop: cursos em vídeo, filmes e
+documentos PDF. Roda a partir de arquivos no próprio dispositivo (pendrive/HD
+externo), com catálogo navegável offline, histórico de reprodução/leitura e
+persistência local.
 
-## 🎯 Objetivo
+## Estrutura do repositório
 
-O MyPlay foi criado para ser uma solução portátil e prática para reprodução de vídeos:
-- Roda diretamente de pendrives ou HDs externos
-- Escaneia automaticamente os vídeos do dispositivo
-- Mantém o histórico de reprodução
-- Interface moderna e intuitiva
-- Não depende de diretórios fixos do computador
-
-## 🏗️ Arquitetura do Projeto
-
-### Frontend (Client)
-
-O frontend é uma aplicação React moderna construída com TypeScript, utilizando Material-UI para a interface do usuário.
-
-#### Tecnologias Principais
-- **React 19**
-- **TypeScript**
-- **Material-UI v7**
-- **Video.js** para reprodução de vídeo
-- **HLS.js** para streaming HLS
-- **Axios** para requisições HTTP
-
-#### Estrutura do Frontend
 ```
-client/
-├── src/           # Código fonte da aplicação
-├── public/        # Arquivos públicos
-└── package.json   # Dependências e scripts
+myPlay/
+├── client/     # Aplicação desktop (React 19 + TypeScript + Vite) — app real
+├── midoteca/   # Novo backend (NestJS + SQLite), arquitetura DDD/hexagonal
+├── backend/    # myPlay legado (NestJS + PostgreSQL) — descontinuado
+└── docs/       # Arquitetura, DDD, testes e roadmap de refatoração
 ```
 
-### Backend (Video Server)
+## Frontend (`client/`)
 
-O backend é construído com NestJS, um framework Node.js progressivo que utiliza TypeScript.
+Aplicação React 19 + TypeScript (strict) + Vite 6. Interface própria no design
+system da Midoteca (fundo `#0D111B`, destaque violeta `#A594FF`), sem biblioteca
+de UI externa.
 
-#### Tecnologias Principais
-- **NestJS 11**
-- **TypeScript**
-- **TypeORM** para persistência de dados
-- **PostgreSQL** como banco de dados
-- **Node Media Server** para streaming
-- **FFmpeg** para processamento de vídeo
+**Tecnologias**
 
-#### Estrutura do Backend
-```
-backend/
-├── src/           # Código fonte do servidor
-├── test/          # Arquivos de teste
-├── dist/          # Código compilado
-├── uploads/       # Diretório para uploads
-├── public/        # Arquivos públicos
-└── video-server/  # Configurações do servidor de vídeo
-```
+- React 19 + TypeScript
+- Vite 6 (dev server e build)
+- `lucide-react` (ícones)
+- HTML5 `<video>` nativo para reprodução de MP4
+- `pdfjs-dist` para leitura de PDF real
+- Vitest + Testing Library (jsdom) e Storybook (vitest addon + Playwright)
 
-## 🚀 Como Executar
+**Arquitetura (Ports & Adapters)**
 
-### Pré-requisitos
+- `src/services/contracts.ts` — contratos (`LibraryRepository`, catálogo,
+  reprodução, leitura, provedor de páginas, pesquisa).
+- `src/services/LibraryContext.tsx` — `LibraryProvider` e hooks
+  (`useLibrary`, `useLibraryRepository`); fonte única de verdade reativa via
+  `useSyncExternalStore`.
+- `src/services/libraryStorage.ts` — porta de persistência + adapter
+  `localStorage` (composição do repositório persistente).
+- Componentes visuais finos; lógica em hooks (`usePdfReader`,
+  `useUniversalSearch`, `useCourseEditor`, `useVideoPlayer`) e no repositório.
+- Mídia real em `client/public/media/{videos,docs}`.
 
-#### Banco de Dados
-O projeto utiliza PostgreSQL como banco de dados. A aplicação criará automaticamente:
-- Role `myPlay` com senha `myPlay`
-- Banco de dados `video_server`
-- Todas as tabelas necessárias
+**Scripts** (Yarn)
 
-Você só precisa ter:
-1. PostgreSQL instalado e rodando
-2. Usuário `postgres` com senha `postgres` (ou atualizar as credenciais em `backend/src/config/database.config.ts`)
-
-A URL de conexão final será:
-```
-postgresql://myPlay:myPlay@localhost:5432/video_server
-```
-
-### Instalação em um Dispositivo Externo
-
-1. Copie todo o projeto para seu dispositivo externo (pendrive, HD externo, etc)
-
-2. Instale as dependências do frontend:
 ```bash
-cd client
-npm install
+yarn dev               # servidor de desenvolvimento (porta 3333)
+yarn build             # tsc + vite build
+yarn test              # Vitest (unidade + stories)
+yarn test:storybook    # apenas testes de stories (chromium)
+yarn test:coverage     # cobertura
+yarn storybook         # Storybook em http://localhost:6006
+yarn build-storybook   # build estático do Storybook
 ```
 
-3. Instale as dependências do backend:
-```bash
-cd backend
-npm install
-```
+## Backend (`midoteca/`)
 
-4. Execute o projeto:
-```bash
-# No diretório backend
-npm run start:dev
+Novo núcleo em NestJS + SQLite, organizado por domínios (Library, Courses,
+Media, Documents, Progress, Indexing, Search, Jobs, Settings) com Clean
+Architecture. Consulte `midoteca/README.md` e `midoteca/docs/`.
 
-# Em outro terminal, no diretório client
-npm start
-```
+## Backend legado (`backend/`)
 
-O sistema irá:
-1. Detectar automaticamente o diretório raiz do dispositivo onde está rodando
-2. Escanear recursivamente todos os vídeos encontrados
-3. Criar um banco de dados local para armazenar o histórico de reprodução
+Implementação original do myPlay (NestJS + PostgreSQL + FFmpeg). **Não é mais a
+base de código**; os conceitos úteis estão registrados em
+`midoteca/docs/MYPLAY_AUDIT.md`. Não migrar.
 
-## 📝 Funcionalidades
+## Documentação
 
-- Escaneamento automático de vídeos do dispositivo
-- Reprodução de vídeos com controles avançados
-- Histórico de reprodução (última posição assistida)
-- Interface responsiva
-- Suporte a múltiplos formatos de vídeo
-- Lista de reprodução dinâmica
-- Navegação entre vídeos (anterior/próximo)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`docs/DDD_GUIDELINES.md`](docs/DDD_GUIDELINES.md)
+- [`docs/CODE_ORGANIZATION.md`](docs/CODE_ORGANIZATION.md)
+- [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md)
+- [`docs/REFACTORING_ROADMAP.md`](docs/REFACTORING_ROADMAP.md)
+- [`AGENTS.md`](AGENTS.md) — diretrizes de arquitetura e refatoração
 
-## 🎮 Como Usar
+## Licença
 
-1. Copie o projeto para seu dispositivo externo
-2. Execute o backend e frontend
-3. O sistema automaticamente:
-   - Detecta o diretório raiz do dispositivo
-   - Escaneia todos os vídeos compatíveis
-   - Cria um banco de dados local para o histórico
-   - Exibe a lista de vídeos encontrados
-
-## 📁 Formatos Suportados
-
-- MP4 (.mp4)
-- AVI (.avi)
-- MKV (.mkv)
-- MOV (.mov)
-- WMV (.wmv)
-
-## 🛠️ Scripts Disponíveis
-
-### Frontend
-- `npm start`: Inicia o servidor de desenvolvimento
-- `npm build`: Compila o projeto para produção
-- `npm test`: Executa os testes
-
-### Backend
-- `npm run start:dev`: Inicia o servidor em modo desenvolvimento
-- `npm run start:prod`: Inicia o servidor em modo produção
-- `npm run build`: Compila o projeto
-
-## 🔧 Configuração
-
-O sistema é projetado para ser plug-and-play, não necessitando de configurações específicas de diretório. Ele automaticamente:
-1. Detecta o dispositivo onde está rodando
-2. Escaneia os vídeos disponíveis
-3. Cria um banco de dados local para o histórico
-
-## 📱 Responsividade
-
-A interface se adapta automaticamente a diferentes tamanhos de tela:
-- **Desktop**: Layout lado a lado (player + lista)
-- **Tablet**: Layout ajustável
-- **Mobile**: Layout empilhado
-
-## 📚 Documentação Adicional
-
-A API do backend possui documentação Swagger disponível em `/api-docs` quando o servidor está em execução.
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença UNLICENSED. Veja o arquivo `LICENSE` para mais detalhes. 
+UNLICENSED.

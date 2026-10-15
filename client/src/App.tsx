@@ -9,12 +9,9 @@ import { MiniPlayer } from './components/player/MiniPlayer';
 import { PdfViewer } from './components/pdf/PdfViewer';
 import { HomeView } from './components/home/HomeView';
 import { SearchView } from './components/search/SearchView';
-import { NavigationTab, Course, Document, LibraryItem } from './types/library';
-import {
-  MOCK_LIBRARY,
-  MOCK_MOVIES,
-  mockLibraryService,
-} from './services/mockData';
+import { SettingsView } from './components/settings/SettingsView';
+import { NavigationTab, Course } from './types/library';
+import { useLibrary } from './services/LibraryContext';
 
 type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
 
@@ -33,7 +30,10 @@ export const App: React.FC = () => {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
-  const [items, setItems] = useState<LibraryItem[]>(() => MOCK_LIBRARY);
+
+  // Catálogo: fonte única de verdade (repositório + assinatura de mudanças)
+  const { repository, items, courses, movies, documents } = useLibrary();
+  const docs = documents;
 
   // Sessão de reprodução ativa (tela cheia) e seu estado minimizado (mini player)
   const [session, setSession] = useState<PlaybackSession | null>(null);
@@ -54,31 +54,27 @@ export const App: React.FC = () => {
   }, [currentTab, resumeTime]);
 
   const selectedCourse = selectedCourseId
-    ? (items.find(i => i.id === selectedCourseId && i.type === 'course') as Course | undefined)
+    ? (items.find((i) => i.id === selectedCourseId && i.type === 'course') as Course | undefined)
     : undefined;
 
-  const docs = items.filter(i => i.type === 'document') as Document[];
-  const selectedDoc = selectedDocId ? docs.find(d => d.id === selectedDocId) : undefined;
+  const selectedDoc = selectedDocId ? docs.find((d) => d.id === selectedDocId) : undefined;
 
-  const courses = items.filter(i => i.type === 'course') as Course[];
-  const movies = items.filter(i => i.type === 'movie') as typeof MOCK_MOVIES;
-  const selectedMovie = selectedMovieId
-    ? movies.find(m => m.id === selectedMovieId)
-    : undefined;
+  const selectedMovie = selectedMovieId ? movies.find((m) => m.id === selectedMovieId) : undefined;
 
   // ── Mídia exibida no mini player ─────────────────────────────────────────────
   const miniCourse = session?.courseId
-    ? (items.find(i => i.id === session.courseId && i.type === 'course') as Course | undefined)
+    ? (items.find((i) => i.id === session.courseId && i.type === 'course') as Course | undefined)
     : undefined;
-  const miniMovie = session?.movieId ? movies.find(m => m.id === session.movieId) : undefined;
-  const miniLesson = miniCourse && session?.lessonId
-    ? miniCourse.modules.flatMap(m => m.lessons).find(l => l.id === session.lessonId)
-    : undefined;
+  const miniMovie = session?.movieId ? movies.find((m) => m.id === session.movieId) : undefined;
+  const miniLesson =
+    miniCourse && session?.lessonId
+      ? miniCourse.modules.flatMap((m) => m.lessons).find((l) => l.id === session.lessonId)
+      : undefined;
   const showMiniPlayer = !!session && isMinimized && !!(miniLesson || miniMovie);
 
   const minimizeActiveSession = useCallback(() => {
     const snapshot = playerSnapshotRef.current;
-    setSession(prev =>
+    setSession((prev) =>
       prev ? { ...prev, time: snapshot.currentTime, isPlaying: snapshot.isPlaying } : prev,
     );
     setIsMinimized(true);
@@ -121,10 +117,11 @@ export const App: React.FC = () => {
   };
 
   const handlePlayLesson = (courseId: string, lessonId: string) => {
-    const course = items.find(i => i.id === courseId && i.type === 'course') as Course | undefined;
-    const lesson = course?.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
+    const course = items.find((i) => i.id === courseId && i.type === 'course') as
+      Course | undefined;
+    const lesson = course?.modules.flatMap((m) => m.lessons).find((l) => l.id === lessonId);
     const time = lesson
-      ? mockLibraryService.getPlaybackPosition(courseId, lessonId) || lesson.lastPlaybackPosition || 0
+      ? repository.getPlaybackPosition(courseId, lessonId) || lesson.lastPlaybackPosition || 0
       : 0;
     setSelectedCourseId(courseId);
     setSelectedLessonId(lessonId);
@@ -137,7 +134,7 @@ export const App: React.FC = () => {
 
   const handleOpenMovie = (movieId: string) => {
     // Filmes abrem como player standalone (sem curso)
-    const movie = movies.find(m => m.id === movieId);
+    const movie = movies.find((m) => m.id === movieId);
     const time = movie ? Math.floor((movie.progress / 100) * (movie.duration || 1)) : 0;
     setSelectedMovieId(movieId);
     setSelectedCourseId(null);
@@ -194,15 +191,12 @@ export const App: React.FC = () => {
     setCurrentTab('pdf-viewer');
   };
 
-  const handleSaveEditedCourse = (updatedCourse: Course) => {
-    setItems(prev => prev.map(item => (item.id === updatedCourse.id ? { ...updatedCourse } : item)));
+  const handleSaveEditedCourse = (_updatedCourse: Course) => {
+    // O catálogo é atualizado pelo repositório (emit) e reflete via useLibrary().
   };
 
   const handleToggleLesson = (courseId: string, lessonId: string) => {
-    const updated = mockLibraryService.toggleLessonCompletion(courseId, lessonId);
-    if (updated) {
-      setItems(prev => prev.map(item => (item.id === courseId ? { ...updated } : item)));
-    }
+    repository.toggleLessonCompletion(courseId, lessonId);
   };
 
   // Atalho global Ctrl+K / Cmd+K → abre pesquisa
@@ -279,7 +273,7 @@ export const App: React.FC = () => {
             course={selectedCourse}
             initialLessonId={selectedLessonId}
             onBack={handleBackFromLessonPlayer}
-            onCompleteLesson={lessonId => handleToggleLesson(selectedCourse.id, lessonId)}
+            onCompleteLesson={(lessonId) => handleToggleLesson(selectedCourse.id, lessonId)}
             resumeTime={resumeTime}
             autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
             onProgress={handlePlayerProgress}
@@ -298,20 +292,10 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === 'pdf-viewer' && selectedDoc && (
-          <PdfViewer
-            document={selectedDoc}
-            onBack={handleBackToHome}
-          />
+          <PdfViewer document={selectedDoc} onBack={handleBackToHome} />
         )}
 
-        {currentTab === 'settings' && (
-          <div style={{ padding: '40px', color: '#94A3B8' }}>
-            <h1 style={{ color: '#FFFFFF', fontSize: '24px', margin: '0 0 12px' }}>
-              Configurações
-            </h1>
-            <p>Gerenciamento de bibliotecas, pastas e preferências do sistema na entrega 4.</p>
-          </div>
-        )}
+        {currentTab === 'settings' && <SettingsView />}
       </main>
 
       {showMiniPlayer && miniLesson && (

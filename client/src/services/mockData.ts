@@ -1,13 +1,28 @@
-import { Course, Movie, Document, LibraryItem, SubtitleTrack, PdfReadingState, PdfPageChunk, SearchResult, SearchFilter, ISearchService } from '../types/library';
+import {
+  Course,
+  Movie,
+  Document,
+  LibraryItem,
+  SubtitleTrack,
+  PdfReadingState,
+  PdfPageChunk,
+  SearchResult,
+  SearchFilter,
+  ISearchService,
+} from '../types/library';
+import type { LibraryRepository } from './contracts';
+import { STORAGE_VERSION, type LibraryStorage } from './libraryStorage';
 
 export const MOCK_COURSES: Course[] = [
   {
     id: 'course-react-desktop',
     type: 'course',
     title: 'Arquitetura Desktop Moderna com Tauri & React',
-    description: 'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
+    description:
+      'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
     category: 'Desenvolvimento',
-    coverUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
     totalDuration: 3548,
     progress: 45,
     tags: ['React', 'Tauri', 'TypeScript', 'Desktop'],
@@ -30,9 +45,25 @@ export const MOCK_COURSES: Course[] = [
             order: 1,
             lastPlaybackPosition: 120, // 2 minutos já assistidos
             subtitles: [
-              { id: 'sub-pt', label: 'Português (Brasil)', language: 'pt-BR', isDefault: true, content: 'Nesta aula discutiremos Tauri vs Electron.' },
-              { id: 'sub-en', label: 'English', language: 'en', content: 'In this lesson we compare Tauri with Electron.' },
-              { id: 'sub-es', label: 'Español', language: 'es', content: 'En esta lección comparamos Tauri con Electron.' }
+              {
+                id: 'sub-pt',
+                label: 'Português (Brasil)',
+                language: 'pt-BR',
+                isDefault: true,
+                content: 'Nesta aula discutiremos Tauri vs Electron.',
+              },
+              {
+                id: 'sub-en',
+                label: 'English',
+                language: 'en',
+                content: 'In this lesson we compare Tauri with Electron.',
+              },
+              {
+                id: 'sub-es',
+                label: 'Español',
+                language: 'es',
+                content: 'En esta lección comparamos Tauri con Electron.',
+              },
             ],
             materials: [
               {
@@ -40,15 +71,15 @@ export const MOCK_COURSES: Course[] = [
                 title: 'Apostila Arquitetura Tauri vs Electron.pdf',
                 type: 'pdf',
                 fileSize: '2.4 MB',
-                url: '/materials/tauri-vs-electron.pdf'
+                url: '/materials/tauri-vs-electron.pdf',
               },
               {
                 id: 'mat-2',
                 title: 'Repositório de Exemplos e Boilerplate',
                 type: 'code',
-                url: 'https://github.com/example/tauri-starter'
-              }
-            ]
+                url: 'https://github.com/example/tauri-starter',
+              },
+            ],
           },
           {
             id: 'les-1-2',
@@ -64,9 +95,9 @@ export const MOCK_COURSES: Course[] = [
                 title: 'Guia de Instalação no macOS e Linux.pdf',
                 type: 'pdf',
                 fileSize: '1.1 MB',
-                url: '/materials/macos-linux-setup.pdf'
-              }
-            ]
+                url: '/materials/macos-linux-setup.pdf',
+              },
+            ],
           },
           {
             id: 'les-1-3',
@@ -81,11 +112,11 @@ export const MOCK_COURSES: Course[] = [
                 id: 'mat-4',
                 title: 'Diagrama de Fluxo de Mensagens IPC',
                 type: 'note',
-                url: '/materials/ipc-flow.md'
-              }
-            ]
-          }
-        ]
+                url: '/materials/ipc-flow.md',
+              },
+            ],
+          },
+        ],
       },
       {
         id: 'mod-2',
@@ -107,9 +138,9 @@ export const MOCK_COURSES: Course[] = [
                 title: 'Tokens de Cores e Tipografia.pdf',
                 type: 'pdf',
                 fileSize: '850 KB',
-                url: '/materials/design-tokens.pdf'
-              }
-            ]
+                url: '/materials/design-tokens.pdf',
+              },
+            ],
           },
           {
             id: 'les-2-2',
@@ -119,19 +150,21 @@ export const MOCK_COURSES: Course[] = [
             completed: false,
             videoUrl: '/media/videos/tears-of-steel.mp4',
             order: 2,
-            materials: []
-          }
-        ]
-      }
-    ]
+            materials: [],
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'course-tdd-react',
     type: 'course',
     title: 'Testes Automatizados com Vitest & React Testing Library',
-    description: 'Domine a metodologia TDD (Red, Green, Refactor) construindo aplicações reais e à prova de regressão.',
+    description:
+      'Domine a metodologia TDD (Red, Green, Refactor) construindo aplicações reais e à prova de regressão.',
     category: 'Engenharia',
-    coverUrl: 'https://images.unsplash.com/photo-1516116211227-bbc677464010?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1516116211227-bbc677464010?w=600&auto=format&fit=crop&q=80',
     totalDuration: 1484,
     progress: 75,
     tags: ['TDD', 'Vitest', 'Testing Library', 'Jest'],
@@ -158,9 +191,9 @@ export const MOCK_COURSES: Course[] = [
                 title: 'Cheat Sheet Vitest.pdf',
                 type: 'pdf',
                 fileSize: '650 KB',
-                url: '/materials/vitest-cheatsheet.pdf'
-              }
-            ]
+                url: '/materials/vitest-cheatsheet.pdf',
+              },
+            ],
           },
           {
             id: 'les-tdd-2',
@@ -170,19 +203,21 @@ export const MOCK_COURSES: Course[] = [
             completed: true,
             videoUrl: '/media/videos/big-buck-bunny.mp4',
             order: 2,
-            materials: []
-          }
-        ]
-      }
-    ]
+            materials: [],
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'course-ui-ux',
     type: 'course',
     title: 'Design System Escuro & Microinterações',
-    description: 'Criação de interfaces premium com foco em legibilidade, contraste e feedback tátil em desktops.',
+    description:
+      'Criação de interfaces premium com foco em legibilidade, contraste e feedback tátil em desktops.',
     category: 'Design',
-    coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
     totalDuration: 734,
     progress: 0,
     tags: ['UI/UX', 'Figma', 'CSS', 'Design System'],
@@ -202,12 +237,12 @@ export const MOCK_COURSES: Course[] = [
             completed: false,
             videoUrl: '/media/videos/tears-of-steel.mp4',
             order: 1,
-            materials: []
-          }
-        ]
-      }
-    ]
-  }
+            materials: [],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export const MOCK_MOVIES: Movie[] = [
@@ -215,28 +250,32 @@ export const MOCK_MOVIES: Movie[] = [
     id: 'movie-open-source',
     type: 'movie',
     title: 'The Code: A História do Software Livre',
-    description: 'Documentário cinematográfico sobre a revolução do código aberto e a evolução dos sistemas operacionais.',
+    description:
+      'Documentário cinematográfico sobre a revolução do código aberto e a evolução dos sistemas operacionais.',
     category: 'Documentário',
-    coverUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80',
     duration: 734, // 12:14
     progress: 30,
     videoUrl: '/media/videos/tears-of-steel.mp4',
     tags: ['Linux', 'Open Source', 'História'],
-    createdAt: '2026-01-20T18:00:00Z'
+    createdAt: '2026-01-20T18:00:00Z',
   },
   {
     id: 'movie-future-ai',
     type: 'movie',
     title: 'Fronteiras da Computação',
-    description: 'Exploração dos avanços em hardware neural e arquiteturas modernas de processamento local.',
+    description:
+      'Exploração dos avanços em hardware neural e arquiteturas modernas de processamento local.',
     category: 'Tecnologia',
-    coverUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80',
     duration: 596, // 9:56
     progress: 0,
     videoUrl: '/media/videos/big-buck-bunny.mp4',
     tags: ['AI', 'Hardware', 'Inovação'],
-    createdAt: '2026-02-05T20:00:00Z'
-  }
+    createdAt: '2026-02-05T20:00:00Z',
+  },
 ];
 
 export const MOCK_DOCUMENTS: Document[] = [
@@ -244,46 +283,98 @@ export const MOCK_DOCUMENTS: Document[] = [
     id: 'doc-clean-architecture',
     type: 'document',
     title: 'Clean Architecture para Aplicações Frontend.pdf',
-    description: 'Guia de desacoplamento, inversão de controle e estruturação de serviços independentes.',
+    description:
+      'Guia de desacoplamento, inversão de controle e estruturação de serviços independentes.',
     category: 'Livros',
-    coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
     totalPages: 120,
     lastReadPage: 34,
     fileUrl: '/media/docs/think-python.pdf',
     tags: ['Arquitetura', 'Clean Code'],
-    createdAt: '2026-01-10T11:00:00Z'
+    createdAt: '2026-01-10T11:00:00Z',
   },
   {
     id: 'doc-tauri-spec',
     type: 'document',
     title: 'Tauri Security Principles & Capabilities.pdf',
-    description: 'Documento de especificação de segurança e sandbox para desenvolvimento em Tauri v2.',
+    description:
+      'Documento de especificação de segurança e sandbox para desenvolvimento em Tauri v2.',
     category: 'Manuais',
-    coverUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
     totalPages: 48,
     lastReadPage: 12,
     fileUrl: '/media/docs/think-stats.pdf',
     tags: ['Segurança', 'Tauri', 'Rust'],
-    createdAt: '2026-02-18T15:30:00Z'
-  }
+    createdAt: '2026-02-18T15:30:00Z',
+  },
 ];
 
-export const MOCK_LIBRARY: LibraryItem[] = [
-  ...MOCK_COURSES,
-  ...MOCK_MOVIES,
-  ...MOCK_DOCUMENTS
-];
+export const MOCK_LIBRARY: LibraryItem[] = [...MOCK_COURSES, ...MOCK_MOVIES, ...MOCK_DOCUMENTS];
 
-export class MockLibraryService {
+export class MockLibraryService implements LibraryRepository {
   private items: LibraryItem[] = JSON.parse(JSON.stringify(MOCK_LIBRARY));
+  private listeners = new Set<() => void>();
+
+  constructor(private storage?: LibraryStorage) {
+    const persisted = storage?.load();
+    if (persisted) {
+      this.items = persisted.items;
+      persisted.playbackPositions.forEach(([key, value]) => this.playbackPositions.set(key, value));
+      persisted.subtitlePreferences.forEach(([key, value]) =>
+        this.subtitlePreferences.set(key, value),
+      );
+      persisted.readingStates.forEach(([key, value]) => this.pdfReadingStates.set(key, value));
+    }
+  }
+
+  /** Persiste o estado atual via porta de storage (se configurada). */
+  private persist(): void {
+    this.storage?.save({
+      version: STORAGE_VERSION,
+      items: this.items,
+      playbackPositions: [...this.playbackPositions.entries()],
+      subtitlePreferences: [...this.subtitlePreferences.entries()],
+      readingStates: [...this.pdfReadingStates.entries()],
+    });
+  }
+
+  /** Assina mudanças do catálogo (não dispara para estado de reprodução/leitura). */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private emit(): void {
+    this.items = [...this.items];
+    this.persist();
+    this.listeners.forEach((listener) => listener());
+  }
+
+  /** Restaura o catálogo e os estados auxiliares ao estado inicial (uso em testes). */
+  resetAll(): void {
+    this.items = JSON.parse(JSON.stringify(MOCK_LIBRARY));
+    this.playbackPositions.clear();
+    this.subtitlePreferences.clear();
+    this.pdfReadingStates.clear();
+    this.storage?.clear();
+    this.emit();
+  }
 
   getItems(type: 'all' | 'course' | 'movie' | 'document' = 'all'): LibraryItem[] {
     if (type === 'all') return this.items;
-    return this.items.filter(item => item.type === type);
+    return this.items.filter((item) => item.type === type);
+  }
+
+  getItemById(id: string): LibraryItem | undefined {
+    return this.items.find((item) => item.id === id);
   }
 
   getCourseById(id: string): Course | undefined {
-    const item = this.items.find(i => i.id === id && i.type === 'course');
+    const item = this.items.find((i) => i.id === id && i.type === 'course');
     return item as Course | undefined;
   }
 
@@ -293,21 +384,31 @@ export class MockLibraryService {
 
     let totalLessons = 0;
     let completedLessons = 0;
-
-    course.modules.forEach(module => {
-      module.lessons.forEach(lesson => {
-        if (lesson.id === lessonId) {
-          lesson.completed = !lesson.completed;
-        }
+    const modules = course.modules.map((module) => {
+      const lessons = module.lessons.map((lesson) => {
+        const completed = lesson.id === lessonId ? !lesson.completed : lesson.completed;
         totalLessons += 1;
-        if (lesson.completed) {
-          completedLessons += 1;
-        }
+        if (completed) completedLessons += 1;
+        return lesson.id === lessonId ? { ...lesson, completed } : lesson;
       });
+      return { ...module, lessons };
     });
 
-    course.progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-    return course;
+    const updated: Course = {
+      ...course,
+      modules,
+      progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+    };
+    this.replaceItem(updated);
+    this.emit();
+    return updated;
+  }
+
+  private replaceItem(item: LibraryItem): void {
+    const index = this.items.findIndex((i) => i.id === item.id);
+    if (index >= 0) {
+      this.items = [...this.items.slice(0, index), item, ...this.items.slice(index + 1)];
+    }
   }
 
   searchItems(query: string, type: 'all' | 'course' | 'movie' | 'document' = 'all'): LibraryItem[] {
@@ -315,11 +416,11 @@ export class MockLibraryService {
     const baseItems = this.getItems(type);
     if (!lower) return baseItems;
 
-    return baseItems.filter(item => {
+    return baseItems.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(lower);
       const matchDesc = item.description.toLowerCase().includes(lower);
       const matchCategory = item.category.toLowerCase().includes(lower);
-      const matchTags = item.tags.some(t => t.toLowerCase().includes(lower));
+      const matchTags = item.tags.some((t) => t.toLowerCase().includes(lower));
       return matchTitle || matchDesc || matchCategory || matchTags;
     });
   }
@@ -329,45 +430,35 @@ export class MockLibraryService {
   private playbackPositions = new Map<string, number>();
   private subtitlePreferences = new Map<string, string | null>();
 
-  saveCourse(updatedCourse: Course): Course {
-    // Preserva integridade, recalcula total de duração e progresso
+  saveCourse(course: Course): Course {
+    // Recalcula duração total e progresso sem mutar o objeto recebido
     let totalSec = 0;
     let totalLessons = 0;
     let completedLessons = 0;
 
-    updatedCourse.modules.forEach(m => {
-      m.lessons.forEach(l => {
+    course.modules.forEach((m) => {
+      m.lessons.forEach((l) => {
         totalSec += l.duration || 0;
         totalLessons += 1;
         if (l.completed) completedLessons += 1;
       });
     });
 
-    updatedCourse.totalDuration = totalSec;
-    updatedCourse.progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    const saved: Course = {
+      ...course,
+      totalDuration: totalSec,
+      progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+    };
 
-    const index = this.items.findIndex(i => i.id === updatedCourse.id);
-    if (index >= 0) {
-      this.items[index] = JSON.parse(JSON.stringify(updatedCourse));
-    }
-    return JSON.parse(JSON.stringify(updatedCourse));
+    this.replaceItem(saved);
+    this.emit();
+    return saved;
   }
 
   savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void {
-    const key = `${courseId}:${lessonId}`;
-    this.playbackPositions.set(key, positionSeconds);
-
-    const course = this.getCourseById(courseId);
-    if (course) {
-      for (const m of course.modules) {
-        for (const l of m.lessons) {
-          if (l.id === lessonId) {
-            l.lastPlaybackPosition = positionSeconds;
-            return;
-          }
-        }
-      }
-    }
+    // Estado de reprodução não altera o catálogo (evita re-render global por segundo)
+    this.playbackPositions.set(`${courseId}:${lessonId}`, positionSeconds);
+    this.persist();
   }
 
   getPlaybackPosition(courseId: string, lessonId: string): number {
@@ -391,6 +482,7 @@ export class MockLibraryService {
   saveSubtitlePreference(courseId: string, lessonId: string, subtitleId: string | null): void {
     const key = `${courseId}:${lessonId}`;
     this.subtitlePreferences.set(key, subtitleId);
+    this.persist();
   }
 
   getSubtitlePreference(courseId: string, lessonId: string): string | null {
@@ -403,21 +495,19 @@ export class MockLibraryService {
 
   addCustomSubtitle(courseId: string, lessonId: string, subtitle: SubtitleTrack): void {
     const course = this.getCourseById(courseId);
-    if (course) {
-      for (const m of course.modules) {
-        for (const l of m.lessons) {
-          if (l.id === lessonId) {
-            l.subtitles = l.subtitles || [];
-            l.subtitles.push(subtitle);
-            return;
-          }
-        }
-      }
-    }
+    if (!course) return;
+    const modules = course.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) =>
+        l.id === lessonId ? { ...l, subtitles: [...(l.subtitles ?? []), subtitle] } : l,
+      ),
+    }));
+    this.replaceItem({ ...course, modules });
+    this.emit();
   }
 
   resetCourse(courseId: string): Course | undefined {
-    const original = MOCK_COURSES.find(c => c.id === courseId);
+    const original = MOCK_COURSES.find((c) => c.id === courseId);
     if (original) {
       return this.saveCourse(JSON.parse(JSON.stringify(original)));
     }
@@ -429,16 +519,24 @@ export class MockLibraryService {
   private pdfReadingStates = new Map<string, PdfReadingState>();
 
   getDocumentById(id: string): Document | undefined {
-    const item = this.items.find(i => i.id === id && i.type === 'document');
+    const item = this.items.find((i) => i.id === id && i.type === 'document');
     return item as Document | undefined;
   }
 
   saveDocumentReadingState(docId: string, state: PdfReadingState): void {
     this.pdfReadingStates.set(docId, { ...state });
     const doc = this.getDocumentById(docId);
-    if (doc) {
-      doc.readingState = { ...state };
-      doc.lastReadPage = state.currentPage;
+    if (!doc) {
+      this.persist();
+      return;
+    }
+    // Atualiza o catálogo apenas quando a página muda (rolagem/zoom não re-renderizam a Home)
+    const next: Document = { ...doc, readingState: { ...state }, lastReadPage: state.currentPage };
+    if (doc.lastReadPage !== state.currentPage) {
+      this.replaceItem(next);
+      this.emit();
+    } else {
+      this.persist();
     }
   }
 
@@ -460,8 +558,9 @@ export class MockLibraryService {
 
   setDocumentUnavailable(docId: string, unavailable: boolean): void {
     const doc = this.getDocumentById(docId);
-    if (doc) {
-      doc.isUnavailable = unavailable;
+    if (doc && doc.isUnavailable !== unavailable) {
+      this.replaceItem({ ...doc, isUnavailable: unavailable });
+      this.emit();
     }
   }
 
@@ -492,14 +591,12 @@ export class MockLibraryService {
   }
 
   resetDocument(docId: string): Document | undefined {
-    const original = MOCK_DOCUMENTS.find(d => d.id === docId);
+    const original = MOCK_DOCUMENTS.find((d) => d.id === docId);
     if (original) {
-      const cloned = JSON.parse(JSON.stringify(original));
-      const idx = this.items.findIndex(i => i.id === docId);
-      if (idx >= 0) {
-        this.items[idx] = cloned;
-      }
+      const cloned: Document = JSON.parse(JSON.stringify(original));
+      this.replaceItem(cloned);
       this.pdfReadingStates.delete(docId);
+      this.emit();
       return cloned;
     }
     return undefined;
@@ -527,12 +624,12 @@ export class MockLibraryService {
 
     // Cursos e Aulas
     if (filter === 'all' || filter === 'course' || filter === 'lesson') {
-      for (const course of this.items.filter(i => i.type === 'course') as Course[]) {
+      for (const course of this.items.filter((i) => i.type === 'course') as Course[]) {
         const courseMatches =
           this.matches(course.title, q) ||
           this.matches(course.description, q) ||
           this.matches(course.category, q) ||
-          course.tags.some(t => this.matches(t, q));
+          course.tags.some((t) => this.matches(t, q));
 
         if ((filter === 'all' || filter === 'course') && courseMatches) {
           results.push({
@@ -549,10 +646,9 @@ export class MockLibraryService {
         if (filter === 'all' || filter === 'lesson') {
           for (const mod of course.modules) {
             for (const lesson of mod.lessons) {
-              const lessonMatches =
-                this.matches(lesson.title, q) ||
-                this.matches(mod.title, q);
+              const lessonMatches = this.matches(lesson.title, q) || this.matches(mod.title, q);
               if (lessonMatches) {
+                const position = this.getPlaybackPosition(course.id, lesson.id);
                 results.push({
                   kind: 'lesson',
                   itemId: lesson.id,
@@ -562,7 +658,11 @@ export class MockLibraryService {
                   title: lesson.title,
                   context: `${course.title} • ${mod.title}`,
                   available: !lesson.isUnavailable,
-                  progressLabel: lesson.completed ? 'Concluída' : lesson.lastPlaybackPosition ? `Retomar em ${Math.floor((lesson.lastPlaybackPosition || 0) / 60)}min` : undefined,
+                  progressLabel: lesson.completed
+                    ? 'Concluída'
+                    : position
+                      ? `Retomar em ${Math.floor(position / 60)}min`
+                      : undefined,
                   coverUrl: course.coverUrl,
                 });
               }
@@ -574,12 +674,12 @@ export class MockLibraryService {
 
     // Filmes
     if (filter === 'all' || filter === 'movie') {
-      for (const movie of this.items.filter(i => i.type === 'movie') as Movie[]) {
+      for (const movie of this.items.filter((i) => i.type === 'movie') as Movie[]) {
         const movieMatches =
           this.matches(movie.title, q) ||
           this.matches(movie.description, q) ||
           this.matches(movie.category, q) ||
-          movie.tags.some(t => this.matches(t, q));
+          movie.tags.some((t) => this.matches(t, q));
         if (movieMatches) {
           results.push({
             kind: 'movie',
@@ -596,12 +696,12 @@ export class MockLibraryService {
 
     // Documentos
     if (filter === 'all' || filter === 'document') {
-      for (const doc of this.items.filter(i => i.type === 'document') as Document[]) {
+      for (const doc of this.items.filter((i) => i.type === 'document') as Document[]) {
         const docMatches =
           this.matches(doc.title, q) ||
           this.matches(doc.description, q) ||
           this.matches(doc.category, q) ||
-          doc.tags.some(t => this.matches(t, q));
+          doc.tags.some((t) => this.matches(t, q));
         if (docMatches) {
           results.push({
             kind: 'document',
@@ -609,7 +709,8 @@ export class MockLibraryService {
             title: doc.title,
             context: doc.description,
             available: !doc.isUnavailable,
-            progressLabel: doc.lastReadPage > 1 ? `Página ${doc.lastReadPage} de ${doc.totalPages}` : undefined,
+            progressLabel:
+              doc.lastReadPage > 1 ? `Página ${doc.lastReadPage} de ${doc.totalPages}` : undefined,
             coverUrl: doc.coverUrl,
           });
         }
