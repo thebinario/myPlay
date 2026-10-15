@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { SearchView } from '../../search/SearchView';
-import { mockLibraryService } from '../../services/mockData';
+import { SearchView } from '../../../components/search/SearchView';
+import { mockLibraryService } from '../../../services/mockData';
 
 const meta: Meta<typeof SearchView> = {
   title: 'Search/SearchView',

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { PdfViewer } from '../../components/pdf/PdfViewer';
-import { mockLibraryService } from '../../services/mockData';
-import { Document } from '../../types/library';
+import { PdfViewer } from '../../../components/pdf/PdfViewer';
+import { mockLibraryService } from '../../../services/mockData';
+import { Document } from '../../../types/library';
 
 const mockDocument: Document = {
   id: 'doc-clean-architecture',

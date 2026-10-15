@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { VideoPlayerView } from '../../components/player/VideoPlayerView';
-import { mockLibraryService } from '../../services/mockData';
-import { Course, Lesson } from '../../types/library';
+import { VideoPlayerView } from '../../../components/player/VideoPlayerView';
+import { mockLibraryService } from '../../../services/mockData';
+import { Course, Lesson } from '../../../types/library';
 
 const mockCourse: Course = {
   id: 'course-react-desktop',

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { HomeView } from '../../home/HomeView';
-import { mockLibraryService } from '../../services/mockData';
+import { HomeView } from '../../../components/home/HomeView';
+import { mockLibraryService } from '../../../services/mockData';
 
 const meta: Meta<typeof HomeView> = {
   title: 'Home/HomeView',

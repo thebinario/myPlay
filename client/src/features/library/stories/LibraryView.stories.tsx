@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { LibraryView } from '../../library/LibraryView';
-import { mockLibraryService } from '../../services/mockData';
+import { LibraryView } from '../../../components/library/LibraryView';
+import { mockLibraryService } from '../../../services/mockData';
 
 const meta: Meta<typeof LibraryView> = {
   title: 'Library/LibraryView',

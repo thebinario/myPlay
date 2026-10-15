@@ -13,7 +13,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    extensions: ['.js', '.mjs', '.jsx', '.ts', '.tsx', '.mdx']
   },
   server: {
     port: 3333,
