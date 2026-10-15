@@ -69,4 +69,33 @@ describe('MIDOTECA - Fundação Visual e Navegação', () => {
     expect(screen.getByTestId('video-player-container')).toHaveAttribute('data-aspect-ratio', '16:9');
     expect(screen.getByRole('button', { name: /legendas e idiomas \(cc\)/i })).toBeInTheDocument();
   });
+
+  it('deve abrir um PDF a partir da Biblioteca e retornar', () => {
+    render(<App />);
+
+    // Clica no card de documento na Biblioteca
+    fireEvent.click(screen.getByText('Clean Architecture para Aplicações Frontend.pdf'));
+
+    // Valida que o leitor de PDF abriu
+    expect(screen.getByRole('button', { name: /voltar da leitura/i })).toBeInTheDocument();
+    expect(screen.getByTestId('pdf-page-canvas')).toBeInTheDocument();
+
+    // Retorna para a Biblioteca
+    fireEvent.click(screen.getByRole('button', { name: /voltar da leitura/i }));
+    expect(screen.getByRole('heading', { name: /biblioteca/i, level: 1 })).toBeInTheDocument();
+  });
+
+  it('deve abrir um PDF a partir do Início (Continuar de onde parou) e retomar a leitura', () => {
+    render(<App />);
+
+    // Navega para Início
+    fireEvent.click(screen.getByRole('button', { name: /início/i }));
+
+    // Clica no item de documento na seção Continuar
+    fireEvent.click(screen.getByText('Clean Architecture para Aplicações Frontend.pdf'));
+
+    // Deve abrir diretamente no leitor de PDF
+    expect(screen.getByRole('button', { name: /voltar da leitura/i })).toBeInTheDocument();
+    expect(screen.getByTestId('pdf-page-canvas')).toBeInTheDocument();
+  });
 });

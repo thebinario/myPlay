@@ -1,4 +1,4 @@
-import { Course, Movie, Document, LibraryItem, SubtitleTrack } from '../types/library';
+import { Course, Movie, Document, LibraryItem, SubtitleTrack, PdfReadingState, PdfPageChunk } from '../types/library';
 
 export const MOCK_COURSES: Course[] = [
   {
@@ -420,6 +420,87 @@ export class MockLibraryService {
     const original = MOCK_COURSES.find(c => c.id === courseId);
     if (original) {
       return this.saveCourse(JSON.parse(JSON.stringify(original)));
+    }
+    return undefined;
+  }
+
+  // --- MÉTODOS PARA ETAPA 3A: LEITOR DE PDF ---
+
+  private pdfReadingStates = new Map<string, PdfReadingState>();
+
+  getDocumentById(id: string): Document | undefined {
+    const item = this.items.find(i => i.id === id && i.type === 'document');
+    return item as Document | undefined;
+  }
+
+  saveDocumentReadingState(docId: string, state: PdfReadingState): void {
+    this.pdfReadingStates.set(docId, { ...state });
+    const doc = this.getDocumentById(docId);
+    if (doc) {
+      doc.readingState = { ...state };
+      doc.lastReadPage = state.currentPage;
+    }
+  }
+
+  getDocumentReadingState(docId: string): PdfReadingState {
+    if (this.pdfReadingStates.has(docId)) {
+      return { ...this.pdfReadingStates.get(docId)! };
+    }
+    const doc = this.getDocumentById(docId);
+    if (doc && doc.readingState) {
+      return { ...doc.readingState };
+    }
+    return {
+      currentPage: doc?.lastReadPage || 1,
+      relativeScrollPosition: 0,
+      zoom: 1,
+      colorMode: 'dark',
+    };
+  }
+
+  setDocumentUnavailable(docId: string, unavailable: boolean): void {
+    const doc = this.getDocumentById(docId);
+    if (doc) {
+      doc.isUnavailable = unavailable;
+    }
+  }
+
+  // Simula carregamento parcial de páginas (preparado para HTTP Range / range-based streaming)
+  async fetchPageRange(docId: string, startPage: number, endPage: number): Promise<PdfPageChunk[]> {
+    const doc = this.getDocumentById(docId);
+    if (!doc) {
+      throw new Error(`Documento ${docId} não encontrado.`);
+    }
+    if (doc.isUnavailable) {
+      throw new Error(`Documento ${docId} indisponível ou HD desconectado.`);
+    }
+
+    // Carrega apenas o intervalo solicitado [startPage, endPage]
+    const clampedStart = Math.max(1, startPage);
+    const clampedEnd = Math.min(doc.totalPages, endPage);
+    const chunks: PdfPageChunk[] = [];
+
+    for (let p = clampedStart; p <= clampedEnd; p++) {
+      chunks.push({
+        pageNumber: p,
+        content: `Conteúdo da Página ${p} do documento "${doc.title}". Estruturação de componentes, inversão de controle e arquitetura desacoplada.`,
+        isLoaded: true,
+      });
+    }
+
+    return chunks;
+  }
+
+  resetDocument(docId: string): Document | undefined {
+    const original = MOCK_DOCUMENTS.find(d => d.id === docId);
+    if (original) {
+      const cloned = JSON.parse(JSON.stringify(original));
+      const idx = this.items.findIndex(i => i.id === docId);
+      if (idx >= 0) {
+        this.items[idx] = cloned;
+      }
+      this.pdfReadingStates.delete(docId);
+      return cloned;
     }
     return undefined;
   }

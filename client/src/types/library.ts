@@ -69,6 +69,21 @@ export interface Movie {
   createdAt: string;
 }
 
+export type PdfColorMode = 'dark' | 'original';
+
+export interface PdfReadingState {
+  currentPage: number;
+  relativeScrollPosition: number; // 0.0 a 1.0
+  zoom: number; // ex: 1 = 100%, 1.25 = 125%, 0.8 = 80%
+  colorMode: PdfColorMode;
+}
+
+export interface PdfPageChunk {
+  pageNumber: number;
+  content: string;
+  isLoaded: boolean;
+}
+
 export interface Document {
   id: string;
   type: 'document';
@@ -81,6 +96,8 @@ export interface Document {
   fileUrl: string;
   tags: string[];
   createdAt: string;
+  readingState?: PdfReadingState;
+  isUnavailable?: boolean;
 }
 
 export type LibraryItem = Course | Movie | Document;
