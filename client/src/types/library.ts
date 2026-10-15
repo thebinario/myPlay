@@ -109,6 +109,7 @@ export type NavigationTab =
   | 'player'
   | 'search'
   | 'settings'
+  | 'onboarding'
   | 'editor'
   | 'pdf-viewer';
 
