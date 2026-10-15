@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { within, userEvent, expect } from 'storybook/test';
 import { VideoPlayerView } from '../../../components/player/VideoPlayerView';
 import { Course } from '../../../types/library';
 
@@ -40,6 +41,27 @@ const mockCourse: Course = {
   ]
 };
 
+const unavailableCourse: Course = {
+  ...mockCourse,
+  id: 'course-unavailable',
+  title: 'Curso com aula indisponível',
+  modules: mockCourse.modules.map(module => ({
+    ...module,
+    lessons: module.lessons.map(lesson => ({ ...lesson, isUnavailable: true })),
+  })),
+};
+
+const completedCourse: Course = {
+  ...mockCourse,
+  id: 'course-completed',
+  title: 'Curso 100% concluído',
+  progress: 100,
+  modules: mockCourse.modules.map(module => ({
+    ...module,
+    lessons: module.lessons.map(lesson => ({ ...lesson, completed: true })),
+  })),
+};
+
 const mockInitialLessonId = 'les-1-1';
 
 const meta: Meta<typeof VideoPlayerView> = {
@@ -70,7 +92,7 @@ export const Default: Story = {
   },
 };
 
-export const LoadingState: Story = {
+export const CompletedState: Story = {
   parameters: {
     backgrounds: { default: 'custom' },
     background: {
@@ -79,7 +101,7 @@ export const LoadingState: Story = {
     },
   },
   args: {
-    course: mockCourse,
+    course: completedCourse,
     initialLessonId: mockInitialLessonId,
     onBack: () => {},
     onCompleteLesson: () => {},
@@ -95,9 +117,23 @@ export const UnavailableState: Story = {
     },
   },
   args: {
+    course: unavailableCourse,
+    initialLessonId: mockInitialLessonId,
+    onBack: () => {},
+    onCompleteLesson: () => {},
+  },
+};
+
+export const SubtitleMenuOpen: Story = {
+  args: {
     course: mockCourse,
     initialLessonId: mockInitialLessonId,
     onBack: () => {},
     onCompleteLesson: () => {},
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /legendas e idiomas \(cc\)/i }));
+    await expect(canvas.getByTestId('subtitles-floating-menu')).toBeTruthy();
   },
 };

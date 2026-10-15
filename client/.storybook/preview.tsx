@@ -16,6 +16,22 @@ const preview: Preview = {
       test: 'todo'
     }
   },
+
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          backgroundColor: '#0D111B',
+          color: '#F8FAFC',
+          minHeight: '100vh',
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default preview;
