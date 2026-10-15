@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from './components/common/Sidebar';
+import { SettingsView } from './features/settings/SettingsView';
+import { OnboardingView } from './features/onboarding/OnboardingView';
+import { DEFAULT_PREFERENCES, INITIAL_SOURCES, type LibrarySource, type AppPreferences } from './features/settings/mockSettings';
 import { LibraryView } from './components/library/LibraryView';
 import { CourseDetailsView } from './components/course/CourseDetailsView';
 import { CourseEditorView } from './components/editor/CourseEditorView';
@@ -26,6 +29,8 @@ interface PlaybackSession {
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('home');
+  const [sources, setSources] = useState<LibrarySource[]>(INITIAL_SOURCES);
+  const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_PREFERENCES);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
@@ -216,7 +221,7 @@ export const App: React.FC = () => {
       className="app-container"
       style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0D111B' }}
     >
-      <Sidebar currentTab={currentTab} onNavigate={handleNavigate} />
+      {currentTab !== 'onboarding' && <Sidebar currentTab={currentTab} onNavigate={handleNavigate} />}
 
       <main className="main-content" style={{ flex: 1, height: '100vh', overflowY: 'auto' }}>
         {currentTab === 'home' && (
