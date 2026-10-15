@@ -1,4 +1,6 @@
 import React from 'react';
+import { Badge } from '../ui/Badge';
+import { IconButton } from '../ui/IconButton';
 import { Home, Library, Search, Settings, BookOpen } from 'lucide-react';
 import { NavigationTab } from '../../types/library';
 
@@ -44,20 +46,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
         onClick={() => onNavigate('home')}
         title="MIDOTECA"
       >
-        <div 
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #A594FF 0%, #6E54FF 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(165, 148, 255, 0.35)',
-          }}
-        >
+        <Badge variant="violet" size="sm">
           <BookOpen size={22} color="#0D111B" strokeWidth={2.5} />
-        </div>
+        </Badge>
         <span 
           style={{
             fontSize: '10px',
@@ -78,59 +69,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
           const isActive = currentTab === item.id || (item.id === 'library' && currentTab === 'course-details');
 
           return (
-            <button
+            <IconButton
               key={item.id}
+              icon={Icon}
               onClick={() => onNavigate(item.id)}
               aria-label={item.label}
-              title={item.label}
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '12px',
-                border: 'none',
-                background: isActive ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
-                color: isActive ? '#A594FF' : '#8B949E',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.18s ease-in-out',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.color = '#FFFFFF';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#8B949E';
-                }
-              }}
+              variant={isActive ? 'violet' : 'muted'}
             >
-              {/* Active vertical pill indicator */}
-              {isActive && (
-                <div 
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    width: '3px',
-                    height: '24px',
-                    backgroundColor: '#A594FF',
-                    borderRadius: '0 4px 4px 0',
-                    boxShadow: '0 0 10px #A594FF',
-                  }} 
-                />
-              )}
               <Icon size={20} strokeWidth={isActive ? 2.3 : 1.8} />
               <span style={{ fontSize: '9px', fontWeight: isActive ? 600 : 500, letterSpacing: '0.2px' }}>
                 {item.label}
               </span>
-            </button>
+            </IconButton>
           );
         })}
       </nav>

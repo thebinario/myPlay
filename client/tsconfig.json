@@ -31,7 +31,9 @@
     "src/reportWebVitals.ts",
     "src/setupTests.ts",
     "src/index.tsx",
-    "src/setupProxy.js"
+    "src/setupProxy.js",
+    "src/stories/Button.tsx",
+    "src/stories/Header.tsx"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

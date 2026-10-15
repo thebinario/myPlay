@@ -17,6 +17,8 @@ import {
   Upload 
 } from 'lucide-react';
 import { mockLibraryService } from '../../services/mockData';
+import { IconButton } from '../ui/IconButton';
+import { ProgressBar } from '../ui/ProgressBar';
 
 interface VideoPlayerViewProps {
   course: Course;
@@ -124,12 +126,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
     setCurrentTime(prev => Math.max(prev - 10, 0));
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    setCurrentTime(Math.floor(percentage * duration));
-  };
+  // Mouse click handler for seeking within the video
 
   const handleNextLesson = () => {
     if (currentLessonIndex < allLessons.length - 1) {
@@ -221,16 +218,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
       </div>
 
       {/* Main 16:9 Video Canvas Area */}
-      <div 
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          overflow: 'hidden',
-        }}
-      >
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
         <div
           data-testid="video-player-container"
           data-aspect-ratio="16:9"
@@ -250,15 +238,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
           }}
         >
           {/* Video Mock Content / Center State */}
-          <div 
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
             {isUnavailable ? (
               <div 
                 style={{
@@ -393,77 +373,44 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
               </div>
 
               {/* Option to Disable */}
-              <button
+              <IconButton
+                icon={Check}
                 onClick={() => handleSelectSubtitle(null)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: selectedSubtitleId === null ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
-                  color: selectedSubtitleId === null ? '#A594FF' : '#E2E8F0',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
+                variant="violet"
               >
                 <span>Desativar legendas</span>
                 {selectedSubtitleId === null && <Check size={14} color="#A594FF" />}
-              </button>
+              </IconButton>
 
               {/* Available Tracks */}
               {availableSubtitles.map(track => {
                 const isSelected = selectedSubtitleId === track.id;
                 return (
-                  <button
+                  <IconButton
+                    icon={Subtitles}
                     key={track.id}
                     onClick={() => handleSelectSubtitle(track.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: isSelected ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
-                      color: isSelected ? '#A594FF' : '#E2E8F0',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
+                    variant={isSelected ? 'violet' : 'muted'}
                   >
                     <span>{track.label}</span>
                     {isSelected && <Check size={14} color="#A594FF" />}
-                  </button>
+                  </IconButton>
                 );
               })}
 
               <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', margin: '4px 0' }} />
 
               {/* Simulate Import SRT */}
-              <button
+              <IconButton
+                icon={Upload}
                 onClick={handleSimulateImportSubtitle}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: '#94A3B8',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
+                variant="muted"
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#FFFFFF'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#94A3B8'; }}
               >
                 <Upload size={13} />
                 <span>Importar arquivo .srt / .vtt</span>
-              </button>
+              </IconButton>
             </div>
           )}
 
@@ -486,26 +433,17 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
               }}
             >
               {[0.75, 1, 1.25, 1.5, 2].map(speed => (
-                <button
+                <IconButton
+                  icon={RotateCcw}
                   key={speed}
                   onClick={() => {
                     setPlaybackRate(speed);
                     setShowSpeedMenu(false);
                   }}
-                  style={{
-                    padding: '6px 10px',
-                    border: 'none',
-                    borderRadius: '4px',
-                    backgroundColor: playbackRate === speed ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
-                    color: playbackRate === speed ? '#A594FF' : '#E2E8F0',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontWeight: playbackRate === speed ? 600 : 400,
-                  }}
+                  variant={playbackRate === speed ? 'violet' : 'muted'}
                 >
                   {speed}x
-                </button>
+                </IconButton>
               ))}
             </div>
           )}
@@ -521,113 +459,79 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
             }}
           >
             {/* Interactive Timeline Progress Bar */}
-            <div 
-              onClick={handleSeek}
-              style={{
-                width: '100%',
-                height: '6px',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '999px',
-                cursor: 'pointer',
-                position: 'relative',
-              }}
-            >
-              <div 
-                style={{
-                  width: `${(currentTime / duration) * 100}%`,
-                  height: '100%',
-                  backgroundColor: '#A594FF',
-                  borderRadius: '999px',
-                  boxShadow: '0 0 10px #A594FF',
-                  transition: isPlaying ? 'none' : 'width 0.1s ease',
-                }}
-              />
-            </div>
+            <ProgressBar
+              value={currentTime}
+              max={duration}
+              width="100%"
+              height="6px"
+              bgColor="rgba(255, 255, 255, 0.15)"
+              progressColor="#A594FF"
+            />
 
             {/* Bottom Controls Buttons */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               {/* Left group: Navigation, Play/Pause, Skip 10, Timers */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
+                <IconButton
+                  icon={SkipBack}
                   onClick={handlePrevLesson}
                   disabled={currentLessonIndex === 0}
                   aria-label="Aula anterior"
-                  title="Aula anterior"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: currentLessonIndex === 0 ? '#475569' : '#F0F4FC',
-                    cursor: currentLessonIndex === 0 ? 'not-allowed' : 'pointer',
-                    padding: '4px',
-                  }}
+                  variant={currentLessonIndex === 0 ? 'muted' : 'default'}
                 >
                   <SkipBack size={18} />
-                </button>
+                </IconButton>
 
-                <button
+                <IconButton
+                  icon={RotateCcw}
                   onClick={handleRewind10}
                   aria-label="Retroceder 10 segundos"
                   title="Retroceder 10s"
-                  style={{ background: 'transparent', border: 'none', color: '#F0F4FC', cursor: 'pointer', padding: '4px' }}
+                  variant="default"
                 >
                   <RotateCcw size={18} />
-                </button>
+                </IconButton>
 
-                <button
+                <IconButton
+                  icon={isPlaying ? Pause : Play}
                   onClick={handlePlayPause}
                   aria-label={isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'}
                   title={isPlaying ? 'Pausar' : 'Reproduzir'}
-                  style={{
-                    backgroundColor: '#A594FF',
-                    color: '#0D111B',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
+                  variant="violet"
                 >
                   {isPlaying ? (
                     <Pause size={18} fill="#0D111B" />
                   ) : (
                     <Play size={18} fill="#0D111B" style={{ marginLeft: '2px' }} />
                   )}
-                </button>
+                </IconButton>
 
-                <button
+                <IconButton
+                  icon={RotateCw}
                   onClick={handleForward10}
                   aria-label="Avançar 10 segundos"
                   title="Avançar 10s"
-                  style={{ background: 'transparent', border: 'none', color: '#F0F4FC', cursor: 'pointer', padding: '4px' }}
+                  variant="default"
                 >
                   <RotateCw size={18} />
-                </button>
+                </IconButton>
 
-                <button
+                <IconButton
+                  icon={SkipForward}
                   onClick={handleNextLesson}
                   disabled={currentLessonIndex === allLessons.length - 1}
                   aria-label="Próxima aula"
-                  title="Próxima aula"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: currentLessonIndex === allLessons.length - 1 ? '#475569' : '#F0F4FC',
-                    cursor: currentLessonIndex === allLessons.length - 1 ? 'not-allowed' : 'pointer',
-                    padding: '4px',
-                  }}
+                  variant={currentLessonIndex === allLessons.length - 1 ? 'muted' : 'default'}
                 >
                   <SkipForward size={18} />
-                </button>
+                </IconButton>
 
                 {/* Timers */}
                 <div style={{ marginLeft: '8px', fontSize: '13px', color: '#94A3B8' }}>
                   <span data-testid="current-time" style={{ color: '#F0F4FC', fontWeight: 600 }}>
                     {formatSeconds(currentTime)}
                   </span>
-                  {' '}/{' '}
+                  {' '}
                   <span>{formatSeconds(duration)}</span>
                 </div>
               </div>
@@ -636,13 +540,14 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 {/* Volume toggle & slider */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
+                  <IconButton
+                    icon={Volume2}
                     onClick={() => setIsMuted(prev => !prev)}
                     aria-label={isMuted ? 'Desmutar' : 'Mutar'}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                    variant="muted"
                   >
                     {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                  </button>
+                  </IconButton>
                   <input
                     type="range"
                     min="0"
@@ -664,51 +569,33 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
                 </div>
 
                 {/* CC Subtitles Button (Abre menu flutuante contextual) */}
-                <button
+                <IconButton
+                  icon={Subtitles}
                   onClick={() => {
                     setShowSubtitleMenu(prev => !prev);
                     setShowSpeedMenu(false);
                   }}
                   aria-label="Legendas e idiomas (CC)"
                   title="Legendas (CC)"
-                  style={{
-                    background: selectedSubtitleId ? 'rgba(165, 148, 255, 0.2)' : 'transparent',
-                    border: 'none',
-                    borderRadius: '6px',
-                    color: selectedSubtitleId ? '#A594FF' : '#94A3B8',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                  }}
+                  variant={selectedSubtitleId ? 'violet' : 'muted'}
                 >
                   <Subtitles size={17} />
                   CC
-                </button>
+                </IconButton>
 
                 {/* Playback speed selector */}
-                <button
+                <IconButton
+                  icon={RotateCcw}
                   onClick={() => {
                     setShowSpeedMenu(prev => !prev);
                     setShowSubtitleMenu(false);
                   }}
                   aria-label={`Velocidade de reprodução: ${playbackRate}x`}
                   title="Velocidade"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#94A3B8',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    padding: '4px 6px',
-                  }}
+                  variant="muted"
                 >
                   {playbackRate}x
-                </button>
+                </IconButton>
               </div>
             </div>
           </div>
