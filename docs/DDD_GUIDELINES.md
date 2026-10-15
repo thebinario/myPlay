@@ -34,7 +34,7 @@ entre contextos por conveniência; use IDs e contratos.
 | Settings | Preferências (placeholder) |
 
 O contrato agregado do FE é `LibraryRepository`
-(`client/src/services/contracts.ts`), composto por ports menores
+(`client/src/core/ports/libraryRepository.ts`), composto por ports menores
 (`LibraryCatalogRepository`, `PlaybackStateRepository`, `ReadingStateRepository`,
 `PageProvider`, `ISearchService`).
 
@@ -44,10 +44,10 @@ Cada contexto possui, **quando necessário**:
 
 | Camada | Backend | Frontend |
 | --- | --- | --- |
-| Domain | `core/<ctx>/entities.ts` + regras puras | `types/library.ts` + regras puras (a extrair) |
-| Application | `core/<ctx>/service.ts`, `queries.ts`, `indexer.ts` | casos de uso (a extrair de views/hooks) |
-| Infrastructure | `infra/sqlite/repositories/*`, `infra/fs/*`, `infra/events/*` | `services/mockData.ts` hoje; `services/ipc/*` depois |
-| Presentation | (futuro) controllers IPC/HTTP finos | `components/**`, hooks de apresentação |
+| Domain | `core/<ctx>/entities.ts` + regras puras | `core/domain/*.ts` + `features/<ctx>/domain/*` |
+| Application | `core/<ctx>/service.ts`, `queries.ts`, `indexer.ts` | `features/<ctx>/application/*` (casos de uso/hooks) |
+| Infrastructure | `infra/sqlite/repositories/*`, `infra/fs/*`, `infra/events/*` | `features/<ctx>/infrastructure/*` (mock/`localStorage` hoje; IPC/HTTP depois) |
+| Presentation | (futuro) controllers IPC/HTTP finos | `features/<ctx>/presentation/*`, `shared/ui/*` |
 
 > **Não crie camadas, interfaces ou classes vazias só para seguir o padrão.**
 > Só extraia quando houver responsabilidade real.

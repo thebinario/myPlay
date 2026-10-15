@@ -6,9 +6,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { HomeView } from '../components/home/HomeView';
-import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '../services/mockData';
-import type { Course, Movie, Document } from '../types/library';
+import { HomeView } from '@/features/home/presentation/HomeView';
+import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '@/features/library/infrastructure/mockLibraryRepository';
+import type { Course, Movie, Document } from '@/core/domain/library';
 
 const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
 const inProgressMovie = MOCK_MOVIES.find((m) => m.progress > 0 && m.progress < 100)!;

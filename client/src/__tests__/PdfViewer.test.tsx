@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PdfViewer } from '../components/pdf/PdfViewer';
-import { MOCK_DOCUMENTS, mockLibraryService } from '../services/mockData';
-import { Document } from '../types/library';
+import { PdfViewer } from '@/features/documents/presentation/PdfViewer';
+import { MOCK_DOCUMENTS, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { Document } from '@/core/domain/library';
 
 describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   let sampleDoc: Document;

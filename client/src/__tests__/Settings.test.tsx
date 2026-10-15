@@ -4,11 +4,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SettingsView } from '../components/settings/SettingsView';
-import { MOCK_LIBRARY, mockLibraryService } from '../services/mockData';
-import type { LibraryRepository } from '../services/contracts';
-import { LibraryProvider } from '../services/LibraryContext';
-import { MockLibraryService } from '../services/mockData';
+import { SettingsView } from '@/features/settings/presentation/SettingsView';
+import { MOCK_LIBRARY, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import type { LibraryRepository } from '@/core/ports/libraryRepository';
+import { LibraryProvider } from '@/features/library/presentation/LibraryProvider';
+import { MockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
 
 function renderSettings(repository?: LibraryRepository) {
   return render(

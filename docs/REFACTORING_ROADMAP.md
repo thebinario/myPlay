@@ -33,62 +33,63 @@ Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
 | Área | Situação |
 | --- | --- |
 | `midoteca/` (backend) | Fases 1–2 concluídas, arquitetura correta, **92 testes** |
-| `client/` (frontend) | Fronteira de repositório criada (`contracts.ts`, `LibraryContext`); telas grandes e código morto pendentes |
+| `client/` (frontend) | **Migrado para módulos por domínio**: `app/`, `core/{domain,ports,config}`, `features/*/{application,infrastructure,presentation}`, `shared/ui`; telas grandes decompostas; legado isolado em `legacy/`; **212 testes** |
 | `backend/` (legado myPlay) | Descartado como base de código |
 
 ## 3. Priorização
 
-| Prioridade | Alvo | Impacto | Risco |
-| --- | --- | --- | --- |
-| **P0** | Remover código morto do `client/` | Alto (ruído/confusão) | Baixo |
-| **P1** | Extrair lógica das telas grandes do `client/` | Alto (manutenção/testes) | Médio |
-| **P2** | Quebrar `mockData.ts` e isolar fixtures | Médio | Baixo |
-| **P3** | Adapter IPC/HTTP ligando `client` ↔ `midoteca` | Alto (produto) | Médio |
-| **P4** | Frontend: `domain/` + `application/` por feature | Médio | Médio |
+| Prioridade | Alvo | Impacto | Risco | Situação |
+| --- | --- | --- | --- | --- |
+| **P0** | Remover código morto do `client/` | Alto (ruído/confusão) | Baixo | ⏳ isolado em `src/legacy/` (excluído do build); remoção física pendente |
+| **P1** | Extrair lógica das telas grandes do `client/` | Alto (manutenção/testes) | Médio | ✅ telas principais decompostas |
+| **P2** | Quebrar `mockData.ts` e isolar fixtures | Médio | Baixo | ⏳ movido para `library/infrastructure`; separar fixtures pendente |
+| **P3** | Adapter IPC/HTTP ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ não iniciado |
+| **P4** | Frontend: `domain/` + `application/` por feature | Médio | Médio | ✅ estrutura `features/<domínio>/` criada |
 | — | `backend/` legado | — | **Não migrar** |
 
 ## 4. P0 — Remover código morto do frontend
 
-Cinco componentes em `client/src/components/` **não têm nenhum importador**
-(verificado por busca de imports) — sobras do myPlay:
+Cinco componentes do myPlay **não têm nenhum importador** (verificado por busca
+de imports). Foram **isolados em `client/src/legacy/`** (fora do build;
+`tsconfig` exclui `src/legacy`). A remoção física é o passo final deste item:
 
-| Arquivo | Linhas |
+| Arquivo (agora em `src/legacy/`) | Linhas |
 | --- | --- |
-| `components/VideoPlayer.tsx` | 996 |
-| `components/VideoList.tsx` | 770 |
-| `components/EditVideoDialog.tsx` | 256 |
-| `components/ScanDirectory.tsx` | 144 |
-| `components/AddVideo.tsx` | 116 |
+| `VideoPlayer.tsx` | 996 |
+| `VideoList.tsx` | 770 |
+| `EditVideoDialog.tsx` | 256 |
+| `ScanDirectory.tsx` | 144 |
+| `AddVideo.tsx` | 116 |
 
-Ação: confirmar ausência de consumidores (inclusive stories/index) e remover.
+Ação restante: remover o diretório `legacy/` quando conveniente.
 Ganho: ~2.280 linhas a menos, sem mudança de comportamento. Passo de menor risco.
 
 ## 5. P1 — Telas grandes → componentes coesos + casos de uso
 
-Arquivos ativos que concentram apresentação + lógica (indicador ~150 linhas):
+**Concluído** para as telas principais. Resultado da decomposição (cada view agora
+é fina; lógica em hooks `application/` e subcomponentes `presentation/`):
 
-| Arquivo | Linhas | Extrações sugeridas |
-| --- | --- | --- |
-| `components/player/VideoPlayerView.tsx` | 840 | `usePlayerSession`, `PlayerControls`, `LessonSidebar`, casos de uso (abrir/persistir posição) |
-| `components/editor/CourseEditorView.tsx` | 591 | edição de módulos/aulas, formulário, validação → `application/` |
-| `components/pdf/PdfViewer.tsx` | 581 | `usePdfReadingState`, `PdfToolbar`, carregamento de páginas via `PageProvider` |
-| `components/course/CourseDetailsView.tsx` | 531 | `useCourseProgress`, lista de aulas, cabeçalho |
-| `components/search/SearchView.tsx` | 529 | `useSearch`, agrupamento/render de resultados |
-| `components/library/LibraryView.tsx` | 446 | filtros/grade, card reutilizável |
-| `components/home/HomeView.tsx` | 436 | seções (continuar, recentes) como componentes |
-| `components/player/MoviePlayerView.tsx` | 405 | reuso do player de vídeo |
-| `components/player/useMediaElementPlayback.ts` | 400 | quebrar em hooks menores (controle de mídia, legendas) |
-| `components/player/MiniPlayer.tsx` | 308 | reuso com a tela cheia |
+| Antes | Depois |
+| --- | --- |
+| `components/player/VideoPlayerView.tsx` (840) | `features/player/presentation/VideoPlayerView.tsx` (~145) + `application/useVideoPlayer.ts` + controles |
+| `components/editor/CourseEditorView.tsx` (591) | `features/courses/presentation/CourseEditorView.tsx` (~68) + `application/useCourseEditor.ts` |
+| `components/pdf/PdfViewer.tsx` (581) | `features/documents/presentation/PdfViewer.tsx` (~58) + `application/usePdfReader.ts` |
+| `components/search/SearchView.tsx` (529) | `features/search/presentation/SearchView.tsx` (~86) + `application/useUniversalSearch.ts` |
+| `components/course/CourseDetailsView.tsx` (531) | `features/courses/presentation/CourseDetailsView.tsx` |
+| `components/library/LibraryView.tsx` (446) | `features/library/presentation/LibraryView.tsx` |
+| `components/home/HomeView.tsx` (436) | `features/home/presentation/HomeView.tsx` + `Sidebar.tsx` |
+| `components/player/MoviePlayerView.tsx` (405) | `features/player/presentation/MoviePlayerView.tsx` |
+| `components/player/MiniPlayer.tsx` (308) | `features/player/presentation/MiniPlayer.tsx` |
 
-Estratégia por tela: **teste de caracterização → extrair hook/caso de uso →
-extrair componentes → validar**. Não alterar comportamento visual.
+Estratégia aplicada: **caracterização → extrair hook/caso de uso → extrair
+componentes → validar**. Comportamento visual preservado.
 
-## 6. P2 — `mockData.ts` (664 linhas)
+## 6. P2 — `mockData.ts`
 
-Hoje mistura fixtures, `MockLibraryService` e `MockSearchService`.
-
-Ação: separar em `fixtures/` (dados) + `adapters/mock-library.ts` +
-`adapters/mock-search.ts`. Mantém o port `LibraryRepository` intacto.
+Movido para `features/library/infrastructure/mockLibraryRepository.ts` (fixtures +
+`MockLibraryService`). A separação em `fixtures/` + `adapters/mock-library.ts` +
+`adapters/mock-search.ts` **permanece pendente**, mas já sob o módulo `library` e
+atrás do port `LibraryRepository`.
 
 ## 7. P3 — Adapter IPC/HTTP (`client` ↔ `midoteca`)
 
@@ -99,9 +100,11 @@ desenho Ports & Adapters.
 
 ## 8. P4 — `domain/` + `application/` no frontend
 
-Com as telas decompostas, mover regras puras (cálculo de progresso, próxima
-aula, validação de edição) para `domain/`, e orquestração para `application/`,
-deixando `components/` e `hooks/` apenas com apresentação.
+**Estrutura criada**: `features/<domínio>/{domain,application,infrastructure,presentation}`,
+com `core/domain` (tipos) e `core/ports` (contratos) como kernel compartilhado.
+Restante: mover regras puras remanescentes (cálculo de progresso, próxima aula,
+validação de edição) para `domain/` conforme forem tocadas, mantendo
+`presentation/` apenas com apresentação.
 
 ## 9. Backend legado (`backend/`)
 

@@ -119,37 +119,36 @@ de uso do núcleo.
 
 ```text
 client/src/
-├── App.tsx                      # shell + navegação + sessão (PascalCase)
-├── main.tsx / index.tsx         # bootstrap
-├── config/                      # *.config.ts
-├── types/                       # tipos de domínio/view-model
-├── services/                    # ports + adapters + context
-│   ├── contracts.ts             # ports (camelCase)
-│   ├── mockData.ts              # adapter em memória
-│   └── LibraryContext.tsx       # Provider (PascalCase, exporta componente)
-├── components/
-│   ├── <feature>/               # library, course, editor, home, player, pdf, search
-│   ├── common/                  # compartilhados (Sidebar)
-│   └── ui/                      # design system (átomos)
-├── features/<feature>/stories/  # Storybook
-└── __tests__/                   # testes
+├── app/                         # shell: App.tsx + main.tsx (entry, composition root)
+├── core/
+│   ├── config/                  # *.config.ts
+│   ├── domain/                  # tipos de domínio/view-model (library.ts)
+│   └── ports/                   # ports (contratos) — libraryRepository.ts
+├── features/<domínio>/          # library, home, courses, player, documents, search, settings
+│   ├── application/             # hooks de caso de uso (usePdfReader, useVideoPlayer, ...)
+│   ├── infrastructure/          # adapters (mockLibraryRepository, libraryStorage)
+│   └── presentation/            # views, subcomponentes e stories
+├── shared/ui/                   # design system (átomos)
+├── test/setup.ts                # setup do Vitest
+├── __tests__/                   # testes
+└── legacy/                      # código myPlay/CRA desativado (fora do build)
 ```
 
-Alvo incremental: `domain/`, `application/`, `features/<ctx>/{components,hooks,stories}`
-(ver [`../docs/REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md)).
+Migração concluída (ver [`ARCHITECTURE.md`](ARCHITECTURE.md)); novas features já
+nascem nessa estrutura.
 
 ### 4.2 Sufixos de arquivo (frontend)
 
 | Sufixo | Papel | Exemplo |
 | --- | --- | --- |
 | `PascalCase.tsx` | componente React | `CourseDetailsView.tsx` |
-| `useXxx.ts` | hook (apresentação) | `useAutoHideControls.ts` |
+| `useXxx.ts` | hook (apresentação/caso de uso) | `useAutoHideControls.ts` |
 | `*.stories.tsx` | story do Storybook | `LibraryView.stories.tsx` |
 | `*.test.tsx` / `*.test.ts` | teste | `Library.test.tsx` |
-| `*.config.ts` | configuração | `app.config.ts` |
-| `contracts.ts` | ports/interfaces | `services/contracts.ts` |
-| `types/<assunto>.ts` | tipos de domínio | `types/library.ts` |
-| `PascalCaseContext.tsx` | React Context/Provider | `LibraryContext.tsx` |
+| `*.config.ts` | configuração | `core/config/app.config.ts` |
+| `*.ts` (ports) | ports/interfaces | `core/ports/libraryRepository.ts` |
+| `core/domain/*.ts` | tipos de domínio | `core/domain/library.ts` |
+| `PascalCase.tsx` (Provider) | React Context/Provider | `features/library/presentation/LibraryProvider.tsx` |
 
 ### 4.3 Convenções React
 
@@ -158,15 +157,16 @@ Alvo incremental: `domain/`, `application/`, `features/<ctx>/{components,hooks,s
   do design system **não** (`Button`, `Badge`).
 - Hooks: `use` + descrição (`useMediaElementPlayback`), arquivo `camelCase`.
 - Props tipadas com `interface <Nome>Props`.
-- Componentes **não** acessam `mockData` nem HTTP/IPC: usam
+- Componentes **não** acessam o repositório de infraestrutura nem HTTP/IPC: usam
   `useLibrary()` / `useLibraryRepository()`.
-- Átomos reutilizáveis vão em `components/ui/`; específicos em `components/<feature>/`.
+- Átomos reutilizáveis vão em `shared/ui/`; específicos em
+  `features/<domínio>/presentation/`.
 - Regra de tamanho (indicador, não lei): componente ~150 linhas, hook ~120.
 
 ### 4.4 Storybook e testes (frontend)
 
-- Stories em `features/<feature>/stories/<Nome>.stories.tsx`, exportando
-  `Default` e variações; título `Features/<Feature>/<Nome>`.
+- Stories colocalizadas em `features/<domínio>/presentation/<Nome>.stories.tsx`,
+  exportando `Default` e variações; título `Features/<Feature>/<Nome>`.
 - Testes em `src/__tests__/<Nome>.test.tsx`, injetando repositório fake via
   `<LibraryProvider repository={…}>`.
 
@@ -174,16 +174,16 @@ Alvo incremental: `domain/`, `application/`, `features/<ctx>/{components,hooks,s
 
 | Quero criar… | Backend (`midoteca`) | Frontend (`client`) |
 | --- | --- | --- |
-| Entidade/tipo de domínio | `core/<ctx>/entities.ts` | `types/<assunto>.ts` |
+| Entidade/tipo de domínio | `core/<ctx>/entities.ts` | `core/domain/<assunto>.ts` |
 | Comando de entrada | `core/<ctx>/inputs.ts` | — (props/hook) |
-| Contrato (port) | `core/<ctx>/repository.ts` \| `ports.ts` | `services/contracts.ts` |
-| Caso de uso | `core/<ctx>/service.ts` | `application/` (alvo) |
+| Contrato (port) | `core/<ctx>/repository.ts` \| `ports.ts` | `core/ports/<módulo>.ts` |
+| Caso de uso | `core/<ctx>/service.ts` | `features/<domínio>/application/` |
 | Consulta/read | `core/<ctx>/queries.ts` | hook de apresentação |
-| Regra pura | `core/<ctx>/<nome>.ts` | `domain/` (alvo) |
-| Adapter de persistência | `infra/sqlite/repositories/*` | `services/*` (mock → IPC) |
+| Regra pura | `core/<ctx>/<nome>.ts` | `features/<domínio>/domain/` |
+| Adapter de persistência | `infra/sqlite/repositories/*` | `features/<domínio>/infrastructure/*` |
 | Acesso a FS | `infra/fs/*` | — (fica no núcleo) |
-| Componente visual | — (fora do escopo) | `components/<feature>/` ou `ui/` |
-| Hook | — | `components/<feature>/useXxx.ts` |
+| Componente visual | — (fora do escopo) | `features/<domínio>/presentation/` ou `shared/ui/` |
+| Hook | — | `features/<domínio>/application/useXxx.ts` |
 | Teste | `test/<sujeito>.spec.ts` | `src/__tests__/<Nome>.test.tsx` |
 | Migração | `infra/sqlite/migrations/NNNN-*.ts` | — |
 

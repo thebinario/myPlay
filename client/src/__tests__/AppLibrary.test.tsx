@@ -5,8 +5,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
-import App from '../App';
-import { MOCK_COURSES, mockLibraryService } from '../services/mockData';
+import App from '@/app/App';
+import { MOCK_COURSES, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
 
 const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
 

@@ -28,7 +28,7 @@
 | Integração | repositórios SQLite (arquivo real), scanner FS (árvore temp) | hooks com repositório fake |
 | Contrato | `IndexingStore`, `LibraryRepository`, `FileScanner` | `LibraryRepository` (mock vs futuro IPC) |
 | Componente | — | `@testing-library/react` + jsdom |
-| E2E/Visual | — | Storybook (`features/*/stories`) |
+| E2E/Visual | — | Storybook (`features/*/presentation/*.stories.tsx`) |
 
 ## 3. Backend (`midoteca/`)
 

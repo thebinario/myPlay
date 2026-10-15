@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import App from '../App';
-import { MOCK_COURSES } from '../services/mockData';
+import App from '@/app/App';
+import { MOCK_COURSES } from '@/features/library/infrastructure/mockLibraryRepository';
 
 const COURSE_TITLE = MOCK_COURSES[0].title;
 

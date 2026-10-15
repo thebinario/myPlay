@@ -80,29 +80,40 @@ Documentação detalhada: [`../midoteca/docs/ARCHITECTURE.md`](../midoteca/docs/
 
 ## 4. Frontend / desktop (`client/`)
 
-O desktop é React 19 + Vite. Já existe uma **fronteira de repositório**
-(`client/src/services/contracts.ts`) que desacopla a UI da origem dos dados:
+O desktop é React 19 + Vite, organizado em **módulos por domínio** com a mesma
+fronteira de repositório do backend. O contrato
+(`client/src/core/ports/libraryRepository.ts`) desacopla a UI da origem dos dados:
 
 ```text
 client/src/
-├── types/library.ts            # DOMÍNIO (tipos): Course, Lesson, Document, ...
-├── services/
-│   ├── contracts.ts            # PORTS: LibraryRepository (catálogo+playback+leitura+page+search)
-│   ├── mockData.ts             # ADAPTER em memória (MockLibraryService)
-│   └── LibraryContext.tsx      # injeção + hooks de apresentação (useLibrary/useLibraryItems)
-├── components/                 # PRESENTATION (views + design system em components/ui)
-├── features/*/stories/         # Storybook (catálogo visual)
-└── __tests__/                  # testes de componente/contrato
+├── app/                        # composition root: App.tsx + main.tsx (entry)
+├── core/
+│   ├── domain/library.ts       # DOMÍNIO (tipos): Course, Lesson, Document, ...
+│   ├── ports/libraryRepository.ts  # PORTS: LibraryRepository (catálogo+playback+leitura+page+search)
+│   └── config/app.config.ts
+├── features/<domínio>/         # library, home, courses, player, documents, search, settings
+│   ├── domain/                 # entidades/regras puras do domínio (quando houver)
+│   ├── application/            # hooks de caso de uso (usePdfReader, useVideoPlayer, ...)
+│   ├── infrastructure/         # adapters (mockLibraryRepository, libraryStorage)
+│   └── presentation/           # views, subcomponentes e stories
+├── shared/ui/                  # design system reaproveitável (Button, Badge, ...)
+├── test/setup.ts               # setup do Vitest
+├── __tests__/                  # testes de componente/contrato
+└── legacy/                     # código myPlay/CRA desativado (fora do build)
 ```
+
+Domínios do frontend: `library` (catálogo/estado/persistência), `home`, `courses`
+(detalhes + editor), `player` (vídeo, mini player, filme), `documents` (PDF),
+`search` e `settings`.
 
 Estado atual x alvo:
 
 | Aspecto | Atual | Alvo incremental |
 | --- | --- | --- |
-| Origem de dados | `MockLibraryService` (memória) | adapter IPC/HTTP sobre o núcleo `midoteca` |
+| Origem de dados | `mockLibraryRepository` (memória + `localStorage`) | adapter IPC/HTTP sobre o núcleo `midoteca` |
 | Injeção | `LibraryProvider` + `useLibrary` | idem (já é o ponto de injeção) |
-| Regras de negócio | misturadas em views grandes | extraídas para `application/` + `domain/` |
-| Componentes | alguns > 500 linhas | coesos, ~150 linhas (indicador) |
+| Regras de negócio | hooks de caso de uso por feature | `domain/` + casos de uso dedicados quando crescer |
+| Componentes | coesos (~150 linhas) | manter; novas features já nascem pequenas |
 
 Regras do frontend (ver [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md)):
 
@@ -125,10 +136,10 @@ client/ (Presentation)                midoteca/ (Application + Domain)
         (ports no FE)                        (infra do FE)         (casos de uso + domínio)
 ```
 
-- O **contrato do FE** (`client/src/services/contracts.ts`) é o port; o núcleo
+- O **contrato do FE** (`client/src/core/ports/libraryRepository.ts`) é o port; o núcleo
   `midoteca` fornece os casos de uso. O adapter que liga os dois (Tauri IPC /
   HTTP local / worker) é infraestrutura do frontend e ainda não existe.
-- `types/library.ts` modela **view-models** (cover, tags, progresso). O domínio
+- `core/domain/library.ts` modela **view-models** (cover, tags, progresso). O domínio
   canônico vive em `midoteca/src/core`; campos de apresentação derivam dele.
 - Nenhum dos lados importa o framework do outro: `midoteca` não importa React;
   `client` não importa `better-sqlite3`.
@@ -150,7 +161,7 @@ Permitido:
 | Lado | Ponto de entrada | Papel |
 | --- | --- | --- |
 | Backend | `createMidoteca()` (`midoteca/src/index.ts`) | abre SQLite, migra, injeta adapters |
-| Frontend | `<LibraryProvider repository=…>` (`client/src/services/LibraryContext.tsx`) | injeta o `LibraryRepository` (mock hoje, IPC amanhã) |
+| Frontend | `<LibraryProvider repository=…>` (`client/src/features/library/presentation/LibraryProvider.tsx`) | injeta o `LibraryRepository` (mock hoje, IPC amanhã) |
 
 ## 8. Status e próximos passos
 

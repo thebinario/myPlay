@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { LibraryView } from '../components/library/LibraryView';
-import { MOCK_LIBRARY, MOCK_COURSES } from '../services/mockData';
+import { LibraryView } from '@/features/library/presentation/LibraryView';
+import { MOCK_LIBRARY, MOCK_COURSES } from '@/features/library/infrastructure/mockLibraryRepository';
 
 describe('MIDOTECA - Tela da Biblioteca', () => {
   it('deve listar os itens da biblioteca com título, categoria e progresso', () => {

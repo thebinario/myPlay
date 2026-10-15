@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import App from '../App';
+import App from '@/app/App';
 
 describe('MIDOTECA - Fundação Visual e Navegação', () => {
   it('deve renderizar a sidebar compacta com logo MIDOTECA e botões de navegação', () => {
