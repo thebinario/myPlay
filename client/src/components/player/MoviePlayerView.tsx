@@ -48,7 +48,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   const fallbackDuration = movie.duration || 0;
   const initialTime = useMemo(
     () => resumeTime ?? Math.floor((movie.progress / 100) * fallbackDuration),
-    [movie.id, movie.progress, fallbackDuration, resumeTime],
+    [movie.progress, fallbackDuration, resumeTime],
   );
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -106,8 +106,14 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   };
 
   const handleTimelineKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); skip(10); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); skip(-10); }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      skip(10);
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      skip(-10);
+    }
   };
 
   return (
@@ -160,9 +166,7 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Film size={16} color="#10B981" />
-          <span style={{ color: '#F0F4FC', fontSize: '14px', fontWeight: 600 }}>
-            {movie.title}
-          </span>
+          <span style={{ color: '#F0F4FC', fontSize: '14px', fontWeight: 600 }}>{movie.title}</span>
         </div>
         <span
           data-testid="movie-status"
@@ -174,7 +178,17 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
             color: hasEnded ? '#10B981' : isPlaying ? '#A594FF' : '#94A3B8',
           }}
         >
-          {hasEnded ? 'Finalizado' : isLoading ? 'Carregando' : isBuffering ? 'Armazenando' : isSeeking ? 'Buscando' : isPlaying ? 'Reproduzindo' : 'Pausado'}
+          {hasEnded
+            ? 'Finalizado'
+            : isLoading
+              ? 'Carregando'
+              : isBuffering
+                ? 'Armazenando'
+                : isSeeking
+                  ? 'Buscando'
+                  : isPlaying
+                    ? 'Reproduzindo'
+                    : 'Pausado'}
         </span>
       </div>
 
@@ -189,7 +203,9 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
           position: 'relative',
           cursor: isLoading || hasEnded ? 'default' : 'pointer',
         }}
-        onClick={() => { if (!isLoading && !hasEnded) toggle(); }}
+        onClick={() => {
+          if (!isLoading && !hasEnded) toggle();
+        }}
         data-testid="movie-player-canvas"
       >
         <video
@@ -212,7 +228,14 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
         {isLoading ? (
           <div
             data-testid="movie-loading"
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#94A3B8', zIndex: 2 }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              color: '#94A3B8',
+              zIndex: 2,
+            }}
           >
             <Spinner size={36} color="#10B981" />
             <span style={{ fontSize: '13px' }}>Carregando filme...</span>
@@ -220,12 +243,24 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
         ) : hasEnded ? (
           <div
             data-testid="movie-ended"
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', zIndex: 2, textAlign: 'center' }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              zIndex: 2,
+              textAlign: 'center',
+            }}
           >
             <Check size={34} color="#10B981" />
-            <h3 style={{ color: '#F0F4FC', fontSize: '16px', fontWeight: 600, margin: 0 }}>Fim do filme</h3>
+            <h3 style={{ color: '#F0F4FC', fontSize: '16px', fontWeight: 600, margin: 0 }}>
+              Fim do filme
+            </h3>
             <button
-              onClick={(e) => { e.stopPropagation(); replay(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                replay();
+              }}
               aria-label="Reproduzir novamente"
               style={{
                 display: 'inline-flex',
@@ -342,7 +377,13 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
             <button
               aria-label="Retroceder 10s"
               onClick={() => skip(-10)}
-              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                display: 'flex',
+              }}
             >
               <RotateCcw size={20} />
             </button>
@@ -369,7 +410,13 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
             <button
               aria-label="Avançar 10s"
               onClick={() => skip(10)}
-              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                display: 'flex',
+              }}
             >
               <RotateCw size={20} />
             </button>
@@ -382,8 +429,14 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               aria-label={isMuted ? 'Desativar mudo' : 'Ativar mudo'}
-              onClick={() => setIsMuted(m => !m)}
-              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+              onClick={() => setIsMuted((m) => !m)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                display: 'flex',
+              }}
             >
               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
@@ -393,7 +446,10 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
               max={1}
               step={0.05}
               value={isMuted ? 0 : volume}
-              onChange={e => { setVolume(parseFloat(e.target.value)); setIsMuted(false); }}
+              onChange={(e) => {
+                setVolume(parseFloat(e.target.value));
+                setIsMuted(false);
+              }}
               aria-label="Volume"
               style={{ width: '80px', accentColor: '#10B981' }}
             />
