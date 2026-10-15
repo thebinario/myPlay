@@ -29,6 +29,8 @@ export interface PlayerLifecycleOptions {
   duration: number;
   /** Posição inicial (retomada) em segundos. */
   initialTime?: number;
+  /** Inicia a reprodução automaticamente assim que o carregamento termina. */
+  autoPlay?: boolean;
   /** Velocidade inicial. */
   initialRate?: number;
   /** Quando verdadeiro, o player entra em estado de erro (arquivo indisponível). */
@@ -68,6 +70,7 @@ export function usePlayerLifecycle(options: PlayerLifecycleOptions): PlayerLifec
     mediaKey,
     duration,
     initialTime = 0,
+    autoPlay = false,
     initialRate = 1,
     unavailable = false,
     loadingDelayMs = 450,
@@ -106,7 +109,9 @@ export function usePlayerLifecycle(options: PlayerLifecycleOptions): PlayerLifec
   // ── Reinicia o ciclo quando a mídia muda ────────────────────────────────────
   useEffect(() => {
     clearTimers();
-    setIsPlaying(false);
+
+    const startsEnded = duration > 0 && initialTimeRef.current >= duration;
+    setIsPlaying(autoPlay && !unavailable && !startsEnded);
     setCurrentTime(initialTimeRef.current);
     setPlaybackRateState(initialRate);
 
@@ -115,7 +120,7 @@ export function usePlayerLifecycle(options: PlayerLifecycleOptions): PlayerLifec
       return clearTimers;
     }
 
-    if (duration > 0 && initialTimeRef.current >= duration) {
+    if (startsEnded) {
       setStatus('ended');
       return clearTimers;
     }
@@ -127,7 +132,7 @@ export function usePlayerLifecycle(options: PlayerLifecycleOptions): PlayerLifec
 
     return clearTimers;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaKey, duration, unavailable, initialRate, loadingDelayMs]);
+  }, [mediaKey, duration, unavailable, autoPlay, initialRate, loadingDelayMs]);
 
   // ── Motor de tempo (apenas em reprodução) ───────────────────────────────────
   useEffect(() => {

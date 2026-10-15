@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Movie } from '../../types/library';
 import {
   ArrowLeft,
@@ -26,6 +26,12 @@ interface MoviePlayerViewProps {
   seekDelayMs?: number;
   /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
   controlsAutoHideDelayMs?: number;
+  /** Posição de retomada (sobrepõe o progresso do filme), em segundos. */
+  resumeTime?: number;
+  /** Inicia a reprodução automaticamente ao carregar (usado ao restaurar o mini player). */
+  autoPlay?: boolean;
+  /** Reporta o estado de reprodução atual (usado pelo mini player). */
+  onProgress?: (snapshot: { currentTime: number; isPlaying: boolean }) => void;
 }
 
 function formatTime(sec: number): string {
@@ -44,11 +50,14 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   bufferingDelayMs,
   seekDelayMs,
   controlsAutoHideDelayMs,
+  resumeTime,
+  autoPlay,
+  onProgress,
 }) => {
   const duration = movie.duration || 1;
   const initialTime = useMemo(
-    () => Math.floor((movie.progress / 100) * duration),
-    [movie.id, movie.progress, duration],
+    () => resumeTime ?? Math.floor((movie.progress / 100) * duration),
+    [movie.id, movie.progress, duration, resumeTime],
   );
 
   const {
@@ -67,10 +76,16 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
     mediaKey: movie.id,
     duration,
     initialTime,
+    autoPlay,
     loadingDelayMs,
     bufferingDelayMs,
     seekDelayMs,
   });
+
+  // Reporta o estado para o mini player
+  useEffect(() => {
+    onProgress?.({ currentTime, isPlaying });
+  }, [currentTime, isPlaying, onProgress]);
 
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);

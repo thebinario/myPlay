@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from './components/common/Sidebar';
 import { LibraryView } from './components/library/LibraryView';
 import { CourseDetailsView } from './components/course/CourseDetailsView';
 import { CourseEditorView } from './components/editor/CourseEditorView';
 import { VideoPlayerView } from './components/player/VideoPlayerView';
 import { MoviePlayerView } from './components/player/MoviePlayerView';
+import { MiniPlayer } from './components/player/MiniPlayer';
 import { PdfViewer } from './components/pdf/PdfViewer';
 import { HomeView } from './components/home/HomeView';
 import { SearchView } from './components/search/SearchView';
@@ -15,6 +16,17 @@ import {
   mockLibraryService,
 } from './services/mockData';
 
+type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
+
+interface PlaybackSession {
+  kind: 'lesson' | 'movie';
+  courseId?: string;
+  lessonId?: string;
+  movieId?: string;
+  time: number;
+  isPlaying: boolean;
+}
+
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('home');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
@@ -22,6 +34,24 @@ export const App: React.FC = () => {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [items, setItems] = useState<LibraryItem[]>(() => MOCK_LIBRARY);
+
+  // Sessão de reprodução ativa (tela cheia) e seu estado minimizado (mini player)
+  const [session, setSession] = useState<PlaybackSession | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  // Posição de retomada transitória aplicada à tela cheia ao expandir o mini player.
+  const [resumeTime, setResumeTime] = useState<number | undefined>(undefined);
+  const playerSnapshotRef = useRef<PlayerSnapshot>({ currentTime: 0, isPlaying: false });
+  const handlePlayerProgress = useCallback((snapshot: PlayerSnapshot) => {
+    playerSnapshotRef.current = snapshot;
+  }, []);
+
+  // Consome a posição de retomada apenas no primeiro render da tela cheia
+  useEffect(() => {
+    if (currentTab === 'player' && resumeTime !== undefined) {
+      const id = window.setTimeout(() => setResumeTime(undefined), 0);
+      return () => window.clearTimeout(id);
+    }
+  }, [currentTab, resumeTime]);
 
   const selectedCourse = selectedCourseId
     ? (items.find(i => i.id === selectedCourseId && i.type === 'course') as Course | undefined)
@@ -36,8 +66,30 @@ export const App: React.FC = () => {
     ? movies.find(m => m.id === selectedMovieId)
     : undefined;
 
+  // ── Mídia exibida no mini player ─────────────────────────────────────────────
+  const miniCourse = session?.courseId
+    ? (items.find(i => i.id === session.courseId && i.type === 'course') as Course | undefined)
+    : undefined;
+  const miniMovie = session?.movieId ? movies.find(m => m.id === session.movieId) : undefined;
+  const miniLesson = miniCourse && session?.lessonId
+    ? miniCourse.modules.flatMap(m => m.lessons).find(l => l.id === session.lessonId)
+    : undefined;
+  const showMiniPlayer = !!session && isMinimized && !!(miniLesson || miniMovie);
+
+  const minimizeActiveSession = useCallback(() => {
+    const snapshot = playerSnapshotRef.current;
+    setSession(prev =>
+      prev ? { ...prev, time: snapshot.currentTime, isPlaying: snapshot.isPlaying } : prev,
+    );
+    setIsMinimized(true);
+  }, []);
+
   // ── Navegação ──────────────────────────────────────────────────────────────
   const handleNavigate = (tab: NavigationTab) => {
+    // Sair da tela do player minimiza a reprodução (continua no mini player)
+    if (currentTab === 'player' && session) {
+      minimizeActiveSession();
+    }
     setCurrentTab(tab);
     if (!['course-details', 'editor', 'player', 'pdf-viewer'].includes(tab)) {
       setSelectedCourseId(null);
@@ -69,15 +121,67 @@ export const App: React.FC = () => {
   };
 
   const handlePlayLesson = (courseId: string, lessonId: string) => {
+    const course = items.find(i => i.id === courseId && i.type === 'course') as Course | undefined;
+    const lesson = course?.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
+    const time = lesson
+      ? mockLibraryService.getPlaybackPosition(courseId, lessonId) || lesson.lastPlaybackPosition || 0
+      : 0;
     setSelectedCourseId(courseId);
     setSelectedLessonId(lessonId);
+    setSelectedMovieId(null);
+    setSession({ kind: 'lesson', courseId, lessonId, time, isPlaying: false });
+    setResumeTime(undefined);
+    setIsMinimized(false);
     setCurrentTab('player');
   };
 
   const handleOpenMovie = (movieId: string) => {
     // Filmes abrem como player standalone (sem curso)
+    const movie = movies.find(m => m.id === movieId);
+    const time = movie ? Math.floor((movie.progress / 100) * (movie.duration || 1)) : 0;
     setSelectedMovieId(movieId);
+    setSelectedCourseId(null);
+    setSelectedLessonId(null);
+    setSession({ kind: 'movie', movieId, time, isPlaying: false });
+    setResumeTime(undefined);
+    setIsMinimized(false);
     setCurrentTab('player');
+  };
+
+  // Voltar do player → minimiza em vez de encerrar a reprodução
+  const handleBackFromLessonPlayer = () => {
+    minimizeActiveSession();
+    setCurrentTab('course-details');
+  };
+
+  const handleBackFromMoviePlayer = () => {
+    minimizeActiveSession();
+    setCurrentTab('home');
+  };
+
+  // Clique no mini player → restaura a tela cheia retomando a posição
+  const handleExpandMiniPlayer = () => {
+    if (!session) return;
+    const snapshot = playerSnapshotRef.current;
+    setSession({ ...session, time: snapshot.currentTime, isPlaying: snapshot.isPlaying });
+    setResumeTime(snapshot.currentTime);
+    if (session.kind === 'lesson' && session.courseId && session.lessonId) {
+      setSelectedCourseId(session.courseId);
+      setSelectedLessonId(session.lessonId);
+      setSelectedMovieId(null);
+    } else if (session.movieId) {
+      setSelectedMovieId(session.movieId);
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+    }
+    setIsMinimized(false);
+    setCurrentTab('player');
+  };
+
+  const handleCloseMiniPlayer = () => {
+    setSession(null);
+    setResumeTime(undefined);
+    setIsMinimized(false);
   };
 
   const handleEditCourse = (courseId: string) => {
@@ -174,8 +278,11 @@ export const App: React.FC = () => {
           <VideoPlayerView
             course={selectedCourse}
             initialLessonId={selectedLessonId}
-            onBack={() => setCurrentTab('course-details')}
+            onBack={handleBackFromLessonPlayer}
             onCompleteLesson={lessonId => handleToggleLesson(selectedCourse.id, lessonId)}
+            resumeTime={resumeTime}
+            autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
+            onProgress={handlePlayerProgress}
           />
         )}
 
@@ -183,7 +290,10 @@ export const App: React.FC = () => {
         {currentTab === 'player' && selectedMovie && !selectedCourse && (
           <MoviePlayerView
             movie={selectedMovie}
-            onBack={handleBackToHome}
+            onBack={handleBackFromMoviePlayer}
+            resumeTime={resumeTime}
+            autoPlay={session?.kind === 'movie' ? session.isPlaying : false}
+            onProgress={handlePlayerProgress}
           />
         )}
 
@@ -196,13 +306,45 @@ export const App: React.FC = () => {
 
         {currentTab === 'settings' && (
           <div style={{ padding: '40px', color: '#94A3B8' }}>
-            <h1 style={{ color: '#FFFFFF', fontSize: '24px', marginBottom: '12px' }}>
+            <h1 style={{ color: '#FFFFFF', fontSize: '24px', margin: '0 0 12px' }}>
               Configurações
             </h1>
             <p>Gerenciamento de bibliotecas, pastas e preferências do sistema na entrega 4.</p>
           </div>
         )}
       </main>
+
+      {showMiniPlayer && miniLesson && (
+        <MiniPlayer
+          mediaKey={miniLesson.id}
+          title={miniLesson.title}
+          subtitle={miniCourse?.title}
+          thumbnailUrl={miniCourse?.coverUrl}
+          duration={miniLesson.duration || 900}
+          initialTime={session?.time}
+          autoPlay={session?.isPlaying}
+          accentColor="#A594FF"
+          onExpand={handleExpandMiniPlayer}
+          onClose={handleCloseMiniPlayer}
+          onProgress={handlePlayerProgress}
+        />
+      )}
+
+      {showMiniPlayer && miniMovie && (
+        <MiniPlayer
+          mediaKey={miniMovie.id}
+          title={miniMovie.title}
+          subtitle={miniMovie.category}
+          thumbnailUrl={miniMovie.coverUrl}
+          duration={miniMovie.duration || 1}
+          initialTime={session?.time}
+          autoPlay={session?.isPlaying}
+          accentColor="#10B981"
+          onExpand={handleExpandMiniPlayer}
+          onClose={handleCloseMiniPlayer}
+          onProgress={handlePlayerProgress}
+        />
+      )}
     </div>
   );
 };

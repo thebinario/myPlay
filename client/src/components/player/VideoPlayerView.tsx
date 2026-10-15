@@ -38,6 +38,12 @@ interface VideoPlayerViewProps {
   seekDelayMs?: number;
   /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
   controlsAutoHideDelayMs?: number;
+  /** Posição de retomada (sobrepõe o progresso persistido), em segundos. */
+  resumeTime?: number;
+  /** Inicia a reprodução automaticamente ao carregar (usado ao restaurar o mini player). */
+  autoPlay?: boolean;
+  /** Reporta o estado de reprodução atual (usado pelo mini player). */
+  onProgress?: (snapshot: { currentTime: number; isPlaying: boolean }) => void;
 }
 
 const LOADING_LABELS = ['Carregando aula...', 'Preparando reprodução...', 'Sincronizando legendas...'];
@@ -51,6 +57,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   bufferingDelayMs,
   seekDelayMs,
   controlsAutoHideDelayMs,
+  resumeTime,
+  autoPlay,
+  onProgress,
 }) => {
   // Lista linear de todas as aulas do curso
   const allLessons: Lesson[] = [];
@@ -66,9 +75,10 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
 
   const duration = currentLesson.duration || 900;
   const initialTime = useMemo(() => {
+    if (resumeTime !== undefined && currentLesson.id === initialLessonId) return resumeTime;
     const saved = mockLibraryService.getPlaybackPosition(course.id, currentLesson.id);
     return saved || currentLesson.lastPlaybackPosition || 0;
-  }, [course.id, currentLesson.id, currentLesson.lastPlaybackPosition]);
+  }, [course.id, currentLesson.id, currentLesson.lastPlaybackPosition, resumeTime, initialLessonId]);
 
   // Estado de erro / arquivo indisponível (reconexão local)
   const [reconnected, setReconnected] = useState(false);
@@ -97,12 +107,18 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
     mediaKey: currentLesson.id,
     duration,
     initialTime,
+    autoPlay,
     unavailable: isUnavailable,
     loadingDelayMs,
     bufferingDelayMs,
     seekDelayMs,
     onEnded: () => onCompleteLesson?.(currentLesson.id),
   });
+
+  // Reporta o estado para o mini player
+  useEffect(() => {
+    onProgress?.({ currentTime, isPlaying });
+  }, [currentTime, isPlaying, onProgress]);
 
   // ── Áudio (volume/mute) ─────────────────────────────────────────────────────
   const [volume, setVolume] = useState<number>(1);
