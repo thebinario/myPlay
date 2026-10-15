@@ -14,6 +14,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
   color = '#94A3B8', 
   variant = 'muted', 
   children, 
+  style,
   ...props 
 }, ref) => {
   const variantStyles = {
@@ -50,7 +51,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
   return (
     <button
       ref={ref}
-      style={styles}
+      style={{ ...styles, ...style }}
       {...props}
     >
       <IconComponent size={size} color={color} />

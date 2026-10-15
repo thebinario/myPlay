@@ -46,8 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
         onClick={() => onNavigate('home')}
         title="MIDOTECA"
       >
-        <Badge variant="violet" size="sm">
-          <BookOpen size={22} color="#0D111B" strokeWidth={2.5} />
+        <Badge variant="violet" size="sm" style={{ backgroundColor: '#A594FF' }}>
+          <BookOpen size={18} color="#0D111B" strokeWidth={2.5} />
         </Badge>
         <span 
           style={{
@@ -72,12 +72,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
             <IconButton
               key={item.id}
               icon={Icon}
+              size={20}
+              color={isActive ? '#A594FF' : '#94A3B8'}
               onClick={() => onNavigate(item.id)}
               aria-label={item.label}
               variant={isActive ? 'violet' : 'muted'}
+              style={{
+                flexDirection: 'column',
+                gap: '3px',
+                width: '64px',
+                padding: '8px 0',
+                boxSizing: 'border-box',
+              }}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.3 : 1.8} />
-              <span style={{ fontSize: '9px', fontWeight: isActive ? 600 : 500, letterSpacing: '0.2px' }}>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: isActive ? 600 : 500,
+                  letterSpacing: '0.2px',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {item.label}
               </span>
             </IconButton>
