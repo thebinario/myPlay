@@ -1,6 +1,14 @@
 import { resolveDefaultDatabasePath } from '../core/app-paths';
-import { SqliteCourseRepository, type CourseRepository } from '../modules/courses';
-import { SqliteDocumentRepository, type DocumentRepository } from '../modules/documents';
+import {
+  CourseOrganizationService,
+  SqliteCourseRepository,
+  type CourseRepository,
+} from '../modules/courses';
+import {
+  DocumentAssociationService,
+  SqliteDocumentRepository,
+  type DocumentRepository,
+} from '../modules/documents';
 import { Indexer, ResourceGovernor, SqliteIndexingStore, type EventBus } from '../modules/indexing';
 import { SqliteJobRepository, type JobRepository } from '../modules/jobs';
 import {
@@ -48,6 +56,10 @@ export interface Midoteca {
   readonly jobs: JobRepository;
   readonly settings: SettingsRepository;
   readonly migration: MigrationResult | null;
+  /** Course-organization use cases (rename/reorder/move, catalog-only). */
+  readonly courseOrganization: CourseOrganizationService;
+  /** Document association use cases (attach/detach, no file deletion). */
+  readonly documentAssociations: DocumentAssociationService;
   /** Transport-agnostic domain event bus (IPC/WebSocket can subscribe). */
   readonly events: EventBus;
   /** Cooperative back-pressure controller for indexing. */
@@ -89,17 +101,21 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     manifestLoader: new FsManifestLoader(),
   });
   const queries = new LibraryQueryService(new SqliteLibraryQueryStore(database));
+  const courses = new SqliteCourseRepository(database);
+  const documents = new SqliteDocumentRepository(database);
 
   return {
     database,
     library,
     media: new SqliteMediaRepository(database),
-    courses: new SqliteCourseRepository(database),
-    documents: new SqliteDocumentRepository(database),
+    courses,
+    documents,
     progress: new SqliteProgressRepository(database),
     jobs: new SqliteJobRepository(database),
     settings: new SqliteSettingsRepository(database),
     migration,
+    courseOrganization: new CourseOrganizationService(courses),
+    documentAssociations: new DocumentAssociationService(documents),
     events,
     governor,
     sources,

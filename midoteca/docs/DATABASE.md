@@ -35,9 +35,11 @@ sucesso, rollback em qualquer erro).
   somente as pendentes, **cada uma em sua própria transação**.
 - É idempotente: reabrir um banco já migrado não aplica nada.
 
-| id  | nome                  | conteúdo                                          |
-| --- | --------------------- | ------------------------------------------------- |
-| 1   | `0001-initial-schema` | todas as tabelas, índices e constraints da Fase 1 |
+| id  | nome                       | conteúdo                                          |
+| --- | -------------------------- | ------------------------------------------------- |
+| 1   | `0001-initial-schema`      | todas as tabelas, índices e constraints da Fase 1 |
+| 2   | `0002-indexing`            | identidade por origem/caminho + proveniência      |
+| 3   | `0003-course-organization` | ordem manual, vínculos únicos e estado de leitura |
 
 Para adicionar uma migração: crie `00NN-<nome>.ts` exportando um `Migration` e
 acrescente-o ao array `MIGRATIONS`. Nunca reordene nem renumere migrações
@@ -107,13 +109,15 @@ de tamanhos não-negativos; `CHECK length(sha256)=64` quando presente.
 
 ### `course_modules`
 
-`id` PK · `course_id` FK→`courses` (CASCADE) · `title` · `sort_order INTEGER`.
-Índice `ix_course_modules_course (course_id, sort_order)`.
+`id` PK · `course_id` FK→`courses` (CASCADE) · `title` · `sort_order INTEGER` ·
+`sort_source TEXT` (`detected`\|`manual`). Índice
+`ix_course_modules_course (course_id, sort_order)`.
 
 ### `lessons`
 
-`id` PK · `module_id` FK→`course_modules` (CASCADE) · `title` · `sort_order`.
-Índice `ix_lessons_module (module_id, sort_order)`.
+`id` PK · `module_id` FK→`course_modules` (CASCADE) · `title` · `sort_order` ·
+`sort_source TEXT` (`detected`\|`manual`). Índice
+`ix_lessons_module (module_id, sort_order)`.
 
 ### `lesson_media`
 
@@ -132,7 +136,7 @@ Permite **múltiplos arquivos por aula** e o mesmo arquivo em várias aulas.
 `id` PK · `document_id` FK→`documents` (CASCADE) · `course_id` FK→`courses`
 (CASCADE) · `module_id` FK→`course_modules` (CASCADE) · `lesson_id` FK→`lessons`
 (CASCADE). `CHECK`: ao menos um de course/module/lesson não-nulo. Índices por
-coluna.
+coluna. `ux_document_links_target` UNIQUE garante um único vínculo por alvo.
 
 ### `playback_progress`
 
@@ -144,7 +148,7 @@ Uma linha por aula (upsert).
 
 `id` PK · `document_id` FK→`documents` (CASCADE), `UNIQUE` · `page INTEGER`
 (`>= 1`) · `scroll_ratio REAL` (`0..1`) · `zoom REAL` (`> 0`) · `theme` ·
-`updated_at`. Uma linha por documento (upsert).
+`view_mode` · `completed_at` · `updated_at`. Uma linha por documento (upsert).
 
 ### `jobs`
 
@@ -222,3 +226,27 @@ Fase 1:
 Detecção de ausentes: a cada execução é gerado um `runToken` (UUID) gravado em
 `media_files.last_seen_at`. Ao final, toda linha da fonte cujo `last_seen_at`
 difere do token atual é marcada `availability = 'missing'` — **sem deleção**.
+
+## 9. Migração 0003 — organização, vínculos e leitura
+
+Puramente aditiva (nenhuma alteração destrutiva, nenhuma operação de arquivo):
+
+| Tabela             | Coluna nova                                   | Papel                                                          |
+| ------------------ | --------------------------------------------- | -------------------------------------------------------------- |
+| `course_modules`   | `sort_source TEXT NOT NULL DEFAULT 'detected'` | distingue ordem manual (`manual`) da derivada do filesystem     |
+| `lessons`          | `sort_source TEXT NOT NULL DEFAULT 'detected'` | idem, escopo módulo                                             |
+| `reading_progress` | `view_mode TEXT`                               | preferência de modo de leitura (`paged`\|`continuous`)          |
+| `reading_progress` | `completed_at TEXT`                            | ISO quando o documento é marcado como lido; NULL enquanto aberto |
+
+`sort_source` tem `CHECK IN ('detected','manual')`.
+
+Índice criado:
+
+- `ux_document_links_target` UNIQUE
+  `(document_id, IFNULL(course_id,''), IFNULL(module_id,''), IFNULL(lesson_id,''))`
+  — impede o mesmo vínculo documento↔alvo duplicado, independente do alvo usado.
+
+`sort_source` é o análogo posicional de `title_source`: uma vez `manual`, um
+rescan **nunca** sobrescreve `sort_order` (ver
+[`COURSE_ORGANIZATION.md`](COURSE_ORGANIZATION.md)). O `down` apenas remove o
+índice; as colunas aditivas permanecem (SQLite não remove colunas antes da 3.35).

@@ -1,5 +1,6 @@
 import type { LessonMediaRole } from '../../../core/domain/lesson-media-role';
 import type { JsonObject } from '../../../core/json';
+import type { SortSource } from '../../../core/sort-source';
 import type { TitleSource } from '../../../core/title-source';
 
 /**
@@ -37,6 +38,8 @@ export interface CourseModule {
   courseId: string;
   title: string;
   sortOrder: number;
+  /** Whether `sortOrder` was set by the user (`manual`) or derived (`detected`). */
+  sortSource: SortSource;
   relativePath: string | null;
   detectedTitle: string | null;
   titleSource: TitleSource;
@@ -47,6 +50,8 @@ export interface Lesson {
   moduleId: string;
   title: string;
   sortOrder: number;
+  /** Whether `sortOrder` was set by the user (`manual`) or derived (`detected`). */
+  sortSource: SortSource;
   relativePath: string | null;
   detectedTitle: string | null;
   titleSource: TitleSource;

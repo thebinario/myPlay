@@ -1,4 +1,4 @@
-import { ValidationError } from '../../../core/errors';
+import { NotFoundError, ValidationError } from '../../../core/errors';
 import {
   assertNonEmptyString,
   assertOneOf,
@@ -8,7 +8,7 @@ import {
 } from '../../../core/validation';
 import { TITLE_SOURCES, type TitleSource } from '../../../core/title-source';
 import type { Document, DocumentLink } from '../domain/entities';
-import type { CreateDocument, CreateDocumentLink } from '../domain/inputs';
+import type { CreateDocument, CreateDocumentLink, UpdateDocument } from '../domain/inputs';
 import type { DocumentRepository } from '../domain/ports';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
 import { mapSqliteError } from '../../../platform/persistence/sqlite/errors';
@@ -109,6 +109,32 @@ export class SqliteDocumentRepository implements DocumentRepository {
     return rows.map(mapDocument);
   }
 
+  async update(input: UpdateDocument): Promise<Document> {
+    const existing = await this.findById(input.id);
+    if (!existing) throw new NotFoundError(`Document ${input.id} not found`);
+
+    const titleSource: TitleSource =
+      input.titleSource !== undefined
+        ? assertOneOf(input.titleSource, TITLE_SOURCES, 'titleSource')
+        : input.title !== undefined
+          ? 'manual'
+          : existing.titleSource;
+    const next: Document = {
+      ...existing,
+      title:
+        input.title === undefined ? existing.title : assertNonEmptyString(input.title, 'title'),
+      pageCount:
+        input.pageCount === undefined
+          ? existing.pageCount
+          : assertOptionalNonNegativeNumber(input.pageCount, 'pageCount'),
+      titleSource,
+    };
+    this.db
+      .prepare(`UPDATE documents SET title = ?, page_count = ?, title_source = ? WHERE id = ?`)
+      .run(next.title, next.pageCount, next.titleSource, next.id);
+    return next;
+  }
+
   async delete(id: string): Promise<void> {
     // Catalog-only: the underlying PDF is never removed.
     this.db.prepare('DELETE FROM documents WHERE id = ?').run(id);
@@ -127,6 +153,9 @@ export class SqliteDocumentRepository implements DocumentRepository {
         'DocumentLink requires at least one of courseId, moduleId or lessonId',
       );
     }
+    // Idempotent: re-attaching the same target returns the existing link.
+    const existing = await this.findLink(link);
+    if (existing) return existing;
     try {
       this.db
         .prepare(
@@ -140,6 +169,22 @@ export class SqliteDocumentRepository implements DocumentRepository {
     return link;
   }
 
+  async findLink(input: CreateDocumentLink): Promise<DocumentLink | null> {
+    const row = this.db
+      .prepare(
+        `SELECT id, document_id, course_id, module_id, lesson_id
+         FROM document_links
+         WHERE document_id = ? AND course_id IS ? AND module_id IS ? AND lesson_id IS ?`,
+      )
+      .get(
+        input.documentId,
+        normalizeOptionalString(input.courseId, 'courseId'),
+        normalizeOptionalString(input.moduleId, 'moduleId'),
+        normalizeOptionalString(input.lessonId, 'lessonId'),
+      ) as LinkRow | undefined;
+    return row ? mapLink(row) : null;
+  }
+
   async listLinks(documentId: string): Promise<DocumentLink[]> {
     const rows = this.db
       .prepare(
@@ -150,7 +195,52 @@ export class SqliteDocumentRepository implements DocumentRepository {
     return rows.map(mapLink);
   }
 
+  async listLinksByCourse(courseId: string): Promise<DocumentLink[]> {
+    return this.listLinksBy('course_id', courseId);
+  }
+
+  async listLinksByModule(moduleId: string): Promise<DocumentLink[]> {
+    return this.listLinksBy('module_id', moduleId);
+  }
+
+  async listLinksByLesson(lessonId: string): Promise<DocumentLink[]> {
+    return this.listLinksBy('lesson_id', lessonId);
+  }
+
   async deleteLink(id: string): Promise<void> {
     this.db.prepare('DELETE FROM document_links WHERE id = ?').run(id);
+  }
+
+  async listByCourse(courseId: string): Promise<Document[]> {
+    return this.listBy('course_id', courseId);
+  }
+
+  async listByModule(moduleId: string): Promise<Document[]> {
+    return this.listBy('module_id', moduleId);
+  }
+
+  async listByLesson(lessonId: string): Promise<Document[]> {
+    return this.listBy('lesson_id', lessonId);
+  }
+
+  private listLinksBy(column: 'course_id' | 'module_id' | 'lesson_id', id: string): DocumentLink[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, document_id, course_id, module_id, lesson_id
+         FROM document_links WHERE ${column} = ?`,
+      )
+      .all(id) as LinkRow[];
+    return rows.map(mapLink);
+  }
+
+  private listBy(column: 'course_id' | 'module_id' | 'lesson_id', id: string): Document[] {
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT d.id, d.media_file_id, d.title, d.page_count, d.detected_title, d.title_source
+         FROM documents d JOIN document_links l ON l.document_id = d.id
+         WHERE l.${column} = ? ORDER BY d.title`,
+      )
+      .all(id) as DocumentRow[];
+    return rows.map(mapDocument);
   }
 }

@@ -38,6 +38,8 @@ interface ReadingRow {
   scroll_ratio: number;
   zoom: number;
   theme: string | null;
+  view_mode: string | null;
+  completed_at: string | null;
   updated_at: string;
 }
 
@@ -60,6 +62,8 @@ function mapReading(row: ReadingRow): ReadingProgress {
     scrollRatio: row.scroll_ratio,
     zoom: row.zoom,
     theme: row.theme,
+    viewMode: row.view_mode,
+    completedAt: row.completed_at,
     updatedAt: row.updated_at,
   };
 }
@@ -126,22 +130,36 @@ export class SqliteProgressRepository implements ProgressRepository {
       throw new ValidationError('Field "zoom" must be greater than 0');
     }
     const theme = normalizeOptionalString(input.theme, 'theme');
+    const viewMode = normalizeOptionalString(input.viewMode, 'viewMode');
+    const completedAt = normalizeIso(input.completedAt, 'completedAt');
     const updatedAt = nowIso();
 
     try {
       this.db
         .prepare(
           `INSERT INTO reading_progress
-             (id, document_id, page, scroll_ratio, zoom, theme, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
+             (id, document_id, page, scroll_ratio, zoom, theme, view_mode, completed_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(document_id) DO UPDATE SET
              page         = excluded.page,
              scroll_ratio = excluded.scroll_ratio,
              zoom         = excluded.zoom,
              theme        = excluded.theme,
+             view_mode    = excluded.view_mode,
+             completed_at = excluded.completed_at,
              updated_at   = excluded.updated_at`,
         )
-        .run(resolveId(input.id, 'id'), documentId, page, scrollRatio, zoom, theme, updatedAt);
+        .run(
+          resolveId(input.id, 'id'),
+          documentId,
+          page,
+          scrollRatio,
+          zoom,
+          theme,
+          viewMode,
+          completedAt,
+          updatedAt,
+        );
     } catch (error) {
       throw mapSqliteError(error, 'saveReadingProgress');
     }
@@ -156,7 +174,7 @@ export class SqliteProgressRepository implements ProgressRepository {
   async getReading(documentId: string): Promise<ReadingProgress | null> {
     const row = this.db
       .prepare(
-        `SELECT id, document_id, page, scroll_ratio, zoom, theme, updated_at
+        `SELECT id, document_id, page, scroll_ratio, zoom, theme, view_mode, completed_at, updated_at
          FROM reading_progress WHERE document_id = ?`,
       )
       .get(documentId) as ReadingRow | undefined;

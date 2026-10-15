@@ -1,5 +1,6 @@
 import type { LessonMediaRole } from '../../../core/domain/lesson-media-role';
 import type { JsonObject } from '../../../core/json';
+import type { SortSource } from '../../../core/sort-source';
 import type { TitleSource } from '../../../core/title-source';
 
 export interface CreateCourse {
@@ -27,6 +28,7 @@ export interface CreateCourseModule {
   courseId: string;
   title: string;
   sortOrder?: number;
+  sortSource?: SortSource;
   relativePath?: string | null;
   detectedTitle?: string | null;
   titleSource?: TitleSource;
@@ -37,6 +39,7 @@ export interface CreateLesson {
   moduleId: string;
   title: string;
   sortOrder?: number;
+  sortSource?: SortSource;
   relativePath?: string | null;
   detectedTitle?: string | null;
   titleSource?: TitleSource;
@@ -46,4 +49,45 @@ export interface CreateLessonMedia {
   lessonId: string;
   mediaFileId: string;
   role: LessonMediaRole;
+}
+
+/** Renames/retitles a module. A title change is treated as a manual edit. */
+export interface UpdateCourseModule {
+  id: string;
+  title?: string;
+  titleSource?: TitleSource;
+}
+
+/** Renames/retitles a lesson. A title change is treated as a manual edit. */
+export interface UpdateLesson {
+  id: string;
+  title?: string;
+  titleSource?: TitleSource;
+}
+
+/** Moves a lesson into another module (same course), optionally at a position. */
+export interface MoveLessonToModule {
+  lessonId: string;
+  targetModuleId: string;
+  /** Insertion index in the target module; appended when omitted. */
+  targetIndex?: number;
+}
+
+/** Desired per-module shape used by the bulk save operation. */
+export interface OrganizationModuleInput {
+  id: string;
+  /** New title, when the user renamed the module. */
+  title?: string;
+  /** Full, ordered list of the module's lesson ids (may include moves in). */
+  lessonIds: string[];
+}
+
+/**
+ * Whole-course organization snapshot. Modules are given in display order and
+ * each carries its ordered lesson ids, so reorders and cross-module moves are
+ * persisted atomically in a single transaction.
+ */
+export interface SaveCourseOrganization {
+  courseId: string;
+  modules: OrganizationModuleInput[];
 }

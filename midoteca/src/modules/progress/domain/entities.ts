@@ -29,5 +29,9 @@ export interface ReadingProgress {
   zoom: number;
   /** Reader theme preference (e.g. `dark` | `original`). */
   theme: string | null;
+  /** View mode preference (e.g. `paged` | `continuous`). */
+  viewMode: string | null;
+  /** Set when the document is marked fully read; null while in progress. */
+  completedAt: string | null;
   updatedAt: string;
 }

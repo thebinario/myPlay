@@ -68,13 +68,15 @@ src/
 │   │   └── infrastructure/           # library.repository.sqlite, library-query.repository.sqlite
 │   ├── media/ · courses/ · documents/ · progress/ · jobs/ · settings/
 │   │   └── domain/ · infrastructure/ (media/course/document/progress/job/settings repository.sqlite)
+│   │       courses/domain/: organization (puro) + CourseOrganizationService (Fase 4)
+│   │       documents/domain/: DocumentAssociationService (Fase 4)
 │   ├── indexing/
 │   │   ├── domain/                   # types, contracts, events, manifest, organization, ports
 │   │   ├── application/              # services/indexer, resource-governor
 │   │   └── infrastructure/           # indexing.store.sqlite
 │   └── search/domain/contracts.ts    # fronteira: contrato de busca
 └── platform/
-    ├── persistence/sqlite/           # SqliteDatabase (WAL, FK, busy_timeout), errors, migrator, migrations/
+    ├── persistence/sqlite/           # SqliteDatabase (WAL, FK, busy_timeout), errors, migrator, migrations/ (0001, 0002, 0003-course-organization)
     ├── fs/                           # RecursiveFileScanner, FsSourceProbe, FsManifestLoader
     └── events/                       # TypedEventBus (in-process)
 ```
@@ -247,3 +249,40 @@ comportamento: caracterizar (testes) → mover → ajustar imports → rodar a s
 
 Pendências, prioridade e risco: **P5/P7** do
 [`../../docs/REFACTORING_ROADMAP.md`](../../docs/REFACTORING_ROADMAP.md).
+
+## 11. Fase 4 — Organização de cursos, associações e leitura
+
+A Fase 4 adiciona a edição curada pelo usuário, sem tocar arquivos físicos e sem
+reescrever as fases anteriores.
+
+### 11.1 Novos componentes
+
+| Componente                                            | Responsabilidade                                                                 |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `modules/courses/domain/organization.ts`              | Regras puras de reordenação/movimento e validação de cobertura                   |
+| `modules/courses/domain/service.ts`                   | `CourseOrganizationService`: renomear/reordenar/mover/salvar (somente catálogo)  |
+| `modules/documents/domain/service.ts`                 | `DocumentAssociationService`: anexar/listar/desvincular (sem apagar arquivo)     |
+| `core/sort-source.ts`                                 | `SortSource` (`detected`\|`manual`) — proveniência de ordem                      |
+
+### 11.2 Migração 0003 (aditiva)
+
+`sort_source` em `course_modules`/`lessons`; `view_mode`/`completed_at` em
+`reading_progress`; índice único `ux_document_links_target`. Detalhes em
+[`DATABASE.md`](DATABASE.md) §9.
+
+### 11.3 Fluxos
+
+- **Editar curso**: `CourseOrganizationService` valida via regras puras e o
+  adaptador aplica cada operação em uma transação; `saveOrganization` persiste
+  ordem + títulos + movimentos de uma vez. Ordem vira `manual` e resiste a rescan.
+- **Associar documento**: `DocumentAssociationService.attach*` é idempotente;
+  `detach` remove só o vínculo; arquivo e documento permanecem.
+- **Ler PDF**: renderização no cliente (pdf.js); backend guarda `reading_progress`.
+  Ver [`PDF_READER.md`](PDF_READER.md) e [`READING_PROGRESS.md`](READING_PROGRESS.md).
+
+### 11.4 Estado no frontend
+
+O client já organiza features em `application/` + `presentation/` + `infrastructure/`
+(editor de curso com undo/arrastar, leitor com pdf.js real). A persistência ainda é
+`mockLibraryRepository` (localStorage); a integração com o backend SQLite/HTTP é
+trabalho de adaptação (planejado), não de domínio.

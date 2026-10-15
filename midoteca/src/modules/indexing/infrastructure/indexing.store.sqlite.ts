@@ -44,6 +44,10 @@ interface TitleRow {
   title_source: string;
 }
 
+interface SortableTitleRow extends TitleRow {
+  sort_source: string;
+}
+
 /**
  * Synchronous, transaction-friendly implementation of `IndexingStore` backed by
  * better-sqlite3. All title upserts honor the precedence manual > manifest >
@@ -199,10 +203,10 @@ export class SqliteIndexingStore implements IndexingStore {
   upsertModule(input: UpsertModuleInput): UpsertTitleResult {
     const existing = this.db
       .prepare(
-        `SELECT id, title, title_source FROM course_modules
+        `SELECT id, title, title_source, sort_source FROM course_modules
          WHERE course_id = ? AND relative_path = ?`,
       )
-      .get(input.courseId, input.relativePath) as TitleRow | undefined;
+      .get(input.courseId, input.relativePath) as SortableTitleRow | undefined;
 
     if (existing) {
       const resolved = this.resolveTitle(
@@ -211,19 +215,30 @@ export class SqliteIndexingStore implements IndexingStore {
         input.detectedTitle,
         input.manifestTitle,
       );
-      this.db
-        .prepare(
-          `UPDATE course_modules
-             SET detected_title = ?, title = ?, title_source = ?, sort_order = ?
-           WHERE id = ?`,
-        )
-        .run(
-          input.detectedTitle,
-          resolved.title,
-          resolved.titleSource,
-          input.sortOrder ?? 0,
-          existing.id,
-        );
+      // A user-defined order is never clobbered by a rescan.
+      if (existing.sort_source === 'manual') {
+        this.db
+          .prepare(
+            `UPDATE course_modules
+               SET detected_title = ?, title = ?, title_source = ?
+             WHERE id = ?`,
+          )
+          .run(input.detectedTitle, resolved.title, resolved.titleSource, existing.id);
+      } else {
+        this.db
+          .prepare(
+            `UPDATE course_modules
+               SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected'
+             WHERE id = ?`,
+          )
+          .run(
+            input.detectedTitle,
+            resolved.title,
+            resolved.titleSource,
+            input.sortOrder ?? 0,
+            existing.id,
+          );
+      }
       return {
         id: existing.id,
         title: resolved.title,
@@ -238,8 +253,8 @@ export class SqliteIndexingStore implements IndexingStore {
     this.db
       .prepare(
         `INSERT INTO course_modules
-           (id, course_id, title, sort_order, relative_path, detected_title, title_source)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source)
+         VALUES (?, ?, ?, ?, 'detected', ?, ?, ?)`,
       )
       .run(
         id,
@@ -256,10 +271,10 @@ export class SqliteIndexingStore implements IndexingStore {
   upsertLesson(input: UpsertLessonInput): UpsertTitleResult {
     const existing = this.db
       .prepare(
-        `SELECT id, title, title_source FROM lessons
+        `SELECT id, title, title_source, sort_source FROM lessons
          WHERE module_id = ? AND relative_path = ?`,
       )
-      .get(input.moduleId, input.relativePath) as TitleRow | undefined;
+      .get(input.moduleId, input.relativePath) as SortableTitleRow | undefined;
 
     if (existing) {
       const resolved = this.resolveTitle(
@@ -268,19 +283,30 @@ export class SqliteIndexingStore implements IndexingStore {
         input.detectedTitle,
         input.manifestTitle,
       );
-      this.db
-        .prepare(
-          `UPDATE lessons
-             SET detected_title = ?, title = ?, title_source = ?, sort_order = ?
-           WHERE id = ?`,
-        )
-        .run(
-          input.detectedTitle,
-          resolved.title,
-          resolved.titleSource,
-          input.sortOrder ?? 0,
-          existing.id,
-        );
+      // A user-defined order is never clobbered by a rescan.
+      if (existing.sort_source === 'manual') {
+        this.db
+          .prepare(
+            `UPDATE lessons
+               SET detected_title = ?, title = ?, title_source = ?
+             WHERE id = ?`,
+          )
+          .run(input.detectedTitle, resolved.title, resolved.titleSource, existing.id);
+      } else {
+        this.db
+          .prepare(
+            `UPDATE lessons
+               SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected'
+             WHERE id = ?`,
+          )
+          .run(
+            input.detectedTitle,
+            resolved.title,
+            resolved.titleSource,
+            input.sortOrder ?? 0,
+            existing.id,
+          );
+      }
       return {
         id: existing.id,
         title: resolved.title,
@@ -295,8 +321,8 @@ export class SqliteIndexingStore implements IndexingStore {
     this.db
       .prepare(
         `INSERT INTO lessons
-           (id, module_id, title, sort_order, relative_path, detected_title, title_source)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (id, module_id, title, sort_order, sort_source, relative_path, detected_title, title_source)
+         VALUES (?, ?, ?, ?, 'detected', ?, ?, ?)`,
       )
       .run(
         id,

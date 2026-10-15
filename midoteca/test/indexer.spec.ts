@@ -199,4 +199,43 @@ describe('Indexer (end-to-end)', () => {
       expect(after?.titleSource).toBe('manual');
     });
   });
+
+  describe('manual order precedence', () => {
+    it('never overwrites a manual lesson order on rescan', async () => {
+      const sourceId = await seedCourse();
+      await app.indexer.runScan({ sourceId });
+
+      const course = (await app.courses.listBySource(sourceId))[0];
+      const module = (await app.courses.listModules(course.id))[0];
+      const before = await app.courses.listLessons(module.id);
+      expect(before.map((l) => l.title)).toEqual(['Intro', 'Setup']);
+
+      const reversed = [...before].reverse().map((l) => l.id);
+      await app.courseOrganization.reorderLessons(module.id, reversed);
+
+      await app.indexer.runScan({ sourceId });
+
+      const after = await app.courses.listLessons(module.id);
+      expect(after.map((l) => l.id)).toEqual(reversed);
+      expect(after.every((l) => l.sortSource === 'manual')).toBe(true);
+    });
+
+    it('never overwrites a manual module order on rescan', async () => {
+      library.write('Curso B/Modulo A/a.mp4', 'a', FIXED_MTIME);
+      library.write('Curso B/Modulo B/b.mp4', 'b', FIXED_MTIME);
+      const sourceId = (await app.sources.addSource({ rootPath: library.root })).id;
+      await app.indexer.runScan({ sourceId });
+
+      const course = (await app.courses.listBySource(sourceId))[0];
+      const modules = await app.courses.listModules(course.id);
+      const reversed = [...modules].reverse().map((m) => m.id);
+      await app.courseOrganization.reorderModules(course.id, reversed);
+
+      await app.indexer.runScan({ sourceId });
+
+      const after = await app.courses.listModules(course.id);
+      expect(after.map((m) => m.id)).toEqual(reversed);
+      expect(after.every((m) => m.sortSource === 'manual')).toBe(true);
+    });
+  });
 });

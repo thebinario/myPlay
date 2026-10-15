@@ -15,4 +15,7 @@ export interface SaveReadingProgress {
   scrollRatio: number;
   zoom: number;
   theme?: string | null;
+  viewMode?: string | null;
+  /** Pass an ISO string to mark completed, or null/undefined to clear it. */
+  completedAt?: string | null;
 }

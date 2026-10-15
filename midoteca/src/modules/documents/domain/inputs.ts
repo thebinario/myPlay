@@ -16,3 +16,11 @@ export interface CreateDocumentLink {
   moduleId?: string | null;
   lessonId?: string | null;
 }
+
+/** Renames a document. A title change is treated as a manual edit. */
+export interface UpdateDocument {
+  id: string;
+  title?: string;
+  titleSource?: TitleSource;
+  pageCount?: number | null;
+}

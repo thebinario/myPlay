@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1, 2]);
-      expect(app.migration?.currentVersion).toBe(2);
+      expect(app.migration?.applied).toEqual([1, 2, 3]);
+      expect(app.migration?.currentVersion).toBe(3);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(2);
+      expect(second.migration?.currentVersion).toBe(3);
     } finally {
       second.close();
     }
@@ -62,6 +62,7 @@ describe('database initialization and migrations', () => {
       expect(rows).toEqual([
         { id: 1, name: '0001-initial-schema' },
         { id: 2, name: '0002-indexing' },
+        { id: 3, name: '0003-course-organization' },
       ]);
     } finally {
       app.close();
@@ -93,6 +94,30 @@ describe('database initialization and migrations', () => {
       ]) {
         expect(tables).toContain(expected);
       }
+    } finally {
+      app.close();
+    }
+  });
+
+  it('adds ordering provenance and reader columns (0003)', () => {
+    const app = createMidoteca({ databaseFile: temp.file });
+    try {
+      const columns = (table: string) =>
+        (app.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
+          (column) => column.name,
+        );
+      expect(columns('course_modules')).toContain('sort_source');
+      expect(columns('lessons')).toContain('sort_source');
+      expect(columns('reading_progress')).toEqual(
+        expect.arrayContaining(['view_mode', 'completed_at']),
+      );
+
+      const indexes = (
+        app.database.prepare("SELECT name FROM sqlite_master WHERE type = 'index'").all() as Array<{
+          name: string;
+        }>
+      ).map((row) => row.name);
+      expect(indexes).toContain('ux_document_links_target');
     } finally {
       app.close();
     }

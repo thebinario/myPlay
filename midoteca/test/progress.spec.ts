@@ -140,4 +140,28 @@ describe('progress repository', () => {
       }),
     ).rejects.toThrow();
   });
+
+  it('persists the reader view mode and completion state', async () => {
+    const saved = await app.progress.saveReading({
+      documentId,
+      page: 3,
+      scrollRatio: 0.1,
+      zoom: 1,
+      viewMode: 'continuous',
+      completedAt: '2026-10-15T12:00:00.000Z',
+    });
+    expect(saved.viewMode).toBe('continuous');
+    expect(saved.completedAt).toBe('2026-10-15T12:00:00.000Z');
+
+    const read = await app.progress.getReading(documentId);
+    expect(read?.viewMode).toBe('continuous');
+    expect(read?.completedAt).toBe('2026-10-15T12:00:00.000Z');
+  });
+
+  it('defaults the reader view mode and completion to null', async () => {
+    await app.progress.saveReading({ documentId, page: 1, scrollRatio: 0, zoom: 1 });
+    const read = await app.progress.getReading(documentId);
+    expect(read?.viewMode).toBeNull();
+    expect(read?.completedAt).toBeNull();
+  });
 });
