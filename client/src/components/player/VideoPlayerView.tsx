@@ -22,7 +22,7 @@ import { mockLibraryService } from '../../services/mockData';
 import { IconButton } from '../ui/IconButton';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Spinner } from '../ui/Spinner';
-import { usePlayerLifecycle } from './usePlayerLifecycle';
+import { useMediaElementPlayback } from './useMediaElementPlayback';
 import { useAutoHideControls } from './useAutoHideControls';
 
 interface VideoPlayerViewProps {
@@ -30,12 +30,6 @@ interface VideoPlayerViewProps {
   initialLessonId: string;
   onBack: () => void;
   onCompleteLesson?: (lessonId: string) => void;
-  /** Simulação: atraso do carregamento inicial (ms). */
-  loadingDelayMs?: number;
-  /** Simulação: atraso do buffer (ms). */
-  bufferingDelayMs?: number;
-  /** Simulação: atraso da busca (ms). */
-  seekDelayMs?: number;
   /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
   controlsAutoHideDelayMs?: number;
   /** Posição de retomada (sobrepõe o progresso persistido), em segundos. */
@@ -53,9 +47,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   initialLessonId,
   onBack,
   onCompleteLesson,
-  loadingDelayMs,
-  bufferingDelayMs,
-  seekDelayMs,
   controlsAutoHideDelayMs,
   resumeTime,
   autoPlay,
@@ -73,7 +64,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   const currentLessonIndex = allLessons.findIndex(l => l.id === currentLessonId);
   const currentLesson = allLessons[currentLessonIndex] || allLessons[0];
 
-  const duration = currentLesson.duration || 900;
   const initialTime = useMemo(() => {
     if (resumeTime !== undefined && currentLesson.id === initialLessonId) return resumeTime;
     const saved = mockLibraryService.getPlaybackPosition(course.id, currentLesson.id);
@@ -87,11 +77,14 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   }, [currentLessonId]);
   const isUnavailable = !!currentLesson.isUnavailable && !reconnected;
 
-  // ── Ciclo de vida de reprodução ─────────────────────────────────────────────
+  // ── Reprodução real via elemento <video> ────────────────────────────────────
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fallbackDuration = currentLesson.duration || 0;
   const {
     status,
     isPlaying,
     currentTime,
+    duration,
     playbackRate,
     isLoading,
     isBuffering,
@@ -103,26 +96,27 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
     seek,
     skip,
     setPlaybackRate,
-  } = usePlayerLifecycle({
-    mediaKey: currentLesson.id,
-    duration,
+  } = useMediaElementPlayback({
+    videoRef,
+    src: currentLesson.videoUrl,
+    fallbackDuration: fallbackDuration > initialTime ? fallbackDuration : initialTime,
     initialTime,
     autoPlay,
     unavailable: isUnavailable,
-    loadingDelayMs,
-    bufferingDelayMs,
-    seekDelayMs,
     onEnded: () => onCompleteLesson?.(currentLesson.id),
+    onProgress,
   });
-
-  // Reporta o estado para o mini player
-  useEffect(() => {
-    onProgress?.({ currentTime, isPlaying });
-  }, [currentTime, isPlaying, onProgress]);
 
   // ── Áudio (volume/mute) ─────────────────────────────────────────────────────
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = volume;
+  }, [volume]);
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = isMuted;
+  }, [isMuted]);
 
   // ── Menus ───────────────────────────────────────────────────────────────────
   const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
@@ -333,8 +327,27 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(165, 148, 255, 0.08)',
           }}
         >
+          {/* Elemento de vídeo real */}
+          <video
+            ref={videoRef}
+            src={currentLesson.videoUrl}
+            poster={course.coverUrl}
+            playsInline
+            preload="metadata"
+            data-testid="player-video"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              backgroundColor: '#000000',
+              zIndex: 0,
+            }}
+          />
+
           {/* Video Mock Content / Center State */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
             {hasError ? (
               <div
                 data-testid="player-error"
@@ -638,6 +651,8 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
             data-testid="player-controls"
             style={{
               ...controlsVisibilityStyle,
+              position: 'relative',
+              zIndex: 2,
               background: 'linear-gradient(to top, rgba(7, 10, 16, 0.95) 0%, rgba(7, 10, 16, 0.4) 70%, transparent 100%)',
               padding: '16px 20px',
               display: 'flex',

@@ -8,7 +8,7 @@ export const MOCK_COURSES: Course[] = [
     description: 'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
     category: 'Desenvolvimento',
     coverUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
-    totalDuration: 14400, // 4h
+    totalDuration: 3548,
     progress: 45,
     tags: ['React', 'Tauri', 'TypeScript', 'Desktop'],
     createdAt: '2026-02-10T10:00:00Z',
@@ -24,9 +24,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-1-1',
             moduleId: 'mod-1',
             title: '1.1 Visão Geral e Comparação com Electron',
-            duration: 900, // 15m
+            duration: 596,
             completed: true,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            videoUrl: '/media/videos/big-buck-bunny.mp4',
             order: 1,
             lastPlaybackPosition: 120, // 2 minutos já assistidos
             subtitles: [
@@ -54,9 +54,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-1-2',
             moduleId: 'mod-1',
             title: '1.2 Configuração do Ambiente e Hot Reload',
-            duration: 1200, // 20m
+            duration: 734,
             completed: true,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            videoUrl: '/media/videos/tears-of-steel.mp4',
             order: 2,
             materials: [
               {
@@ -72,9 +72,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-1-3',
             moduleId: 'mod-1',
             title: '1.3 IPC: Comunicação Frontend e Backend Seguro',
-            duration: 1500, // 25m
+            duration: 888,
             completed: false,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            videoUrl: '/media/videos/sintel.mp4',
             order: 3,
             materials: [
               {
@@ -97,9 +97,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-2-1',
             moduleId: 'mod-2',
             title: '2.1 Paleta Escura #0D111B e Contraste Violeta #A594FF',
-            duration: 1080, // 18m
+            duration: 596,
             completed: false,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            videoUrl: '/media/videos/big-buck-bunny.mp4',
             order: 1,
             materials: [
               {
@@ -115,9 +115,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-2-2',
             moduleId: 'mod-2',
             title: '2.2 Componentes Compactos e Sidebar de Alta Densidade',
-            duration: 1320, // 22m
+            duration: 734,
             completed: false,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+            videoUrl: '/media/videos/tears-of-steel.mp4',
             order: 2,
             materials: []
           }
@@ -132,7 +132,7 @@ export const MOCK_COURSES: Course[] = [
     description: 'Domine a metodologia TDD (Red, Green, Refactor) construindo aplicações reais e à prova de regressão.',
     category: 'Engenharia',
     coverUrl: 'https://images.unsplash.com/photo-1516116211227-bbc677464010?w=600&auto=format&fit=crop&q=80',
-    totalDuration: 18000,
+    totalDuration: 1484,
     progress: 75,
     tags: ['TDD', 'Vitest', 'Testing Library', 'Jest'],
     createdAt: '2026-01-15T08:00:00Z',
@@ -148,9 +148,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-tdd-1',
             moduleId: 'mod-tdd-1',
             title: '1.1 O mindset de testar comportamento vs implementação',
-            duration: 1200,
+            duration: 888,
             completed: true,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+            videoUrl: '/media/videos/sintel.mp4',
             order: 1,
             materials: [
               {
@@ -166,9 +166,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-tdd-2',
             moduleId: 'mod-tdd-1',
             title: '1.2 Consultas semânticas: getByRole e getByText',
-            duration: 1400,
+            duration: 596,
             completed: true,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+            videoUrl: '/media/videos/big-buck-bunny.mp4',
             order: 2,
             materials: []
           }
@@ -183,7 +183,7 @@ export const MOCK_COURSES: Course[] = [
     description: 'Criação de interfaces premium com foco em legibilidade, contraste e feedback tátil em desktops.',
     category: 'Design',
     coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-    totalDuration: 10800,
+    totalDuration: 734,
     progress: 0,
     tags: ['UI/UX', 'Figma', 'CSS', 'Design System'],
     createdAt: '2026-03-01T12:00:00Z',
@@ -198,9 +198,9 @@ export const MOCK_COURSES: Course[] = [
             id: 'les-ui-1',
             moduleId: 'mod-ui-1',
             title: '1.1 O papel do preto puro vs superfícies escuras',
-            duration: 900,
+            duration: 734,
             completed: false,
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+            videoUrl: '/media/videos/tears-of-steel.mp4',
             order: 1,
             materials: []
           }
@@ -218,9 +218,9 @@ export const MOCK_MOVIES: Movie[] = [
     description: 'Documentário cinematográfico sobre a revolução do código aberto e a evolução dos sistemas operacionais.',
     category: 'Documentário',
     coverUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80',
-    duration: 5400, // 1h 30m
+    duration: 734, // 12:14
     progress: 30,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    videoUrl: '/media/videos/tears-of-steel.mp4',
     tags: ['Linux', 'Open Source', 'História'],
     createdAt: '2026-01-20T18:00:00Z'
   },
@@ -231,9 +231,9 @@ export const MOCK_MOVIES: Movie[] = [
     description: 'Exploração dos avanços em hardware neural e arquiteturas modernas de processamento local.',
     category: 'Tecnologia',
     coverUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80',
-    duration: 6200,
+    duration: 596, // 9:56
     progress: 0,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4',
+    videoUrl: '/media/videos/big-buck-bunny.mp4',
     tags: ['AI', 'Hardware', 'Inovação'],
     createdAt: '2026-02-05T20:00:00Z'
   }
@@ -249,7 +249,7 @@ export const MOCK_DOCUMENTS: Document[] = [
     coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
     totalPages: 120,
     lastReadPage: 34,
-    fileUrl: '/materials/clean-architecture.pdf',
+    fileUrl: '/media/docs/think-python.pdf',
     tags: ['Arquitetura', 'Clean Code'],
     createdAt: '2026-01-10T11:00:00Z'
   },
@@ -262,7 +262,7 @@ export const MOCK_DOCUMENTS: Document[] = [
     coverUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
     totalPages: 48,
     lastReadPage: 12,
-    fileUrl: '/materials/tauri-spec.pdf',
+    fileUrl: '/media/docs/think-stats.pdf',
     tags: ['Segurança', 'Tauri', 'Rust'],
     createdAt: '2026-02-18T15:30:00Z'
   }

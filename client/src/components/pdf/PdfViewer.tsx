@@ -1,19 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Document, PdfColorMode, PdfPageChunk } from '../../types/library';
-import { 
-  ArrowLeft, 
-  ChevronLeft, 
-  ChevronRight, 
-  ZoomIn, 
-  ZoomOut, 
-  Sun, 
-  Moon, 
-  AlertTriangle, 
-  RefreshCw, 
-  BookOpen, 
-  FileText 
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  Sun,
+  Moon,
+  AlertTriangle,
+  RefreshCw,
+  BookOpen,
+  FileText
 } from 'lucide-react';
 import { mockLibraryService } from '../../services/mockData';
+
+/** jsdom não implementa canvas/2D; o PDF real é renderizado apenas no browser. */
+const IS_JSDOM = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
 
 interface PdfViewerProps {
   document: Document;
@@ -35,6 +40,90 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
   const [isUnavailable, setIsUnavailable] = useState<boolean>(!!document.isUnavailable);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // ── Renderização real do PDF via pdf.js ─────────────────────────────────────
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+
+  // Metadados reais quando o PDF é carregado; fallback para os dados do documento.
+  const totalPages = pageCount ?? document.totalPages;
+
+  // Carrega o documento PDF real (worker local) quando disponível.
+  useEffect(() => {
+    if (IS_JSDOM || isUnavailable) return;
+    let cancelled = false;
+    let task: PDFDocumentLoadingTask | null = null;
+
+    (async () => {
+      try {
+        const pdfjs = await import('pdfjs-dist');
+        pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+        task = pdfjs.getDocument({ url: document.fileUrl });
+        const loaded = await task.promise;
+        if (cancelled) return;
+        setPdfDoc(loaded);
+        setPageCount(loaded.numPages);
+        setCurrentPage(prev => Math.min(prev, loaded.numPages));
+      } catch {
+        if (!cancelled) {
+          setPdfDoc(null);
+          setPageCount(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      task?.destroy();
+      setPdfDoc(null);
+      setPageCount(null);
+    };
+  }, [document.fileUrl, isUnavailable]);
+
+  // Renderiza a página atual no canvas conforme página, zoom e modo de cor.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!pdfDoc || !canvas || IS_JSDOM) return;
+
+    let cancelled = false;
+    let renderTask: ReturnType<Awaited<ReturnType<PDFDocumentProxy['getPage']>>['render']> | null = null;
+
+    (async () => {
+      try {
+        const page = await pdfDoc.getPage(currentPage);
+        if (cancelled) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+        const viewport = page.getViewport({ scale: zoom });
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        renderTask = page.render({
+          canvas,
+          canvasContext: ctx,
+          viewport,
+          transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+        });
+        await renderTask.promise;
+      } catch {
+        /* renderização cancelada ou indisponível */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      try {
+        renderTask?.cancel();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [pdfDoc, currentPage, zoom, colorMode]);
 
   // Persiste estado de leitura a cada alteração
   const persistState = useCallback((page: number, currentZoom: number, mode: PdfColorMode, scroll: number) => {
@@ -81,7 +170,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
   }, [currentPage, loadPageRange]);
 
   const handleNextPage = () => {
-    if (currentPage < document.totalPages) {
+    if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
     }
   };
@@ -213,19 +302,19 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
           </button>
 
           <span style={{ fontSize: '12px', color: '#E2E8F0', fontWeight: 600 }}>
-            Página <span data-testid="pdf-current-page">{currentPage}</span> de {document.totalPages}
+            Página <span data-testid="pdf-current-page">{currentPage}</span> de {totalPages}
           </span>
 
           <button
             onClick={handleNextPage}
-            disabled={currentPage >= document.totalPages || isUnavailable}
+            disabled={currentPage >= totalPages || isUnavailable}
             aria-label="Próxima página"
             title="Próxima página"
             style={{
               background: 'transparent',
               border: 'none',
-              color: currentPage >= document.totalPages ? '#475569' : '#E2E8F0',
-              cursor: currentPage >= document.totalPages ? 'not-allowed' : 'pointer',
+              color: currentPage >= totalPages ? '#475569' : '#E2E8F0',
+              cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               padding: '2px',
@@ -391,6 +480,19 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
               transition: 'background-color 0.2s ease, color 0.2s ease, width 0.15s ease, min-height 0.15s ease',
             }}
           >
+            {pdfDoc ? (
+              <canvas
+                ref={canvasRef}
+                data-testid="pdf-canvas"
+                style={{
+                  display: 'block',
+                  margin: '0 auto',
+                  borderRadius: '4px',
+                  filter: colorMode === 'dark' ? 'invert(1) hue-rotate(180deg)' : 'none',
+                }}
+              />
+            ) : (
+              <>
             {/* Page Header Header Meta */}
             <div 
               style={{
@@ -466,8 +568,10 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
               }}
             >
               <span>MIDOTECA — Leitura Digital</span>
-              <span>Página {currentPage} de {document.totalPages}</span>
+              <span>Página {currentPage} de {totalPages}</span>
             </div>
+              </>
+            )}
           </div>
         )}
       </div>

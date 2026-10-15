@@ -12,18 +12,12 @@ import {
   Check,
 } from 'lucide-react';
 import { Spinner } from '../ui/Spinner';
-import { usePlayerLifecycle } from './usePlayerLifecycle';
+import { useMediaElementPlayback } from './useMediaElementPlayback';
 import { useAutoHideControls } from './useAutoHideControls';
 
 interface MoviePlayerViewProps {
   movie: Movie;
   onBack: () => void;
-  /** Simulação: atraso do carregamento inicial (ms). */
-  loadingDelayMs?: number;
-  /** Simulação: atraso do buffer (ms). */
-  bufferingDelayMs?: number;
-  /** Simulação: atraso da busca (ms). */
-  seekDelayMs?: number;
   /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
   controlsAutoHideDelayMs?: number;
   /** Posição de retomada (sobrepõe o progresso do filme), em segundos. */
@@ -46,24 +40,23 @@ function formatTime(sec: number): string {
 export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
   movie,
   onBack,
-  loadingDelayMs,
-  bufferingDelayMs,
-  seekDelayMs,
   controlsAutoHideDelayMs,
   resumeTime,
   autoPlay,
   onProgress,
 }) => {
-  const duration = movie.duration || 1;
+  const fallbackDuration = movie.duration || 0;
   const initialTime = useMemo(
-    () => resumeTime ?? Math.floor((movie.progress / 100) * duration),
-    [movie.id, movie.progress, duration, resumeTime],
+    () => resumeTime ?? Math.floor((movie.progress / 100) * fallbackDuration),
+    [movie.id, movie.progress, fallbackDuration, resumeTime],
   );
 
+  const videoRef = React.useRef<HTMLVideoElement>(null);
   const {
     status,
     isPlaying,
     currentTime,
+    duration,
     isLoading,
     isBuffering,
     isSeeking,
@@ -72,23 +65,24 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
     replay,
     seek,
     skip,
-  } = usePlayerLifecycle({
-    mediaKey: movie.id,
-    duration,
+  } = useMediaElementPlayback({
+    videoRef,
+    src: movie.videoUrl,
+    fallbackDuration: fallbackDuration > initialTime ? fallbackDuration : initialTime,
     initialTime,
     autoPlay,
-    loadingDelayMs,
-    bufferingDelayMs,
-    seekDelayMs,
+    onProgress,
   });
-
-  // Reporta o estado para o mini player
-  useEffect(() => {
-    onProgress?.({ currentTime, isPlaying });
-  }, [currentTime, isPlaying, onProgress]);
 
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = volume;
+  }, [volume]);
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = isMuted;
+  }, [isMuted]);
 
   const controlsLocked = !isPlaying || hasEnded || isLoading || isBuffering || isSeeking;
   const { areControlsVisible, showControls } = useAutoHideControls({
@@ -198,16 +192,20 @@ export const MoviePlayerView: React.FC<MoviePlayerViewProps> = ({
         onClick={() => { if (!isLoading && !hasEnded) toggle(); }}
         data-testid="movie-player-canvas"
       >
-        <img
-          src={movie.coverUrl}
-          alt={movie.title}
+        <video
+          ref={videoRef}
+          src={movie.videoUrl}
+          poster={movie.coverUrl}
+          playsInline
+          preload="metadata"
+          data-testid="movie-video"
           style={{
             position: 'absolute',
             inset: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            opacity: isLoading || isSeeking ? 0.15 : 0.3,
+            backgroundColor: '#000000',
           }}
         />
 

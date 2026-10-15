@@ -316,9 +316,9 @@ export const App: React.FC = () => {
 
       {showMiniPlayer && miniLesson && (
         <MiniPlayer
-          mediaKey={miniLesson.id}
           title={miniLesson.title}
           subtitle={miniCourse?.title}
+          videoUrl={miniLesson.videoUrl}
           thumbnailUrl={miniCourse?.coverUrl}
           duration={miniLesson.duration || 900}
           initialTime={session?.time}
@@ -332,9 +332,9 @@ export const App: React.FC = () => {
 
       {showMiniPlayer && miniMovie && (
         <MiniPlayer
-          mediaKey={miniMovie.id}
           title={miniMovie.title}
           subtitle={miniMovie.category}
+          videoUrl={miniMovie.videoUrl}
           thumbnailUrl={miniMovie.coverUrl}
           duration={miniMovie.duration || 1}
           initialTime={session?.time}

@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { within, userEvent, expect, waitFor, fn } from 'storybook/test';
+import { within, userEvent, expect, waitFor, fireEvent, fn } from 'storybook/test';
 import { MiniPlayer } from '../../../components/player/MiniPlayer';
+
+function getVideo(testId: string): HTMLVideoElement {
+  const el = document.querySelector(`[data-testid="${testId}"]`);
+  if (!el) throw new Error(`Elemento de vídeo "${testId}" não encontrado.`);
+  return el as HTMLVideoElement;
+}
 
 const meta: Meta<typeof MiniPlayer> = {
   title: 'Player/MiniPlayer',
@@ -22,11 +28,11 @@ export default meta;
 type Story = StoryObj<typeof MiniPlayer>;
 
 const baseArgs = {
-  mediaKey: 'les-1-1',
   title: '1.1 Visão Geral e Comparação com Electron',
   subtitle: 'Arquitetura Desktop Moderna com Tauri & React',
+  videoUrl: '/media/videos/big-buck-bunny.mp4',
   thumbnailUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
-  duration: 900,
+  duration: 596,
   initialTime: 120,
   onExpand: fn(),
   onClose: fn(),
@@ -34,18 +40,17 @@ const baseArgs = {
 
 /** Mini player de uma aula (pausado) — clique para expandir. */
 export const LessonPaused: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
 };
 
 /** Mini player reproduzindo (continua depois de sair do player). */
 export const LessonPlaying: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 40, autoPlay: true },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole('button', { name: /pausar/i });
-    await waitFor(() =>
-      expect(canvas.getByRole('button', { name: /pausar/i })).toBeTruthy(),
-    );
+    fireEvent(getVideo('mini-player-video'), new Event('playing'));
+    await waitFor(() => expect(canvas.getByRole('button', { name: /^pausar$/i })).toBeTruthy());
+    await waitFor(() => expect(canvas.getByText('Reproduzindo')).toBeTruthy());
   },
 };
 
@@ -53,20 +58,19 @@ export const LessonPlaying: Story = {
 export const Movie: Story = {
   args: {
     ...baseArgs,
-    mediaKey: 'movie-1',
     title: 'Interestelar',
     subtitle: 'Ficção Científica',
+    videoUrl: '/media/videos/tears-of-steel.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&auto=format&fit=crop&q=80',
-    duration: 10140,
-    initialTime: 3600,
+    duration: 734,
+    initialTime: 300,
     accentColor: '#10B981',
-    loadingDelayMs: 0,
   },
 };
 
 /** Mídia finalizada — oferece replay. */
 export const Ended: Story = {
-  args: { ...baseArgs, initialTime: 900, loadingDelayMs: 0 },
+  args: { ...baseArgs, initialTime: 596 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('button', { name: /reproduzir novamente/i })).toBeTruthy();
@@ -75,7 +79,7 @@ export const Ended: Story = {
 
 /** Clicar no mini player expande de volta para a tela cheia. */
 export const ExpandsOnClick: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, onExpand: fn() },
+  args: { ...baseArgs, onExpand: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByTestId('mini-player'));
@@ -85,7 +89,7 @@ export const ExpandsOnClick: Story = {
 
 /** Botão de fechar encerra a sessão sem expandir. */
 export const CloseButton: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, onClose: fn() },
+  args: { ...baseArgs, onClose: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /fechar mini player/i }));

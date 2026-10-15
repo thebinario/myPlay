@@ -11,7 +11,7 @@ const mockDocument: Document = {
   coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
   totalPages: 120,
   lastReadPage: 34,
-  fileUrl: '/materials/clean-architecture.pdf',
+  fileUrl: '/media/docs/think-python.pdf',
   tags: ['Arquitetura', 'Clean Code'],
   createdAt: '2026-01-10T11:00:00Z',
 };

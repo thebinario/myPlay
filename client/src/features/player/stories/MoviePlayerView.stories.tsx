@@ -12,6 +12,12 @@ const finishedMovie: Movie = {
   progress: 100,
 };
 
+function getVideo(testId: string): HTMLVideoElement {
+  const el = document.querySelector(`[data-testid="${testId}"]`);
+  if (!el) throw new Error(`Elemento de vídeo "${testId}" não encontrado.`);
+  return el as HTMLVideoElement;
+}
+
 const meta: Meta<typeof MoviePlayerView> = {
   title: 'Player/MoviePlayerView',
   component: MoviePlayerView,
@@ -31,9 +37,6 @@ const meta: Meta<typeof MoviePlayerView> = {
   argTypes: {
     movie: { control: false },
     onBack: { action: 'back' },
-    loadingDelayMs: { control: { type: 'number' } },
-    bufferingDelayMs: { control: { type: 'number' } },
-    seekDelayMs: { control: { type: 'number' } },
     controlsAutoHideDelayMs: { control: { type: 'number' } },
   },
 };
@@ -48,20 +51,28 @@ const baseArgs = {
 
 /** Mídia pronta, retomando de 30% de progresso. */
 export const Ready: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
 };
 
 /** Carregando a mídia. */
 export const Loading: Story = {
-  args: { ...baseArgs, loadingDelayMs: 600000 },
+  args: { ...baseArgs },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const video = getVideo('movie-video');
+    Object.defineProperty(video, 'readyState', { configurable: true, get: () => 0 });
+    fireEvent(video, new Event('loadstart'));
+    await expect(canvas.getByTestId('movie-loading')).toBeTruthy();
+    await waitFor(() => expect(canvas.getByTestId('movie-status').textContent).toBe('Carregando'));
+  },
 };
 
 /** Reproduzindo. */
 export const Playing: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir/i }));
+    fireEvent(getVideo('movie-video'), new Event('playing'));
     await canvas.findByRole('button', { name: /pausar/i });
     await waitFor(() => expect(canvas.getByTestId('movie-status').textContent).toBe('Reproduzindo'));
   },
@@ -69,12 +80,13 @@ export const Playing: Story = {
 
 /** Controles se auto-ocultam durante a reprodução e reaparecem ao mover o mouse. */
 export const ControlsAutoHide: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60, controlsAutoHideDelayMs: 150 },
+  args: { ...baseArgs, controlsAutoHideDelayMs: 150 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir/i }));
+    fireEvent(getVideo('movie-video'), new Event('play'));
     await waitFor(() =>
       expect(canvas.getByTestId('movie-controls').style.opacity).toBe('0'),
+      { timeout: 5000 },
     );
     fireEvent.mouseMove(canvas.getByTestId('movie-player-canvas'));
     await waitFor(() =>
@@ -85,18 +97,20 @@ export const ControlsAutoHide: Story = {
 
 /** Armazenando em buffer. */
 export const Buffering: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 600000 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir/i }));
+    const video = getVideo('movie-video');
+    fireEvent(video, new Event('play'));
+    fireEvent(video, new Event('waiting'));
     await expect(canvas.getByTestId('movie-buffering')).toBeTruthy();
-    await expect(canvas.getByTestId('movie-status').textContent).toBe('Armazenando');
+    await waitFor(() => expect(canvas.getByTestId('movie-status').textContent).toBe('Armazenando'));
   },
 };
 
 /** Mudo ativado pelo usuário. */
 export const Muted: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /ativar mudo/i }));
@@ -106,7 +120,7 @@ export const Muted: Story = {
 
 /** Fim do filme com opção de replay. */
 export const Ended: Story = {
-  args: { ...baseArgs, movie: finishedMovie, loadingDelayMs: 0 },
+  args: { ...baseArgs, movie: finishedMovie },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId('movie-ended')).toBeTruthy();

@@ -10,7 +10,7 @@ const mockCourse: Course = {
   description: 'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
   category: 'Desenvolvimento',
   coverUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
-  totalDuration: 14400,
+  totalDuration: 3548,
   progress: 45,
   tags: ['React', 'Tauri', 'TypeScript', 'Desktop'],
   createdAt: '2026-02-10T10:00:00Z',
@@ -25,9 +25,9 @@ const mockCourse: Course = {
           id: 'les-1-1',
           moduleId: 'mod-1',
           title: '1.1 Visão Geral e Comparação com Electron',
-          duration: 900,
+          duration: 596,
           completed: true,
-          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          videoUrl: '/media/videos/big-buck-bunny.mp4',
           order: 1,
           lastPlaybackPosition: 120,
           subtitles: [
@@ -64,6 +64,12 @@ const endedCourse: Course = {
 
 const mockInitialLessonId = 'les-1-1';
 
+function getVideo(testId: string): HTMLVideoElement {
+  const el = document.querySelector(`[data-testid="${testId}"]`);
+  if (!el) throw new Error(`Elemento de vídeo "${testId}" não encontrado.`);
+  return el as HTMLVideoElement;
+}
+
 const meta: Meta<typeof VideoPlayerView> = {
   title: 'Player/VideoPlayerView',
   component: VideoPlayerView,
@@ -77,9 +83,6 @@ const meta: Meta<typeof VideoPlayerView> = {
     initialLessonId: { control: { type: 'text' } },
     onBack: { action: 'back' },
     onCompleteLesson: { action: 'complete-lesson' },
-    loadingDelayMs: { control: { type: 'number' } },
-    bufferingDelayMs: { control: { type: 'number' } },
-    seekDelayMs: { control: { type: 'number' } },
     controlsAutoHideDelayMs: { control: { type: 'number' } },
   },
 };
@@ -96,20 +99,28 @@ const baseArgs = {
 
 /** Mídia carregada e pronta (pausada na posição de retomada). */
 export const Ready: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
 };
 
 /** Carregando a mídia (fase inicial do ciclo). */
 export const Loading: Story = {
-  args: { ...baseArgs, loadingDelayMs: 600000 },
+  args: { ...baseArgs },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const video = getVideo('player-video');
+    Object.defineProperty(video, 'readyState', { configurable: true, get: () => 0 });
+    fireEvent(video, new Event('loadstart'));
+    await expect(canvas.getByTestId('player-loading')).toBeTruthy();
+    await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Carregando'));
+  },
 };
 
 /** Reproduzindo após o buffer inicial. */
 export const Playing: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    fireEvent(getVideo('player-video'), new Event('playing'));
     await canvas.findByRole('button', { name: /pausar vídeo/i });
     await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Reproduzindo'));
   },
@@ -117,23 +128,26 @@ export const Playing: Story = {
 
 /** Buffer/armazenamento durante a reprodução. */
 export const Buffering: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 600000 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    const video = getVideo('player-video');
+    fireEvent(video, new Event('play'));
+    fireEvent(video, new Event('waiting'));
     await expect(canvas.getByTestId('player-buffering')).toBeTruthy();
-    await expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando');
+    await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando'));
   },
 };
 
 /** Controles se auto-ocultam durante a reprodução e reaparecem ao mover o mouse. */
 export const ControlsAutoHide: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, bufferingDelayMs: 60, controlsAutoHideDelayMs: 150 },
+  args: { ...baseArgs, controlsAutoHideDelayMs: 150 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: /reproduzir vídeo/i }));
+    fireEvent(getVideo('player-video'), new Event('play'));
     await waitFor(() =>
       expect(canvas.getByTestId('player-controls').style.opacity).toBe('0'),
+      { timeout: 5000 },
     );
     fireEvent.mouseMove(canvas.getByTestId('video-player-container'));
     await waitFor(() =>
@@ -144,7 +158,7 @@ export const ControlsAutoHide: Story = {
 
 /** Busca/seek na linha do tempo. */
 export const Seeking: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0, seekDelayMs: 600000 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /avançar 10 segundos/i }));
@@ -155,7 +169,7 @@ export const Seeking: Story = {
 
 /** Fim da aula com opções de replay / próxima. */
 export const Ended: Story = {
-  args: { ...baseArgs, course: endedCourse, loadingDelayMs: 0 },
+  args: { ...baseArgs, course: endedCourse },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId('player-ended')).toBeTruthy();
@@ -165,7 +179,7 @@ export const Ended: Story = {
 
 /** Erro: arquivo indisponível / HD desconectado. */
 export const UnavailableState: Story = {
-  args: { ...baseArgs, course: unavailableCourse, loadingDelayMs: 0 },
+  args: { ...baseArgs, course: unavailableCourse },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId('player-error')).toBeTruthy();
@@ -175,7 +189,7 @@ export const UnavailableState: Story = {
 
 /** Menu contextual de legendas aberto. */
 export const SubtitleMenuOpen: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /legendas e idiomas \(cc\)/i }));
@@ -185,7 +199,7 @@ export const SubtitleMenuOpen: Story = {
 
 /** Menu de velocidade de reprodução aberto. */
 export const SpeedMenuOpen: Story = {
-  args: { ...baseArgs, loadingDelayMs: 0 },
+  args: { ...baseArgs },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /velocidade de reprodução: 1x/i }));

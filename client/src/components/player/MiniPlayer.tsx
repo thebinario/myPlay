@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Play, Pause, X, Maximize2, RotateCcw } from 'lucide-react';
 import { Spinner } from '../ui/Spinner';
-import { usePlayerLifecycle } from './usePlayerLifecycle';
+import { useMediaElementPlayback } from './useMediaElementPlayback';
 
 export interface MiniPlayerProps {
-  /** Identifica a mídia atual; ao mudar, o mini player reinicia o ciclo. */
-  mediaKey: string;
   title: string;
   /** Texto secundário (ex.: nome do curso). */
   subtitle?: string;
-  /** Miniatura exibida ao fundo. */
+  /** Arquivo de vídeo reproduzido. */
+  videoUrl: string;
+  /** Miniatura exibida como poster. */
   thumbnailUrl?: string;
   /** Duração total em segundos. */
   duration: number;
@@ -19,9 +19,6 @@ export interface MiniPlayerProps {
   autoPlay?: boolean;
   /** Cor de destaque (violeta para aulas, verde para filmes). */
   accentColor?: string;
-  loadingDelayMs?: number;
-  bufferingDelayMs?: number;
-  seekDelayMs?: number;
   /** Clique no mini player → volta para a tela cheia do player. */
   onExpand: () => void;
   /** Fecha e encerra a sessão de reprodução. */
@@ -40,24 +37,23 @@ function formatTime(sec: number): string {
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({
-  mediaKey,
   title,
   subtitle,
+  videoUrl,
   thumbnailUrl,
   duration,
   initialTime = 0,
   autoPlay = false,
   accentColor = '#A594FF',
-  loadingDelayMs,
-  bufferingDelayMs,
-  seekDelayMs,
   onExpand,
   onClose,
   onProgress,
 }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const {
     isPlaying,
     currentTime,
+    duration: mediaDuration,
     isLoading,
     isBuffering,
     hasEnded,
@@ -65,23 +61,20 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
     toggle,
     replay,
     skip,
-  } = usePlayerLifecycle({
-    mediaKey,
-    duration,
+  } = useMediaElementPlayback({
+    videoRef,
+    src: videoUrl,
+    fallbackDuration: duration,
     initialTime,
     autoPlay,
-    loadingDelayMs,
-    bufferingDelayMs,
-    seekDelayMs,
+    onProgress,
   });
 
-  useEffect(() => {
-    onProgress?.({ currentTime, isPlaying });
-  }, [currentTime, isPlaying, onProgress]);
+  const total = mediaDuration > 0 ? mediaDuration : duration;
 
   const progress = useMemo(
-    () => (duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0),
-    [currentTime, duration],
+    () => (total > 0 ? Math.min(100, (currentTime / total) * 100) : 0),
+    [currentTime, total],
   );
 
   const statusLabel = hasError
@@ -129,20 +122,22 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           backgroundColor: '#070A10',
         }}
       >
-        {thumbnailUrl && (
-          <img
-            src={thumbnailUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: isLoading ? 0.15 : 0.45,
-            }}
-          />
-        )}
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          poster={thumbnailUrl}
+          playsInline
+          preload="metadata"
+          data-testid="mini-player-video"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            backgroundColor: '#000000',
+          }}
+        />
 
         {/* Botão fechar */}
         <button
@@ -240,7 +235,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           }}
         >
           <span style={{ fontSize: '11px', color: '#CBD5E1', fontWeight: 500 }}>
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {formatTime(currentTime)} / {formatTime(total)}
           </span>
           <button
             onClick={(e) => { stop(e); skip(-10); }}
