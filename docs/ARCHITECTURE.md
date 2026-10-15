@@ -4,7 +4,8 @@
 > de arquitetura do projeto e vale para **os dois lados**: o núcleo/backend
 > (`midoteca/`) e o desktop/frontend (`client/`).
 >
-> Ver também: [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) ·
+> Ver também: [`ROADMAP.md`](ROADMAP.md) (plano mestre de produto) ·
+> [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) ·
 > [`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) ·
 > [`CONVENTIONS.md`](CONVENTIONS.md) ·
 > [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) ·
@@ -159,3 +160,4 @@ Permitido:
   telas grandes** para componentes coesos + casos de uso e trocar o mock por um
   adapter IPC. Ver [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md).
 - **Legado `backend/`**: descartado como base; não migrar.
+- **Plano de produto (14 fases / 4 versões)**: [`ROADMAP.md`](ROADMAP.md).

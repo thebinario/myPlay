@@ -69,9 +69,11 @@ base de código**; os conceitos úteis estão registrados em
 
 ## Documentação
 
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — plano mestre (14 fases / 4 versões)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/DDD_GUIDELINES.md`](docs/DDD_GUIDELINES.md)
 - [`docs/CODE_ORGANIZATION.md`](docs/CODE_ORGANIZATION.md)
+- [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md)
 - [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md)
 - [`docs/REFACTORING_ROADMAP.md`](docs/REFACTORING_ROADMAP.md)
 - [`AGENTS.md`](AGENTS.md) — diretrizes de arquitetura e refatoração

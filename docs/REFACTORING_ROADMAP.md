@@ -1,8 +1,23 @@
 # Roadmap de Refatoração — Midoteca
 
-> Plano **incremental e priorizado**, cobrindo backend (`midoteca/`) e frontend
-> (`client/`). Não impõe reescrita total. Regras em [`../AGENTS.md`](../AGENTS.md)
-> e [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md).
+> Recorte **de execução/refatoração** do plano mestre de produto
+> [`ROADMAP.md`](ROADMAP.md) (14 fases / 4 versões). Aqui está **o que migrar
+> primeiro** no código existente, de forma incremental. Não impõe reescrita
+> total. Regras em [`../AGENTS.md`](../AGENTS.md) e
+> [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md).
+
+## 0. Relação com o roadmap mestre
+
+Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
+[`ROADMAP.md`](ROADMAP.md) e prepara a **F03 (v0.5)**:
+
+| Prioridade aqui | Fase do roadmap mestre | Tema |
+| --- | --- | --- |
+| **P0** remover código morto | F00 · Auditoria/baseline | limpeza de sobras |
+| **P1** decompor telas grandes | F01 · Arquitetura e estado | DDD/Clean/Hexagonal |
+| **P2** quebrar `mockData.ts` | F01/F03 · fonte única de verdade | fronteira de repositório |
+| **P3** adapter IPC/HTTP | F03 · Desktop e catálogo | liga `client` ↔ `midoteca` |
+| **P4** `domain/`+`application/` no FE | F01/F02 · componentização | separação de camadas |
 
 ## 1. Princípios
 
