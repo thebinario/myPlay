@@ -31,7 +31,8 @@ const baseArgs = {
   title: '1.1 Visão Geral e Comparação com Electron',
   subtitle: 'Arquitetura Desktop Moderna com Tauri & React',
   videoUrl: '/media/videos/big-buck-bunny.mp4',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+  thumbnailUrl:
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
   duration: 596,
   initialTime: 120,
   onExpand: fn(),
@@ -61,7 +62,8 @@ export const Movie: Story = {
     title: 'Interestelar',
     subtitle: 'Ficção Científica',
     videoUrl: '/media/videos/tears-of-steel.mp4',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&auto=format&fit=crop&q=80',
+    thumbnailUrl:
+      'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&auto=format&fit=crop&q=80',
     duration: 734,
     initialTime: 300,
     accentColor: '#10B981',

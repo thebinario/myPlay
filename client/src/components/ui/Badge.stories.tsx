@@ -11,7 +11,10 @@ const meta: Meta<typeof Badge> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    variant: { control: { type: 'select' }, options: ['default', 'success', 'warning', 'error', 'violet'] },
+    variant: {
+      control: { type: 'select' },
+      options: ['default', 'success', 'warning', 'error', 'violet'],
+    },
     size: { control: { type: 'radio' }, options: ['sm', 'md', 'lg'] },
     children: { control: 'text' },
   },

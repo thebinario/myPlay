@@ -28,7 +28,9 @@ describe('MIDOTECA - Tela da Biblioteca', () => {
     expect(screen.getByText('Arquitetura Desktop Moderna com Tauri & React')).toBeInTheDocument();
     // Não deve mais exibir filmes ou documentos
     expect(screen.queryByText('The Code: A História do Software Livre')).not.toBeInTheDocument();
-    expect(screen.queryByText('Clean Architecture para Aplicações Frontend.pdf')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Clean Architecture para Aplicações Frontend.pdf'),
+    ).not.toBeInTheDocument();
   });
 
   it('deve filtrar itens pelo campo de busca', () => {

@@ -7,9 +7,11 @@ const mockCourse: Course = {
   id: 'course-react-desktop',
   type: 'course',
   title: 'Arquitetura Desktop Moderna com Tauri & React',
-  description: 'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
+  description:
+    'Aprenda a construir aplicativos desktop de alta performance utilizando React, TypeScript, Rust e Tauri com TDD e design minimalista.',
   category: 'Desenvolvimento',
-  coverUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+  coverUrl:
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
   totalDuration: 3548,
   progress: 45,
   tags: ['React', 'Tauri', 'TypeScript', 'Desktop'],
@@ -31,23 +33,34 @@ const mockCourse: Course = {
           order: 1,
           lastPlaybackPosition: 120,
           subtitles: [
-            { id: 'sub-pt', label: 'Português (Brasil)', language: 'pt-BR', isDefault: true, content: 'Nesta aula discutiremos Tauri vs Electron.' },
-            { id: 'sub-en', label: 'English', language: 'en', content: 'In this lesson we compare Tauri with Electron.' },
+            {
+              id: 'sub-pt',
+              label: 'Português (Brasil)',
+              language: 'pt-BR',
+              isDefault: true,
+              content: 'Nesta aula discutiremos Tauri vs Electron.',
+            },
+            {
+              id: 'sub-en',
+              label: 'English',
+              language: 'en',
+              content: 'In this lesson we compare Tauri with Electron.',
+            },
           ],
-          materials: []
-        }
-      ]
-    }
-  ]
+          materials: [],
+        },
+      ],
+    },
+  ],
 };
 
 const unavailableCourse: Course = {
   ...mockCourse,
   id: 'course-unavailable',
   title: 'Curso com aula indisponível',
-  modules: mockCourse.modules.map(module => ({
+  modules: mockCourse.modules.map((module) => ({
     ...module,
-    lessons: module.lessons.map(lesson => ({ ...lesson, isUnavailable: true })),
+    lessons: module.lessons.map((lesson) => ({ ...lesson, isUnavailable: true })),
   })),
 };
 
@@ -56,9 +69,9 @@ const endedCourse: Course = {
   ...mockCourse,
   id: 'course-ended',
   title: 'Curso com aula finalizada',
-  modules: mockCourse.modules.map(module => ({
+  modules: mockCourse.modules.map((module) => ({
     ...module,
-    lessons: module.lessons.map(lesson => ({ ...lesson, lastPlaybackPosition: lesson.duration })),
+    lessons: module.lessons.map((lesson) => ({ ...lesson, lastPlaybackPosition: lesson.duration })),
   })),
 };
 
@@ -122,7 +135,9 @@ export const Playing: Story = {
     const canvas = within(canvasElement);
     fireEvent(getVideo('player-video'), new Event('playing'));
     await canvas.findByRole('button', { name: /pausar vídeo/i });
-    await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Reproduzindo'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('player-status').textContent).toBe('Reproduzindo'),
+    );
   },
 };
 
@@ -135,7 +150,9 @@ export const Buffering: Story = {
     fireEvent(video, new Event('play'));
     fireEvent(video, new Event('waiting'));
     await expect(canvas.getByTestId('player-buffering')).toBeTruthy();
-    await waitFor(() => expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('player-status').textContent).toBe('Armazenando'),
+    );
   },
 };
 
@@ -145,14 +162,11 @@ export const ControlsAutoHide: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     fireEvent(getVideo('player-video'), new Event('play'));
-    await waitFor(() =>
-      expect(canvas.getByTestId('player-controls').style.opacity).toBe('0'),
-      { timeout: 5000 },
-    );
+    await waitFor(() => expect(canvas.getByTestId('player-controls').style.opacity).toBe('0'), {
+      timeout: 5000,
+    });
     fireEvent.mouseMove(canvas.getByTestId('video-player-container'));
-    await waitFor(() =>
-      expect(canvas.getByTestId('player-controls').style.opacity).toBe('1'),
-    );
+    await waitFor(() => expect(canvas.getByTestId('player-controls').style.opacity).toBe('1'));
   },
 };
 

@@ -18,7 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
   ];
 
   return (
-    <aside 
+    <aside
       aria-label="Barra lateral de navegação"
       style={{
         width: '76px',
@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
       }}
     >
       {/* Brand logo compact */}
-      <div 
+      <div
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
         <Badge variant="violet" size="sm" style={{ backgroundColor: '#A594FF' }}>
           <BookOpen size={18} color="#0D111B" strokeWidth={2.5} />
         </Badge>
-        <span 
+        <span
           style={{
             fontSize: '10px',
             fontWeight: 700,
@@ -63,10 +63,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
       </div>
 
       {/* Navigation Buttons */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', alignItems: 'center' }}>
+      <nav
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          width: '100%',
+          alignItems: 'center',
+        }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentTab === item.id || (item.id === 'library' && currentTab === 'course-details');
+          const isActive =
+            currentTab === item.id || (item.id === 'library' && currentTab === 'course-details');
 
           return (
             <IconButton
@@ -101,8 +110,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
         })}
       </nav>
 
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-        <div 
+      <div
+        style={{
+          marginTop: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <div
           style={{
             width: '8px',
             height: '8px',

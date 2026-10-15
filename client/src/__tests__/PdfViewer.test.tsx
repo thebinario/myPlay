@@ -13,12 +13,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   });
 
   it('deve abrir o documento restaurando automaticamente a última página lida', async () => {
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     // Título do documento no cabeçalho
     expect(screen.getByTitle(sampleDoc.title)).toBeInTheDocument();
@@ -31,12 +26,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   });
 
   it('deve permitir navegar entre páginas (próxima e anterior)', async () => {
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('pdf-current-page')).toHaveTextContent('34');
@@ -60,12 +50,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   });
 
   it('deve permitir alterar o zoom do documento', async () => {
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     const zoomDisplay = screen.getByTestId('pdf-zoom-level');
     expect(zoomDisplay).toHaveTextContent('100%');
@@ -82,19 +67,16 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   });
 
   it('deve alternar entre modo escuro e visualização original (cores originais)', async () => {
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     const pageContainer = screen.getByTestId('pdf-page-canvas');
     // Por padrão o modo é escuro (Dark Theme #0D111B)
     expect(pageContainer).toHaveAttribute('data-color-mode', 'dark');
 
     // Alterna para Cores Originais
-    const toggleColorBtn = screen.getByRole('button', { name: /alternar modo de cor|modo escuro|cores originais/i });
+    const toggleColorBtn = screen.getByRole('button', {
+      name: /alternar modo de cor|modo escuro|cores originais/i,
+    });
     fireEvent.click(toggleColorBtn);
 
     expect(pageContainer).toHaveAttribute('data-color-mode', 'original');
@@ -105,12 +87,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   });
 
   it('deve salvar e restaurar as preferências de leitura (página, zoom e modo de cor) ao fechar e reabrir', async () => {
-    const { unmount } = render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    const { unmount } = render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     // Avança para a página 40
     const nextPageBtn = screen.getByRole('button', { name: /próxima página/i });
@@ -121,18 +98,15 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
     fireEvent.click(screen.getByRole('button', { name: /aumentar zoom/i }));
 
     // Altera para cores originais
-    fireEvent.click(screen.getByRole('button', { name: /alternar modo de cor|modo escuro|cores originais/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /alternar modo de cor|modo escuro|cores originais/i }),
+    );
 
     // Fecha o leitor (desmonta)
     unmount();
 
     // Reabre o mesmo documento
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     // O estado deve ser restaurado fielmente
     await waitFor(() => {
@@ -145,12 +119,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   it('deve carregar páginas parcialmente sem solicitar todas as 120 páginas do documento', async () => {
     const fetchSpy = vi.spyOn(mockLibraryService, 'fetchPageRange');
 
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('pdf-current-page')).toHaveTextContent('34');
@@ -173,12 +142,7 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
     // Marca o documento como indisponível
     mockLibraryService.setDocumentUnavailable(sampleDoc.id, true);
 
-    render(
-      <PdfViewer
-        document={sampleDoc}
-        onBack={vi.fn()}
-      />
-    );
+    render(<PdfViewer document={sampleDoc} onBack={vi.fn()} />);
 
     // Estado claro de erro
     await waitFor(() => {
@@ -192,7 +156,9 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
 
     // Deve carregar o documento com sucesso
     await waitFor(() => {
-      expect(screen.queryByText(/documento indisponível ou hd desconectado/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/documento indisponível ou hd desconectado/i),
+      ).not.toBeInTheDocument();
       expect(screen.getByTestId('pdf-current-page')).toBeInTheDocument();
     });
   });

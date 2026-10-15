@@ -20,9 +20,9 @@ const completedCourse: Course = {
   id: 'course-completed',
   title: 'Curso 100% concluído',
   progress: 100,
-  modules: baseCourse.modules.map(module => ({
+  modules: baseCourse.modules.map((module) => ({
     ...module,
-    lessons: module.lessons.map(lesson => ({ ...lesson, completed: true })),
+    lessons: module.lessons.map((lesson) => ({ ...lesson, completed: true })),
   })),
 };
 

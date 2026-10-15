@@ -7,7 +7,14 @@ interface ProgressBarProps {
   progressColor?: string;
 }
 
-export const ProgressBar = ({ value, max = 100, width = '100%', height = '6px', bgColor = 'rgba(255, 255, 255, 0.15)', progressColor = '#A594FF' }: ProgressBarProps) => {
+export const ProgressBar = ({
+  value,
+  max = 100,
+  width = '100%',
+  height = '6px',
+  bgColor = 'rgba(255, 255, 255, 0.15)',
+  progressColor = '#A594FF',
+}: ProgressBarProps) => {
   const percentage = (value / max) * 100;
 
   return (

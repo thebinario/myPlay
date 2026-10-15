@@ -9,12 +9,12 @@ interface SearchFieldProps {
   className?: string;
 }
 
-export const SearchField = ({ 
-  placeholder = 'Pesquisar cursos, aulas e documentos...', 
-  onChange, 
-  onClear, 
-  disabled = false, 
-  className 
+export const SearchField = ({
+  placeholder = 'Pesquisar cursos, aulas e documentos...',
+  onChange,
+  onClear,
+  disabled = false,
+  className,
 }: SearchFieldProps) => {
   const [query, setQuery] = useState('');
 
@@ -45,11 +45,7 @@ export const SearchField = ({
             transition: 'border-color 0.15s ease',
           }}
         />
-        <Search
-          size={16}
-          color="#64748B"
-          style={{ margin: '0 8px' }}
-        />
+        <Search size={16} color="#64748B" style={{ margin: '0 8px' }} />
       </div>
       {query && onClear && (
         <button

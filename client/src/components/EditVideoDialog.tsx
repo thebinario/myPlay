@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Button, 
-  TextField, 
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -14,7 +14,7 @@ import {
   Typography,
   Chip,
   CircularProgress,
-  Alert
+  Alert,
 } from '@mui/material';
 import axios from 'axios';
 import { APP_CONFIG } from '../config/app.config';
@@ -28,7 +28,7 @@ const PREDEFINED_CATEGORIES = [
   'Tutoriais',
   'Música',
   'Pessoal',
-  'Outros'
+  'Outros',
 ];
 
 // Interface para o objeto Video
@@ -52,12 +52,7 @@ interface EditVideoDialogProps {
   onSave: (updatedVideo: Video) => void;
 }
 
-const EditVideoDialog: React.FC<EditVideoDialogProps> = ({ 
-  video, 
-  open, 
-  onClose,
-  onSave
-}) => {
+const EditVideoDialog: React.FC<EditVideoDialogProps> = ({ video, open, onClose, onSave }) => {
   const [alias, setAlias] = useState('');
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -68,7 +63,7 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
   useEffect(() => {
     if (video) {
       setAlias(video.alias || video.title || '');
-      
+
       if (video.category) {
         // Se a categoria do vídeo estiver nas predefinidas, use-a
         // Caso contrário, defina como personalizada
@@ -94,31 +89,31 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
       setError(null);
 
       const finalCategory = category === 'custom' ? customCategory : category;
-      
+
       const updateData = {
         alias,
-        category: finalCategory
+        category: finalCategory,
       };
-      
+
       console.log('Enviando atualização para o backend:', JSON.stringify(updateData));
       console.log('ID do vídeo:', video.id);
       console.log('URL completa:', `${APP_CONFIG.API_BASE_URL}/videos/${video.id}`);
-      
+
       // Chamada à API para atualizar o vídeo
       const response = await axios.patch(
-        `${APP_CONFIG.API_BASE_URL}/videos/${video.id}`, 
-        updateData
+        `${APP_CONFIG.API_BASE_URL}/videos/${video.id}`,
+        updateData,
       );
-      
+
       console.log('Resposta do servidor:', response.data);
-      
+
       // Callback com vídeo atualizado
       onSave({
         ...video,
         alias,
-        category: finalCategory
+        category: finalCategory,
       });
-      
+
       onClose();
     } catch (err) {
       console.error('Erro ao atualizar vídeo:', err);
@@ -131,7 +126,7 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
   const handleCategoryChange = (event: SelectChangeEvent<string>) => {
     const value = event.target.value;
     setCategory(value);
-    
+
     // Se não for categoria personalizada, reseta o campo de categoria personalizada
     if (value !== 'custom') {
       setCustomCategory('');
@@ -152,15 +147,15 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       fullWidth
       maxWidth="sm"
       PaperProps={{
         sx: {
-          minHeight: '350px'
-        }
+          minHeight: '350px',
+        },
       }}
     >
       <DialogTitle>Editar Vídeo</DialogTitle>
@@ -170,7 +165,7 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
             {error}
           </Alert>
         )}
-        
+
         <TextField
           autoFocus
           margin="dense"
@@ -183,7 +178,7 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
           onChange={(e) => setAlias(e.target.value)}
           sx={{ mb: 2, mt: 1 }}
         />
-        
+
         <FormControl fullWidth sx={{ mb: 2 }}>
           <InputLabel id="category-label">Categoria</InputLabel>
           <Select
@@ -194,12 +189,14 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
             onChange={handleCategoryChange}
           >
             {PREDEFINED_CATEGORIES.map((cat) => (
-              <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+              <MenuItem key={cat} value={cat}>
+                {cat}
+              </MenuItem>
             ))}
             <MenuItem value="custom">Categoria Personalizada</MenuItem>
           </Select>
         </FormControl>
-        
+
         {category === 'custom' && (
           <TextField
             margin="dense"
@@ -213,7 +210,7 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
             sx={{ mb: 2 }}
           />
         )}
-        
+
         {video && (
           <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, boxShadow: 1 }}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -239,11 +236,13 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} color="inherit">Cancelar</Button>
-        <Button 
-          onClick={handleSave} 
-          color="primary" 
-          variant="contained" 
+        <Button onClick={onClose} color="inherit">
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSave}
+          color="primary"
+          variant="contained"
           disabled={loading || !alias || (category === 'custom' && !customCategory)}
           startIcon={loading ? <CircularProgress size={16} /> : null}
         >
@@ -254,4 +253,4 @@ const EditVideoDialog: React.FC<EditVideoDialogProps> = ({
   );
 };
 
-export default EditVideoDialog; 
+export default EditVideoDialog;

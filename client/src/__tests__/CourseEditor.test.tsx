@@ -18,11 +18,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
     const handleBack = vi.fn();
 
     render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={handleSave}
-        onBack={handleBack}
-      />
+      <CourseEditorView initialCourse={sampleCourse} onSave={handleSave} onBack={handleBack} />,
     );
 
     // O título inicial deve estar presente
@@ -35,13 +31,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
   });
 
   it('deve permitir editar o título de um módulo e de uma aula diretamente inline', () => {
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={vi.fn()}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={vi.fn()} onBack={vi.fn()} />);
 
     // Edita o nome do módulo 1
     const moduleInput = screen.getByLabelText(/título do módulo 1/i);
@@ -55,16 +45,12 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
   });
 
   it('deve permitir reordenar módulos usando controles acessíveis', () => {
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={vi.fn()}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={vi.fn()} onBack={vi.fn()} />);
 
     // Botão para mover o módulo 1 para baixo
-    const moveDownBtn = screen.getByRole('button', { name: /mover módulo "módulo 1: fundamentos e arquitetura" para baixo/i });
+    const moveDownBtn = screen.getByRole('button', {
+      name: /mover módulo "módulo 1: fundamentos e arquitetura" para baixo/i,
+    });
     fireEvent.click(moveDownBtn);
 
     // Agora o Módulo 2 deve ser o primeiro da lista
@@ -74,31 +60,23 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
   });
 
   it('deve permitir mover uma aula para outro módulo', () => {
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={vi.fn()}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={vi.fn()} onBack={vi.fn()} />);
 
     // Move a aula 1.1 para o Módulo 2
-    const moveLessonSelect = screen.getByLabelText(/mover aula "1.1 visão geral e comparação com electron" para o módulo/i);
+    const moveLessonSelect = screen.getByLabelText(
+      /mover aula "1.1 visão geral e comparação com electron" para o módulo/i,
+    );
     fireEvent.change(moveLessonSelect, { target: { value: 'mod-2' } });
 
     // Verifica que o Módulo 2 agora contém 3 aulas
     const mod2Section = screen.getByTestId('module-section-mod-2');
-    expect(within(mod2Section).getByDisplayValue('1.1 Visão Geral e Comparação com Electron')).toBeInTheDocument();
+    expect(
+      within(mod2Section).getByDisplayValue('1.1 Visão Geral e Comparação com Electron'),
+    ).toBeInTheDocument();
   });
 
   it('deve permitir desfazer alterações com botão Desfazer', () => {
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={vi.fn()}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={vi.fn()} onBack={vi.fn()} />);
 
     const titleInput = screen.getByDisplayValue(sampleCourse.title);
     fireEvent.change(titleInput, { target: { value: 'Título Provisório' } });
@@ -115,13 +93,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
   it('deve salvar as alterações no serviço mockado e exibir feedback discreto', async () => {
     const handleSave = vi.fn();
 
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={handleSave}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={handleSave} onBack={vi.fn()} />);
 
     const titleInput = screen.getByDisplayValue(sampleCourse.title);
     fireEvent.change(titleInput, { target: { value: 'Curso Salvo no Mock' } });
@@ -132,9 +104,11 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
 
     // Feedback discreto
     expect(screen.getByText(/alterações salvas com sucesso/i)).toBeInTheDocument();
-    expect(handleSave).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Curso Salvo no Mock'
-    }));
+    expect(handleSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Curso Salvo no Mock',
+      }),
+    );
 
     // Verifica persistência no mockLibraryService
     const savedInService = mockLibraryService.getCourseById(sampleCourse.id);
@@ -144,13 +118,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
   it('deve preservar os IDs, URLs e caminhos de arquivo originais das aulas ao salvar', () => {
     const handleSave = vi.fn();
 
-    render(
-      <CourseEditorView
-        initialCourse={sampleCourse}
-        onSave={handleSave}
-        onBack={vi.fn()}
-      />
-    );
+    render(<CourseEditorView initialCourse={sampleCourse} onSave={handleSave} onBack={vi.fn()} />);
 
     const saveButton = screen.getByRole('button', { name: /salvar alterações/i });
     fireEvent.click(saveButton);

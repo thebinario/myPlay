@@ -34,32 +34,27 @@ const variantStyles: Record<NonNullable<BadgeProps['variant']>, CSSProperties> =
   },
 };
 
-export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(({
-  children,
-  variant = 'default',
-  size = 'md',
-  className,
-  style,
-  ...props
-}, ref) => (
-  <span
-    ref={ref}
-    className={className}
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '50%',
-      fontWeight: 600,
-      flexShrink: 0,
-      ...sizeStyles[size],
-      ...variantStyles[variant],
-      ...style,
-    }}
-    {...props}
-  >
-    {children}
-  </span>
-));
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ children, variant = 'default', size = 'md', className, style, ...props }, ref) => (
+    <span
+      ref={ref}
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '50%',
+        fontWeight: 600,
+        flexShrink: 0,
+        ...sizeStyles[size],
+        ...variantStyles[variant],
+        ...style,
+      }}
+      {...props}
+    >
+      {children}
+    </span>
+  ),
+);
 
 Badge.displayName = 'Badge';

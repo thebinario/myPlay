@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  Button, 
-  TextField, 
-  Paper, 
-  Box, 
+import {
+  Button,
+  TextField,
+  Paper,
+  Box,
   Typography,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import axios from 'axios';
 
@@ -33,14 +33,15 @@ export const AddVideo: React.FC<AddVideoProps> = ({ onVideoAdded }) => {
     try {
       await axios.post('/api/videos', {
         title,
-        path
+        path,
       });
       setOpen(false);
       setTitle('');
       setPath('');
       onVideoAdded();
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Erro ao adicionar vídeo. Verifique o caminho do arquivo.';
+      const errorMessage =
+        err.response?.data?.message || 'Erro ao adicionar vídeo. Verifique o caminho do arquivo.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -56,12 +57,7 @@ export const AddVideo: React.FC<AddVideoProps> = ({ onVideoAdded }) => {
 
   return (
     <>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={() => setOpen(true)}
-        sx={{ mb: 2 }}
-      >
+      <Button variant="contained" color="primary" onClick={() => setOpen(true)} sx={{ mb: 2 }}>
         Adicionar Vídeo
       </Button>
 
@@ -101,9 +97,9 @@ export const AddVideo: React.FC<AddVideoProps> = ({ onVideoAdded }) => {
             <Button onClick={handleClose} disabled={loading}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
+            <Button
+              type="submit"
+              variant="contained"
               disabled={!title || !path || loading}
               startIcon={loading && <CircularProgress size={20} />}
             >
@@ -114,4 +110,4 @@ export const AddVideo: React.FC<AddVideoProps> = ({ onVideoAdded }) => {
       </Dialog>
     </>
   );
-}; 
+};

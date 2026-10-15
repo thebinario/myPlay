@@ -6,9 +6,11 @@ const mockDocument: Document = {
   id: 'doc-clean-architecture',
   type: 'document',
   title: 'Clean Architecture para Aplicações Frontend.pdf',
-  description: 'Guia de desacoplamento, inversão de controle e estruturação de serviços independentes.',
+  description:
+    'Guia de desacoplamento, inversão de controle e estruturação de serviços independentes.',
   category: 'Livros',
-  coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
+  coverUrl:
+    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
   totalPages: 120,
   lastReadPage: 34,
   fileUrl: '/media/docs/think-python.pdf',

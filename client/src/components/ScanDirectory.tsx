@@ -29,32 +29,38 @@ export const ScanDirectory: React.FC = () => {
       // Se um caminho foi especificado, usamos ele. Caso contrário, enviamos um objeto vazio
       const payload = directoryPath.trim() ? { path: directoryPath.trim() } : {};
       const url = `${APP_CONFIG.API_BASE_URL}/videos/scan-directory`;
-      
+
       console.log('Iniciando escaneamento do diretório:', directoryPath || 'diretório padrão');
       console.log('URL da requisição:', url);
       console.log('Payload:', payload);
-      
+
       const response = await axios.post(url, payload, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       console.log('Resposta recebida:', response.status, response.data);
       setResult(response.data);
     } catch (err) {
       console.error('Erro ao escanear diretório:', err);
-      
+
       if (axios.isAxiosError(err)) {
         if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
-          setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 3000.');
+          setError(
+            'Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 3000.',
+          );
         } else if (err.response?.status === 404) {
-          setError(`Endpoint de escaneamento não encontrado. URL: ${APP_CONFIG.API_BASE_URL}/videos/scan-directory`);
+          setError(
+            `Endpoint de escaneamento não encontrado. URL: ${APP_CONFIG.API_BASE_URL}/videos/scan-directory`,
+          );
         } else if (err.response?.status === 500) {
-          const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Erro interno no servidor';
+          const errorMessage =
+            err.response?.data?.message || err.response?.data?.error || 'Erro interno no servidor';
           setError(`Erro no servidor: ${errorMessage}`);
         } else {
-          const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message;
+          const errorMessage =
+            err.response?.data?.message || err.response?.data?.error || err.message;
           setError(`Erro ao escanear diretório: ${errorMessage}`);
         }
       } else {
@@ -70,7 +76,7 @@ export const ScanDirectory: React.FC = () => {
       <Typography variant="h6" gutterBottom>
         Escanear Diretório de Vídeos
       </Typography>
-      
+
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         <TextField
           fullWidth
@@ -90,25 +96,25 @@ export const ScanDirectory: React.FC = () => {
           {loading ? 'Escaneando...' : 'Escanear'}
         </Button>
       </Box>
-      
+
       {loading && <CircularProgress size={24} sx={{ ml: 2 }} />}
-      
+
       {error && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
         </Alert>
       )}
-      
+
       {result && (
         <Box sx={{ mt: 2 }}>
           <Alert severity="success" sx={{ mb: 2 }}>
             {result.message}
           </Alert>
-          
+
           <Typography variant="subtitle1" gutterBottom>
             Vídeos encontrados:
           </Typography>
-          
+
           <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
             {result.videos.map((video) => (
               <Box
@@ -122,9 +128,7 @@ export const ScanDirectory: React.FC = () => {
                   borderColor: 'divider',
                 }}
               >
-                <Typography variant="body2">
-                  {video.title}
-                </Typography>
+                <Typography variant="body2">{video.title}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {video.path}
                 </Typography>
@@ -142,4 +146,4 @@ export const ScanDirectory: React.FC = () => {
       )}
     </Box>
   );
-}; 
+};

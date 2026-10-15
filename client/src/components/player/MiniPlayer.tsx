@@ -97,7 +97,12 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
       role="button"
       tabIndex={0}
       onClick={onExpand}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onExpand(); } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onExpand();
+        }
+      }}
       aria-label={`Mini player: ${title}`}
       style={{
         position: 'fixed',
@@ -141,7 +146,10 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
 
         {/* Botão fechar */}
         <button
-          onClick={(e) => { stop(e); onClose(); }}
+          onClick={(e) => {
+            stop(e);
+            onClose();
+          }}
           aria-label="Fechar mini player"
           title="Fechar"
           style={{
@@ -178,7 +186,10 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             <Spinner size={26} color={accentColor} />
           ) : hasEnded ? (
             <button
-              onClick={(e) => { stop(e); replay(); }}
+              onClick={(e) => {
+                stop(e);
+                replay();
+              }}
               aria-label="Reproduzir novamente"
               title="Reproduzir novamente"
               style={{
@@ -198,7 +209,10 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             </button>
           ) : (
             <button
-              onClick={(e) => { stop(e); toggle(); }}
+              onClick={(e) => {
+                stop(e);
+                toggle();
+              }}
               aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
               title={isPlaying ? 'Pausar' : 'Reproduzir'}
               style={{
@@ -238,18 +252,36 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             {formatTime(currentTime)} / {formatTime(total)}
           </span>
           <button
-            onClick={(e) => { stop(e); skip(-10); }}
+            onClick={(e) => {
+              stop(e);
+              skip(-10);
+            }}
             aria-label="Retroceder 10 segundos"
             title="Retroceder 10s"
-            style={{ display: 'flex', border: 'none', background: 'transparent', color: '#E2E8F0', cursor: 'pointer' }}
+            style={{
+              display: 'flex',
+              border: 'none',
+              background: 'transparent',
+              color: '#E2E8F0',
+              cursor: 'pointer',
+            }}
           >
             <RotateCcw size={14} />
           </button>
           <button
-            onClick={(e) => { stop(e); onExpand(); }}
+            onClick={(e) => {
+              stop(e);
+              onExpand();
+            }}
             aria-label="Expandir mini player"
             title="Expandir"
-            style={{ display: 'flex', border: 'none', background: 'transparent', color: '#E2E8F0', cursor: 'pointer' }}
+            style={{
+              display: 'flex',
+              border: 'none',
+              background: 'transparent',
+              color: '#E2E8F0',
+              cursor: 'pointer',
+            }}
           >
             <Maximize2 size={14} />
           </button>
@@ -298,7 +330,16 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           >
             {subtitle}
           </span>
-          <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: accentColor, flexShrink: 0 }}>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: accentColor,
+              flexShrink: 0,
+            }}
+          >
             {statusLabel}
           </span>
         </span>

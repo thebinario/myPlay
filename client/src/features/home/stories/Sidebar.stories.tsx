@@ -10,7 +10,21 @@ const meta: Meta<typeof Sidebar> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    currentTab: { control: { type: 'radio', options: ['home', 'library', 'course-details', 'player', 'search', 'settings', 'editor', 'pdf-viewer'] } },
+    currentTab: {
+      control: {
+        type: 'radio',
+        options: [
+          'home',
+          'library',
+          'course-details',
+          'player',
+          'search',
+          'settings',
+          'editor',
+          'pdf-viewer',
+        ],
+      },
+    },
     onNavigate: { action: 'navigate' },
   },
 };

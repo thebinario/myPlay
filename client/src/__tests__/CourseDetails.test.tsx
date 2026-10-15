@@ -15,7 +15,7 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
         course={sampleCourse}
         onBack={handleBack}
         onToggleLesson={handleToggleLesson}
-      />
+      />,
     );
 
     // Título e descrição
@@ -42,7 +42,7 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
         course={sampleCourse}
         onBack={handleBack}
         onToggleLesson={handleToggleLesson}
-      />
+      />,
     );
 
     // Material da primeira lição
@@ -58,11 +58,13 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
         course={sampleCourse}
         onBack={handleBack}
         onToggleLesson={handleToggleLesson}
-      />
+      />,
     );
 
     // Botão/checkbox de conclusão da aula 1.3
-    const lessonCheckbox = screen.getByLabelText(/marcar 1.3 IPC: Comunicação Frontend e Backend Seguro como concluída/i);
+    const lessonCheckbox = screen.getByLabelText(
+      /marcar 1.3 IPC: Comunicação Frontend e Backend Seguro como concluída/i,
+    );
     fireEvent.click(lessonCheckbox);
 
     expect(handleToggleLesson).toHaveBeenCalledWith(sampleCourse.id, 'les-1-3');
@@ -77,7 +79,7 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
         course={sampleCourse}
         onBack={handleBack}
         onToggleLesson={handleToggleLesson}
-      />
+      />,
     );
 
     const backButton = screen.getByRole('button', { name: /voltar para a biblioteca/i });

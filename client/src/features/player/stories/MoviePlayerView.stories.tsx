@@ -74,7 +74,9 @@ export const Playing: Story = {
     const canvas = within(canvasElement);
     fireEvent(getVideo('movie-video'), new Event('playing'));
     await canvas.findByRole('button', { name: /pausar/i });
-    await waitFor(() => expect(canvas.getByTestId('movie-status').textContent).toBe('Reproduzindo'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('movie-status').textContent).toBe('Reproduzindo'),
+    );
   },
 };
 
@@ -84,14 +86,11 @@ export const ControlsAutoHide: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     fireEvent(getVideo('movie-video'), new Event('play'));
-    await waitFor(() =>
-      expect(canvas.getByTestId('movie-controls').style.opacity).toBe('0'),
-      { timeout: 5000 },
-    );
+    await waitFor(() => expect(canvas.getByTestId('movie-controls').style.opacity).toBe('0'), {
+      timeout: 5000,
+    });
     fireEvent.mouseMove(canvas.getByTestId('movie-player-canvas'));
-    await waitFor(() =>
-      expect(canvas.getByTestId('movie-controls').style.opacity).toBe('1'),
-    );
+    await waitFor(() => expect(canvas.getByTestId('movie-controls').style.opacity).toBe('1'));
   },
 };
 

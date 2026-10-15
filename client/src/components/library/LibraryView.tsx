@@ -1,18 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  LibraryItem, 
-  Course, 
-  Movie, 
-  Document 
-} from '../../types/library';
-import { 
-  Search, 
-  GraduationCap, 
-  Film, 
-  FileText, 
-  Clock, 
-  BookOpen, 
-  SlidersHorizontal 
+import { LibraryItem, Course, Movie, Document } from '../../types/library';
+import {
+  Search,
+  GraduationCap,
+  Film,
+  FileText,
+  Clock,
+  BookOpen,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface LibraryViewProps {
@@ -22,11 +17,11 @@ interface LibraryViewProps {
   onOpenDocument?: (docId: string) => void;
 }
 
-export const LibraryView: React.FC<LibraryViewProps> = ({ 
-  items, 
-  onSelectCourse, 
-  onOpenMovie, 
-  onOpenDocument 
+export const LibraryView: React.FC<LibraryViewProps> = ({
+  items,
+  onSelectCourse,
+  onOpenMovie,
+  onOpenDocument,
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'course' | 'movie' | 'document'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,7 +37,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
       const matchCategory = item.category.toLowerCase().includes(q);
-      const matchTags = item.tags.some(tag => tag.toLowerCase().includes(q));
+      const matchTags = item.tags.some((tag) => tag.toLowerCase().includes(q));
 
       return matchTitle || matchDesc || matchCategory || matchTags;
     });
@@ -77,7 +72,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       {/* Header bar */}
-      <div 
+      <div
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -89,7 +84,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         }}
       >
         <div>
-          <h1 
+          <h1
             style={{
               fontSize: '28px',
               fontWeight: 700,
@@ -106,7 +101,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
 
         {/* Search input with functional minimalism */}
-        <div 
+        <div
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -137,7 +132,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div 
+      <div
         role="tablist"
         aria-label="Filtros de conteúdo"
         style={{
@@ -194,7 +189,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
       {/* Cards Grid */}
       {filteredItems.length === 0 ? (
-        <div 
+        <div
           style={{
             padding: '64px 20px',
             textAlign: 'center',
@@ -212,7 +207,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           </p>
         </div>
       ) : (
-        <div 
+        <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
@@ -225,7 +220,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             const movie = item.type === 'movie' ? (item as Movie) : null;
             const doc = item.type === 'document' ? (item as Document) : null;
 
-            const progress = isCourse ? course!.progress : movie ? movie.progress : doc ? Math.round((doc.lastReadPage / doc.totalPages) * 100) : 0;
+            const progress = isCourse
+              ? course!.progress
+              : movie
+                ? movie.progress
+                : doc
+                  ? Math.round((doc.lastReadPage / doc.totalPages) * 100)
+                  : 0;
 
             return (
               <div
@@ -244,7 +245,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)';
                   e.currentTarget.style.borderColor = 'rgba(165, 148, 255, 0.4)';
-                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.4), 0 0 20px rgba(165, 148, 255, 0.1)';
+                  e.currentTarget.style.boxShadow =
+                    '0 12px 28px rgba(0, 0, 0, 0.4), 0 0 20px rgba(165, 148, 255, 0.1)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
@@ -253,7 +255,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 }}
               >
                 {/* Thumbnail / Cover */}
-                <div style={{ position: 'relative', width: '100%', height: '160px', backgroundColor: '#0B0F19' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '160px',
+                    backgroundColor: '#0B0F19',
+                  }}
+                >
                   {item.coverUrl ? (
                     <img
                       src={item.coverUrl}
@@ -266,7 +275,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       }}
                     />
                   ) : (
-                    <div 
+                    <div
                       style={{
                         width: '100%',
                         height: '100%',
@@ -281,7 +290,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   )}
 
                   {/* Badge de Categoria */}
-                  <div 
+                  <div
                     style={{
                       position: 'absolute',
                       top: '10px',
@@ -300,7 +309,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </div>
 
                   {/* Type Indicator */}
-                  <div 
+                  <div
                     style={{
                       position: 'absolute',
                       top: '10px',
@@ -322,7 +331,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </div>
 
                   {/* Duration / Pages Pill */}
-                  <div 
+                  <div
                     style={{
                       position: 'absolute',
                       bottom: '8px',
@@ -360,14 +369,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 </div>
 
                 {/* Progress Bar in Violet */}
-                <div 
+                <div
                   style={{
                     width: '100%',
                     height: '3px',
                     backgroundColor: 'rgba(255, 255, 255, 0.08)',
                   }}
                 >
-                  <div 
+                  <div
                     style={{
                       width: `${progress}%`,
                       height: '100%',
@@ -380,7 +389,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
                 {/* Content body */}
                 <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h3 
+                  <h3
                     style={{
                       fontSize: '15px',
                       fontWeight: 600,
@@ -396,7 +405,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     {item.title}
                   </h3>
 
-                  <p 
+                  <p
                     style={{
                       fontSize: '12px',
                       color: '#8B949E',
@@ -413,7 +422,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </p>
 
                   {/* Metadata footer */}
-                  <div 
+                  <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -425,11 +434,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     }}
                   >
                     <span>
-                      {isCourse 
-                        ? `${course!.modules.reduce((acc, m) => acc + m.lessons.length, 0)} aulas` 
-                        : movie 
-                        ? 'Filme Completo' 
-                        : `Pág ${doc!.lastReadPage} de ${doc!.totalPages}`}
+                      {isCourse
+                        ? `${course!.modules.reduce((acc, m) => acc + m.lessons.length, 0)} aulas`
+                        : movie
+                          ? 'Filme Completo'
+                          : `Pág ${doc!.lastReadPage} de ${doc!.totalPages}`}
                     </span>
                     <span style={{ color: progress > 0 ? '#A594FF' : '#64748B', fontWeight: 600 }}>
                       {progress > 0 ? `${progress}%` : 'Não iniciado'}

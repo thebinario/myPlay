@@ -10,9 +10,9 @@ import { HomeView } from '../components/home/HomeView';
 import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '../services/mockData';
 import type { Course, Movie, Document } from '../types/library';
 
-const inProgressCourse = MOCK_COURSES.find(c => c.progress > 0 && c.progress < 100)!;
-const inProgressMovie = MOCK_MOVIES.find(m => m.progress > 0 && m.progress < 100)!;
-const inProgressDoc = MOCK_DOCUMENTS.find(d => d.lastReadPage > 1)!;
+const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
+const inProgressMovie = MOCK_MOVIES.find((m) => m.progress > 0 && m.progress < 100)!;
+const inProgressDoc = MOCK_DOCUMENTS.find((d) => d.lastReadPage > 1)!;
 
 const zeroCourse: Course = { ...MOCK_COURSES[0], progress: 0, id: 'zero-course' };
 const zeroMovie: Movie = { ...MOCK_MOVIES[0], progress: 0, id: 'zero-movie' };

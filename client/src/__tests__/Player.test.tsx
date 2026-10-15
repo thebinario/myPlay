@@ -16,25 +16,20 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
   it('deve renderizar o container do player em formato 16:9 com título da aula e curso', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
-    expect(screen.getByTestId('video-player-container')).toHaveAttribute('data-aspect-ratio', '16:9');
+    expect(screen.getByTestId('video-player-container')).toHaveAttribute(
+      'data-aspect-ratio',
+      '16:9',
+    );
     expect(screen.getByText(sampleLesson.title)).toBeInTheDocument();
     expect(screen.getByText(sampleCourse.title)).toBeInTheDocument();
   });
 
   it('deve alternar entre reproduzir e pausar ao clicar no botão de play/pause', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     const playPauseBtn = screen.getByRole('button', { name: /reproduzir vídeo|pausar vídeo/i });
@@ -51,11 +46,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
   it('deve avançar e retroceder o tempo de reprodução em 10 segundos', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     // O tempo inicial restaurado foi de 120s (2:00)
@@ -74,11 +65,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
   it('deve alterar a velocidade de reprodução', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     const speedBtn = screen.getByRole('button', { name: /velocidade de reprodução: 1x/i });
@@ -88,16 +75,14 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
     const speedOption = screen.getByRole('button', { name: /1\.5x/i });
     fireEvent.click(speedOption);
 
-    expect(screen.getByRole('button', { name: /velocidade de reprodução: 1\.5x/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /velocidade de reprodução: 1\.5x/i }),
+    ).toBeInTheDocument();
   });
 
   it('deve navegar entre aulas anterior e próxima', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     // Avança para a próxima aula
@@ -115,11 +100,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
   it('deve persistir o progresso no mock e restaurá-lo ao reabrir o player', () => {
     const { unmount } = render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     // Avança para 130s
@@ -131,11 +112,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
     // Re-renderiza o player
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     // O progresso de 130s (02:10) deve ter sido restaurado com exatidão
@@ -144,11 +121,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
 
   it('deve abrir menu flutuante de legendas (CC), selecionar idioma em 1 clique e fechar automaticamente', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     const ccBtn = screen.getByRole('button', { name: /legendas e idiomas \(cc\)/i });
@@ -166,16 +139,14 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
     expect(screen.queryByTestId('subtitles-floating-menu')).not.toBeInTheDocument();
 
     // Exibe a legenda em inglês ativa na tela
-    expect(screen.getByTestId('subtitles-display')).toHaveTextContent(/In this lesson we compare Tauri with Electron/i);
+    expect(screen.getByTestId('subtitles-display')).toHaveTextContent(
+      /In this lesson we compare Tauri with Electron/i,
+    );
   });
 
   it('deve permitir desativar legendas pelo menu CC', () => {
     render(
-      <VideoPlayerView
-        course={sampleCourse}
-        initialLessonId={sampleLesson.id}
-        onBack={vi.fn()}
-      />
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
     );
 
     // Abre CC
@@ -213,7 +184,7 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
         course={courseWithMissingLesson}
         initialLessonId="les-missing"
         onBack={vi.fn()}
-      />
+      />,
     );
 
     // Estado de erro claro

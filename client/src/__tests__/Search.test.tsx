@@ -19,38 +19,38 @@ describe('MockLibraryService.search()', () => {
 
   it('encontra curso pelo título', () => {
     const results = svc.search('Tauri', 'all');
-    expect(results.some(r => r.kind === 'course' && r.title.includes('Tauri'))).toBe(true);
+    expect(results.some((r) => r.kind === 'course' && r.title.includes('Tauri'))).toBe(true);
   });
 
   it('encontra aula pelo nome', () => {
     const results = svc.search('Visão Geral', 'all');
-    expect(results.some(r => r.kind === 'lesson')).toBe(true);
+    expect(results.some((r) => r.kind === 'lesson')).toBe(true);
   });
 
   it('encontra aula buscando pelo filtro lesson', () => {
     const results = svc.search('IPC', 'lesson');
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every(r => r.kind === 'lesson')).toBe(true);
+    expect(results.every((r) => r.kind === 'lesson')).toBe(true);
   });
 
   it('encontra PDF pelo nome (sem acentos)', () => {
     const results = svc.search('Clean Architecture', 'document');
-    expect(results.some(r => r.kind === 'document')).toBe(true);
+    expect(results.some((r) => r.kind === 'document')).toBe(true);
   });
 
   it('encontra filme pelo título', () => {
     const results = svc.search('Software Livre', 'all');
-    expect(results.some(r => r.kind === 'movie')).toBe(true);
+    expect(results.some((r) => r.kind === 'movie')).toBe(true);
   });
 
   it('filtra apenas cursos quando filtro é course', () => {
     const results = svc.search('Tauri', 'course');
-    expect(results.every(r => r.kind === 'course')).toBe(true);
+    expect(results.every((r) => r.kind === 'course')).toBe(true);
   });
 
   it('filtra apenas filmes quando filtro é movie', () => {
     const results = svc.search('Fronteiras', 'movie');
-    expect(results.every(r => r.kind === 'movie')).toBe(true);
+    expect(results.every((r) => r.kind === 'movie')).toBe(true);
   });
 
   it('é case-insensitive (maiúsculas e minúsculas)', () => {
@@ -80,7 +80,7 @@ describe('MockLibraryService.search()', () => {
 
   it('resultado de aula possui courseId e lessonId', () => {
     const results = svc.search('IPC', 'lesson');
-    const lesson = results.find(r => r.kind === 'lesson');
+    const lesson = results.find((r) => r.kind === 'lesson');
     expect(lesson).toBeDefined();
     expect(lesson!.courseId).toBeTruthy();
     expect(lesson!.lessonId).toBeTruthy();
@@ -88,7 +88,7 @@ describe('MockLibraryService.search()', () => {
 
   it('resultado de documento possui progressLabel quando lastReadPage > 1', () => {
     const results = svc.search('Clean', 'document');
-    const doc = results.find(r => r.kind === 'document');
+    const doc = results.find((r) => r.kind === 'document');
     expect(doc).toBeDefined();
     // Clean Architecture lastReadPage = 34 > 1
     expect(doc!.progressLabel).toMatch(/Página/);
@@ -96,7 +96,7 @@ describe('MockLibraryService.search()', () => {
 
   it('busca por tag encontra curso', () => {
     const results = svc.search('TDD', 'course');
-    expect(results.some(r => r.kind === 'course')).toBe(true);
+    expect(results.some((r) => r.kind === 'course')).toBe(true);
   });
 });
 
@@ -204,6 +204,6 @@ describe('SearchView Component', () => {
     await user.click(screen.getByRole('button', { name: /cursos/i }));
     await waitFor(() => screen.getByTestId('search-results'));
     const items = screen.getAllByTestId(/^result-/);
-    expect(items.every(el => el.dataset.testid?.startsWith('result-course-'))).toBe(true);
+    expect(items.every((el) => el.dataset.testid?.startsWith('result-course-'))).toBe(true);
   });
 });

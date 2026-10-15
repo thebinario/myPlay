@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Course, Lesson, Material } from '../../types/library';
-import { 
-  ArrowLeft, 
-  Play, 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  ChevronDown, 
-  ChevronUp, 
-  FileText, 
-  Code, 
-  ExternalLink, 
+import {
+  ArrowLeft,
+  Play,
+  CheckCircle2,
+  Circle,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Code,
+  ExternalLink,
   GraduationCap,
-  Edit 
+  Edit,
 } from 'lucide-react';
 
 interface CourseDetailsViewProps {
@@ -35,16 +35,16 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   // Inicialmente expande todos os módulos para visualização rápida e sem atrito
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    course.modules.forEach(m => {
+    course.modules.forEach((m) => {
       initial[m.id] = true;
     });
     return initial;
   });
 
   const toggleModuleExpand = (moduleId: string) => {
-    setExpandedModules(prev => ({
+    setExpandedModules((prev) => ({
       ...prev,
-      [moduleId]: !prev[moduleId]
+      [moduleId]: !prev[moduleId],
     }));
   };
 
@@ -76,8 +76,8 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   const nextLesson = getNextLesson();
   const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
   const completedLessons = course.modules.reduce(
-    (acc, m) => acc + m.lessons.filter(l => l.completed).length,
-    0
+    (acc, m) => acc + m.lessons.filter((l) => l.completed).length,
+    0,
   );
 
   return (
@@ -115,7 +115,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
       </button>
 
       {/* Course Banner Card */}
-      <div 
+      <div
         style={{
           backgroundColor: '#141A28',
           border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -130,7 +130,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         }}
       >
         {/* Subtle background glow */}
-        <div 
+        <div
           style={{
             position: 'absolute',
             top: '-60px',
@@ -138,13 +138,14 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
             width: '260px',
             height: '260px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(165, 148, 255, 0.15) 0%, rgba(13, 17, 27, 0) 70%)',
+            background:
+              'radial-gradient(circle, rgba(165, 148, 255, 0.15) 0%, rgba(13, 17, 27, 0) 70%)',
             pointerEvents: 'none',
           }}
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span 
+          <span
             style={{
               backgroundColor: 'rgba(165, 148, 255, 0.15)',
               color: '#A594FF',
@@ -161,7 +162,15 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
             {course.category}
           </span>
           <span style={{ color: '#64748B', fontSize: '13px' }}>•</span>
-          <span style={{ color: '#94A3B8', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span
+            style={{
+              color: '#94A3B8',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
             <Clock size={13} />
             {formatTotalDuration(course.totalDuration)} no total
           </span>
@@ -171,7 +180,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
           </span>
         </div>
 
-        <h1 
+        <h1
           style={{
             fontSize: '30px',
             fontWeight: 700,
@@ -183,7 +192,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
           {course.title}
         </h1>
 
-        <p 
+        <p
           style={{
             color: '#94A3B8',
             fontSize: '15px',
@@ -195,7 +204,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         </p>
 
         {/* Progress Bar & Actions */}
-        <div 
+        <div
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -213,7 +222,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
             </span>
           </div>
 
-          <div 
+          <div
             style={{
               width: '100%',
               height: '8px',
@@ -222,7 +231,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
               overflow: 'hidden',
             }}
           >
-            <div 
+            <div
               style={{
                 width: `${course.progress}%`,
                 height: '100%',
@@ -235,7 +244,15 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
           </div>
 
           {/* Action Buttons Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginTop: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
             {nextLesson && (
               <button
                 onClick={() => onPlayLesson && onPlayLesson(course.id, nextLesson.id)}
@@ -304,7 +321,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
 
       {/* Modules and Lessons Section */}
       <div>
-        <h2 
+        <h2
           style={{
             fontSize: '20px',
             fontWeight: 700,
@@ -318,7 +335,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {course.modules.map((mod) => {
             const isExpanded = !!expandedModules[mod.id];
-            const modCompletedLessons = mod.lessons.filter(l => l.completed).length;
+            const modCompletedLessons = mod.lessons.filter((l) => l.completed).length;
 
             return (
               <div
@@ -348,7 +365,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F0F4FC' }}>
                       {mod.title}
                     </h3>
-                    <span 
+                    <span
                       style={{
                         backgroundColor: 'rgba(255, 255, 255, 0.06)',
                         color: '#94A3B8',
@@ -368,7 +385,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
 
                 {/* Lessons list inside module */}
                 {isExpanded && (
-                  <div 
+                  <div
                     style={{
                       borderTop: '1px solid rgba(255, 255, 255, 0.06)',
                       display: 'flex',
@@ -384,12 +401,22 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                           flexDirection: 'column',
                           gap: '10px',
                           borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          backgroundColor: lesson.completed ? 'rgba(16, 185, 129, 0.02)' : 'transparent',
+                          backgroundColor: lesson.completed
+                            ? 'rgba(16, 185, 129, 0.02)'
+                            : 'transparent',
                           transition: 'background-color 0.15s',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}
+                          >
                             {/* Checkbox de conclusão */}
                             <button
                               onClick={() => onToggleLesson(course.id, lesson.id)}
@@ -415,7 +442,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                             </button>
 
                             {/* Title of lesson */}
-                            <span 
+                            <span
                               style={{
                                 fontSize: '14px',
                                 color: lesson.completed ? '#94A3B8' : '#F0F4FC',
@@ -466,7 +493,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
 
                         {/* Complementary materials for lesson */}
                         {lesson.materials && lesson.materials.length > 0 && (
-                          <div 
+                          <div
                             style={{
                               marginLeft: '34px',
                               display: 'flex',
@@ -510,7 +537,9 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                                   {!isPdf && !isCode && <ExternalLink size={12} color="#F59E0B" />}
                                   <span>{mat.title}</span>
                                   {mat.fileSize && (
-                                    <span style={{ color: '#64748B', fontSize: '10px' }}>({mat.fileSize})</span>
+                                    <span style={{ color: '#64748B', fontSize: '10px' }}>
+                                      ({mat.fileSize})
+                                    </span>
                                   )}
                                 </button>
                               );

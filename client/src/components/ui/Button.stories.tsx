@@ -10,7 +10,10 @@ const meta: Meta<typeof Button> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    variant: { control: { type: 'select' }, options: ['default', 'secondary', 'ghost', 'violet', 'danger'] },
+    variant: {
+      control: { type: 'select' },
+      options: ['default', 'secondary', 'ghost', 'violet', 'danger'],
+    },
     size: { control: { type: 'radio' }, options: ['sm', 'md', 'lg'] },
     disabled: { control: 'boolean' },
     children: { control: 'text' },

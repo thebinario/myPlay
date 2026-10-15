@@ -69,9 +69,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onExploreLibrary,
   onSearchOpen,
 }) => {
-  const watchingCourses = courses.filter(c => c.progress > 0 && c.progress < 100);
-  const watchingMovies = movies.filter(m => m.progress > 0 && m.progress < 100);
-  const readingDocs = documents.filter(d => d.lastReadPage > 1);
+  const watchingCourses = courses.filter((c) => c.progress > 0 && c.progress < 100);
+  const watchingMovies = movies.filter((m) => m.progress > 0 && m.progress < 100);
+  const readingDocs = documents.filter((d) => d.lastReadPage > 1);
 
   const hasWatching = watchingCourses.length > 0 || watchingMovies.length > 0;
   const hasReading = readingDocs.length > 0;
@@ -133,7 +133,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
           Início
         </h1>
 
-        <p style={{ color: '#94A3B8', fontSize: '14px', lineHeight: '1.5', maxWidth: '560px', marginBottom: '20px' }}>
+        <p
+          style={{
+            color: '#94A3B8',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            maxWidth: '560px',
+            marginBottom: '20px',
+          }}
+        >
           Retome onde parou. Seus cursos, vídeos e apostilas estão prontos.
         </p>
 
@@ -177,11 +185,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 gap: '6px',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => {
+              onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#F0F4FC';
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
               }}
-              onMouseLeave={e => {
+              onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#94A3B8';
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
               }}
@@ -239,17 +247,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
               gap: '12px',
             }}
           >
-            {watchingCourses.map(course => (
+            {watchingCourses.map((course) => (
               <div
                 key={course.id}
                 data-testid={`home-course-${course.id}`}
                 onClick={() => onSelectCourse(course.id)}
                 style={CARD_STYLE}
-                onMouseEnter={e => {
+                onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#A594FF';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
-                onMouseLeave={e => {
+                onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
@@ -271,7 +279,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: '#A594FF', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <span
+                    style={{
+                      color: '#A594FF',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
                     CURSO • {course.category}
                   </span>
                   <h4
@@ -288,7 +304,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     {course.title}
                   </h4>
                   <ProgressBar value={course.progress} color="#A594FF" />
-                  <span style={{ fontSize: '11px', color: '#64748B', marginTop: '5px', display: 'block' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: '#64748B',
+                      marginTop: '5px',
+                      display: 'block',
+                    }}
+                  >
                     {course.progress}% concluído
                   </span>
                 </div>
@@ -296,17 +319,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             ))}
 
-            {watchingMovies.map(movie => (
+            {watchingMovies.map((movie) => (
               <div
                 key={movie.id}
                 data-testid={`home-movie-${movie.id}`}
                 onClick={() => onOpenMovie && onOpenMovie(movie.id)}
                 style={CARD_STYLE}
-                onMouseEnter={e => {
+                onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#10B981';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
-                onMouseLeave={e => {
+                onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
@@ -327,7 +350,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: '#10B981', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <span
+                    style={{
+                      color: '#10B981',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
                     FILME
                   </span>
                   <h4
@@ -344,7 +375,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     {movie.title}
                   </h4>
                   <ProgressBar value={movie.progress} color="#10B981" />
-                  <span style={{ fontSize: '11px', color: '#64748B', marginTop: '5px', display: 'block' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: '#64748B',
+                      marginTop: '5px',
+                      display: 'block',
+                    }}
+                  >
                     {movie.progress}% assistido
                   </span>
                 </div>
@@ -366,17 +404,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
               gap: '12px',
             }}
           >
-            {readingDocs.map(doc => (
+            {readingDocs.map((doc) => (
               <div
                 key={doc.id}
                 data-testid={`home-doc-${doc.id}`}
                 onClick={() => onOpenDocument && onOpenDocument(doc.id)}
                 style={CARD_STYLE}
-                onMouseEnter={e => {
+                onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#F59E0B';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
-                onMouseLeave={e => {
+                onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}

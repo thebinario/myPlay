@@ -2,15 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
 export type PlayerStatus =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'playing'
-  | 'paused'
-  | 'buffering'
-  | 'seeking'
-  | 'ended'
-  | 'error';
+  'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'buffering' | 'seeking' | 'ended' | 'error';
 
 /**
  * Controla a reprodução de um elemento `<video>` real, expondo um estado
@@ -182,7 +174,7 @@ export function useMediaElementPlayback({
             if (p && typeof p.catch === 'function') {
               p.catch(() => {
                 setIsPlaying(false);
-                setStatus(prev => (prev === 'ended' ? prev : 'paused'));
+                setStatus((prev) => (prev === 'ended' ? prev : 'paused'));
               });
             }
           } catch {
@@ -196,15 +188,19 @@ export function useMediaElementPlayback({
       if (video.duration && !Number.isNaN(video.duration)) setMediaDuration(video.duration);
       seekToInitial();
       maybeAutoPlay();
-      setStatus(prev => (prev === 'loading' ? 'ready' : prev));
+      setStatus((prev) => (prev === 'loading' ? 'ready' : prev));
     };
     const onLoadStart = () => {
       if (video.readyState < 1) setStatus('loading');
     };
     const onCanPlay = () => {
-      setStatus(prev => {
+      setStatus((prev) => {
         if (prev === 'loading' || prev === 'buffering' || prev === 'seeking') {
-          return isPlayingRef.current ? 'playing' : resumeStatusRef.current === 'playing' ? 'ready' : resumeStatusRef.current;
+          return isPlayingRef.current
+            ? 'playing'
+            : resumeStatusRef.current === 'playing'
+              ? 'ready'
+              : resumeStatusRef.current;
         }
         return prev;
       });
@@ -221,7 +217,7 @@ export function useMediaElementPlayback({
     const onPause = () => {
       if (video.ended) return;
       setIsPlaying(false);
-      setStatus(prev => (prev === 'error' || prev === 'ended' ? prev : 'paused'));
+      setStatus((prev) => (prev === 'error' || prev === 'ended' ? prev : 'paused'));
     };
     const onWaiting = () => setStatus('buffering');
     const onSeeking = () => setStatus('seeking');
@@ -287,7 +283,7 @@ export function useMediaElementPlayback({
   const pause = useCallback(() => {
     const video = videoRef.current;
     setIsPlaying(false);
-    setStatus(prev => (prev === 'error' || prev === 'ended' ? prev : 'paused'));
+    setStatus((prev) => (prev === 'error' || prev === 'ended' ? prev : 'paused'));
     stopPlayback(video);
   }, [videoRef]);
 

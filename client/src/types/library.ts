@@ -102,7 +102,7 @@ export interface Document {
 
 export type LibraryItem = Course | Movie | Document;
 
-export type NavigationTab = 
+export type NavigationTab =
   | 'home'
   | 'library'
   | 'course-details'
