@@ -1,46 +1,41 @@
-# Getting Started with Create React App
+# midoteca-desktop
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Cliente desktop da Midoteca (React 19 + Vite + TypeScript). Local-first: hoje
+consome um repositório em memória através de uma fronteira de contratos; o
+objetivo é trocar a origem por um adapter IPC/HTTP ligado ao núcleo `midoteca/`
+sem alterar os componentes.
 
-## Available Scripts
+## Documentação
 
-In the project directory, you can run:
+- [Arquitetura do frontend](docs/ARCHITECTURE.md)
+- [Modelo de domínio (frontend)](docs/DOMAIN_MODEL.md)
+- [ADR 0001 — Fronteira de repositório](docs/adr/0001-repository-boundary.md)
+- Visão unificada do projeto: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+- Diretrizes DDD: [`../docs/DDD_GUIDELINES.md`](../docs/DDD_GUIDELINES.md)
+- Estratégia de testes: [`../docs/TESTING_STRATEGY.md`](../docs/TESTING_STRATEGY.md)
+- Roadmap de refatoração: [`../docs/REFACTORING_ROADMAP.md`](../docs/REFACTORING_ROADMAP.md)
 
-### `npm start`
+## Scripts
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+npm run dev              # servidor de desenvolvimento (Vite)
+npm run build            # tsc && vite build
+npm test                 # vitest run
+npm run test:watch       # vitest (watch)
+npm run storybook        # catálogo visual (Storybook)
+npm run build-storybook  # build estático do Storybook
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Estrutura (resumo)
 
-### `npm test`
+```text
+src/
+├── App.tsx              # shell + navegação + sessão de reprodução
+├── types/library.ts     # domínio (tipos/view-models)
+├── services/            # contracts (ports) · mockData (adapter) · LibraryContext
+├── components/          # features + design system (ui/)
+├── features/*/stories/  # Storybook
+└── __tests__/           # testes de componente/contrato
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

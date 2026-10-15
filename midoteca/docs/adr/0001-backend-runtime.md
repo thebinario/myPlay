@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A Midoteca é um aplicativo desktop *local-first*. O frontend é React + TypeScript
+A Midoteca é um aplicativo desktop _local-first_. O frontend é React + TypeScript
 (e futuramente Tauri). Havia três alternativas para o backend:
 
 1. **Backend NestJS executado localmente** (como o myPlay de referência).
@@ -29,7 +29,7 @@ desacoplado de transporte** (pacote `@midoteca/core`), usando **SQLite local**
 via `better-sqlite3`.
 
 - Nenhum NestJS, Express, HTTP, IPC ou Tauri é importado pelo núcleo.
-- O *composition root* (`createMidoteca`) expõe repositórios; qualquer transporte
+- O _composition root_ (`createMidoteca`) expõe repositórios; qualquer transporte
   futuro apenas os consome.
 
 ## Justificativa

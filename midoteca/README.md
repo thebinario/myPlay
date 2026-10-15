@@ -1,7 +1,7 @@
 # @midoteca/core — Fundação do Backend (Fase 1)
 
 Núcleo de domínio e persistência da **Midoteca**, uma aplicação desktop
-*local-first* para gerenciar e reproduzir bibliotecas pessoais de cursos, vídeos
+_local-first_ para gerenciar e reproduzir bibliotecas pessoais de cursos, vídeos
 e documentos PDF.
 
 Este pacote é a **Fase 1**: contratos de domínio, esquema SQLite versionado e

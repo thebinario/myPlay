@@ -16,12 +16,12 @@
 
 `SqliteDatabase` (`src/infra/sqlite/database.ts`) aplica, por conexão:
 
-| PRAGMA | Valor | Motivo |
-| --- | --- | --- |
-| `foreign_keys` | `ON` | Integridade referencial real (é por conexão, não persistido). |
-| `journal_mode` | `WAL` | Leitores concorrentes com um escritor; menos travas. |
-| `synchronous` | `NORMAL` | Bom equilíbrio durabilidade/desempenho com WAL. |
-| `busy_timeout` | `5000 ms` | Evita falhas imediatas sob contenção. |
+| PRAGMA         | Valor     | Motivo                                                        |
+| -------------- | --------- | ------------------------------------------------------------- |
+| `foreign_keys` | `ON`      | Integridade referencial real (é por conexão, não persistido). |
+| `journal_mode` | `WAL`     | Leitores concorrentes com um escritor; menos travas.          |
+| `synchronous`  | `NORMAL`  | Bom equilíbrio durabilidade/desempenho com WAL.               |
+| `busy_timeout` | `5000 ms` | Evita falhas imediatas sob contenção.                         |
 
 Transações são explícitas via `SqliteDatabase.transaction(fn)` (commit no
 sucesso, rollback em qualquer erro).
@@ -35,9 +35,9 @@ sucesso, rollback em qualquer erro).
   somente as pendentes, **cada uma em sua própria transação**.
 - É idempotente: reabrir um banco já migrado não aplica nada.
 
-| id | nome | conteúdo |
-| --- | --- | --- |
-| 1 | `0001-initial-schema` | todas as tabelas, índices e constraints da Fase 1 |
+| id  | nome                  | conteúdo                                          |
+| --- | --------------------- | ------------------------------------------------- |
+| 1   | `0001-initial-schema` | todas as tabelas, índices e constraints da Fase 1 |
 
 Para adicionar uma migração: crie `00NN-<nome>.ts` exportando um `Migration` e
 acrescente-o ao array `MIGRATIONS`. Nunca reordene nem renumere migrações
@@ -58,31 +58,33 @@ existentes. O `down` existe para reversibilidade em desenvolvimento.
 ## 5. Tabelas
 
 ### `library_sources`
-| coluna | tipo | notas |
-| --- | --- | --- |
-| `id` | TEXT PK | UUID |
-| `root_path` | TEXT NOT NULL | raiz do volume |
-| `volume_id` | TEXT | identificador do volume |
-| `status` | TEXT NOT NULL | `active`\|`offline`\|`scanning`\|`error` |
-| `last_scan_at` | TEXT | ISO ou NULL |
-| `created_at`/`updated_at` | TEXT NOT NULL | ISO |
+
+| coluna                    | tipo          | notas                                    |
+| ------------------------- | ------------- | ---------------------------------------- |
+| `id`                      | TEXT PK       | UUID                                     |
+| `root_path`               | TEXT NOT NULL | raiz do volume                           |
+| `volume_id`               | TEXT          | identificador do volume                  |
+| `status`                  | TEXT NOT NULL | `active`\|`offline`\|`scanning`\|`error` |
+| `last_scan_at`            | TEXT          | ISO ou NULL                              |
+| `created_at`/`updated_at` | TEXT NOT NULL | ISO                                      |
 
 Índices: `ux_library_sources_volume_id` (único parcial, onde não-nulo),
 `ix_library_sources_status`.
 
 ### `media_files`
-| coluna | tipo | notas |
-| --- | --- | --- |
-| `id` | TEXT PK | UUID |
-| `source_id` | TEXT NOT NULL | FK → `library_sources` (CASCADE) |
-| `relative_path` | TEXT NOT NULL | relativo à raiz da fonte |
-| `media_type` | TEXT NOT NULL | `video`\|`audio`\|`pdf`\|`subtitle`\|`image`\|`other` |
-| `file_size` | INTEGER | `>= 0` ou NULL |
-| `duration_ms` | INTEGER | `>= 0` ou NULL |
-| `modified_at` | TEXT | ISO ou NULL |
-| `sha256` | TEXT | 64 hex ou NULL, **não único** |
-| `availability` | TEXT NOT NULL | `available`\|`missing`\|`unverified` |
-| `created_at`/`updated_at` | TEXT NOT NULL | ISO |
+
+| coluna                    | tipo          | notas                                                 |
+| ------------------------- | ------------- | ----------------------------------------------------- |
+| `id`                      | TEXT PK       | UUID                                                  |
+| `source_id`               | TEXT NOT NULL | FK → `library_sources` (CASCADE)                      |
+| `relative_path`           | TEXT NOT NULL | relativo à raiz da fonte                              |
+| `media_type`              | TEXT NOT NULL | `video`\|`audio`\|`pdf`\|`subtitle`\|`image`\|`other` |
+| `file_size`               | INTEGER       | `>= 0` ou NULL                                        |
+| `duration_ms`             | INTEGER       | `>= 0` ou NULL                                        |
+| `modified_at`             | TEXT          | ISO ou NULL                                           |
+| `sha256`                  | TEXT          | 64 hex ou NULL, **não único**                         |
+| `availability`            | TEXT NOT NULL | `available`\|`missing`\|`unverified`                  |
+| `created_at`/`updated_at` | TEXT NOT NULL | ISO                                                   |
 
 Restrições: `UNIQUE (source_id, relative_path)`; `CHECK` de tipo/availability e
 de tamanhos não-negativos; `CHECK length(sha256)=64` quando presente.
@@ -93,75 +95,87 @@ de tamanhos não-negativos; `CHECK length(sha256)=64` quando presente.
 > dedup/fingerprint. O mesmo hash pode existir em vários arquivos/fontes.
 
 ### `media_tracks`
+
 `id` PK · `media_file_id` FK→`media_files` (CASCADE) · `kind`
 (`subtitle`\|`audio`\|`video`\|`chapter`\|`attachment`) · `language` · `path` ·
 `metadata` (JSON). Índice `ix_media_tracks_media`.
 
 ### `courses`
+
 `id` PK · `title` NOT NULL · `description` · `metadata` (JSON) ·
 `created_at`/`updated_at`.
 
 ### `course_modules`
+
 `id` PK · `course_id` FK→`courses` (CASCADE) · `title` · `sort_order INTEGER`.
 Índice `ix_course_modules_course (course_id, sort_order)`.
 
 ### `lessons`
+
 `id` PK · `module_id` FK→`course_modules` (CASCADE) · `title` · `sort_order`.
 Índice `ix_lessons_module (module_id, sort_order)`.
 
 ### `lesson_media`
+
 `lesson_id` FK→`lessons` (CASCADE) · `media_file_id` FK→`media_files` (CASCADE) ·
 `role` (`primary`\|`supplementary`\|`attachment`\|`subtitle`).
 PK composta `(lesson_id, media_file_id, role)`. Índice `ix_lesson_media_media`.
 Permite **múltiplos arquivos por aula** e o mesmo arquivo em várias aulas.
 
 ### `documents`
+
 `id` PK · `media_file_id` FK→`media_files` (CASCADE), `UNIQUE` · `title` ·
 `page_count INTEGER` (`>= 0` ou NULL). Um documento lógico por arquivo.
 
 ### `document_links`
+
 `id` PK · `document_id` FK→`documents` (CASCADE) · `course_id` FK→`courses`
 (CASCADE) · `module_id` FK→`course_modules` (CASCADE) · `lesson_id` FK→`lessons`
 (CASCADE). `CHECK`: ao menos um de course/module/lesson não-nulo. Índices por
 coluna.
 
 ### `playback_progress`
+
 `id` PK · `lesson_id` FK→`lessons` (CASCADE), `UNIQUE` · `position_ms INTEGER`
 (`>= 0`) · `duration_ms INTEGER` (`>= 0` ou NULL) · `completed_at` · `updated_at`.
 Uma linha por aula (upsert).
 
 ### `reading_progress`
+
 `id` PK · `document_id` FK→`documents` (CASCADE), `UNIQUE` · `page INTEGER`
 (`>= 1`) · `scroll_ratio REAL` (`0..1`) · `zoom REAL` (`> 0`) · `theme` ·
 `updated_at`. Uma linha por documento (upsert).
 
 ### `jobs`
+
 `id` PK · `type` NOT NULL · `status` (`pending`\|`running`\|`paused`\|`completed`
 \|`failed`\|`cancelled`) · `priority INTEGER` · `payload` (JSON) · `checkpoint`
 (JSON) · `attempts INTEGER` (`>= 0`) · timestamps. Índice
 `ix_jobs_status_priority (status, priority DESC, created_at)`.
 
 ### `app_settings`
+
 `key` PK · `value` (JSON, NOT NULL) · `updated_at`.
 
 ### `schema_migrations` (controle interno)
+
 `id` PK · `name` · `applied_at`.
 
 ## 6. Matriz de exclusão (ON DELETE)
 
-| Relação | Ação | Efeito |
-| --- | --- | --- |
-| `library_sources` → `media_files` | CASCADE | remove catálogo de arquivos da fonte |
-| `media_files` → `media_tracks` | CASCADE | remove trilhas do arquivo |
-| `media_files` → `lesson_media` | CASCADE | remove vínculos aula↔arquivo |
-| `media_files` → `documents` | CASCADE | remove documento sem seu arquivo |
-| `documents` → `document_links` | CASCADE | remove vínculos do documento |
-| `documents` → `reading_progress` | CASCADE | remove progresso de leitura |
-| `courses` → `course_modules` | CASCADE | remove módulos do curso |
-| `course_modules` → `lessons` | CASCADE | remove aulas do módulo |
-| `lessons` → `lesson_media` | CASCADE | remove vínculos da aula |
-| `lessons` → `playback_progress` | CASCADE | remove progresso da aula |
-| `courses`/`course_modules`/`lessons` → `document_links` | CASCADE | remove vínculos |
+| Relação                                                 | Ação    | Efeito                               |
+| ------------------------------------------------------- | ------- | ------------------------------------ |
+| `library_sources` → `media_files`                       | CASCADE | remove catálogo de arquivos da fonte |
+| `media_files` → `media_tracks`                          | CASCADE | remove trilhas do arquivo            |
+| `media_files` → `lesson_media`                          | CASCADE | remove vínculos aula↔arquivo         |
+| `media_files` → `documents`                             | CASCADE | remove documento sem seu arquivo     |
+| `documents` → `document_links`                          | CASCADE | remove vínculos do documento         |
+| `documents` → `reading_progress`                        | CASCADE | remove progresso de leitura          |
+| `courses` → `course_modules`                            | CASCADE | remove módulos do curso              |
+| `course_modules` → `lessons`                            | CASCADE | remove aulas do módulo               |
+| `lessons` → `lesson_media`                              | CASCADE | remove vínculos da aula              |
+| `lessons` → `playback_progress`                         | CASCADE | remove progresso da aula             |
+| `courses`/`course_modules`/`lessons` → `document_links` | CASCADE | remove vínculos                      |
 
 **Todas as cascatas afetam apenas linhas do catálogo.** Nenhuma toca o disco.
 
@@ -175,3 +189,36 @@ npm test
 Os testes usam bancos **temporários em arquivo** (não `:memory:`) para exercitar
 WAL, persistência entre reaberturas e integridade referencial de forma realista.
 Não dependem de PostgreSQL, internet ou arquivos multimídia.
+
+## 8. Migração 0002 — indexação e organização
+
+Adiciona os campos necessários à indexação incremental **sem** reescrever a
+Fase 1:
+
+| Tabela            | Coluna nova                                                                 | Papel                                                  |
+| ----------------- | --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `library_sources` | `display_name TEXT`                                                         | rótulo amigável independente do caminho                |
+| `media_files`     | `last_seen_at TEXT`                                                         | token da última execução que observou o arquivo        |
+| `courses`         | `source_id` (FK CASCADE), `relative_path`, `detected_title`, `title_source` | identidade por origem/caminho + proveniência do título |
+| `course_modules`  | `relative_path`, `detected_title`, `title_source`                           | idem, escopo curso                                     |
+| `lessons`         | `relative_path`, `detected_title`, `title_source`                           | idem, escopo módulo                                    |
+| `documents`       | `detected_title`, `title_source`                                            | proveniência do título                                 |
+
+`title_source` é `TEXT NOT NULL DEFAULT 'detected'` com `CHECK IN
+('detected','manual','manifest')`.
+
+Índices criados:
+
+- `ux_courses_source_path` UNIQUE `(source_id, relative_path)` WHERE
+  `relative_path IS NOT NULL` — impede cursos duplicados no rescan.
+- `ux_course_modules_course_path` UNIQUE `(course_id, relative_path)` WHERE
+  `relative_path IS NOT NULL`.
+- `ux_lessons_module_path` UNIQUE `(module_id, relative_path)` WHERE
+  `relative_path IS NOT NULL`.
+- `ix_media_files_last_seen (source_id, last_seen_at)` — detecção barata de
+  arquivos ausentes.
+- `ix_courses_source (source_id)`.
+
+Detecção de ausentes: a cada execução é gerado um `runToken` (UUID) gravado em
+`media_files.last_seen_at`. Ao final, toda linha da fonte cujo `last_seen_at`
+difere do token atual é marcada `availability = 'missing'` — **sem deleção**.

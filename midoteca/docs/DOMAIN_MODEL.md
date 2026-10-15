@@ -1,4 +1,4 @@
-# Modelo de Domínio — Midoteca (Fase 1)
+# Modelo de Domínio — Midoteca (Fases 1–2)
 
 ## 1. Conceitos
 
@@ -34,6 +34,7 @@ erDiagram
     LIBRARY_SOURCES {
         text id PK
         text root_path
+        text display_name
         text volume_id
         text status
         text last_scan_at
@@ -47,24 +48,35 @@ erDiagram
         int  duration_ms
         text sha256
         text availability
+        text last_seen_at
     }
     COURSES {
         text id PK
         text title
         text description
         text metadata
+        text source_id FK
+        text relative_path
+        text detected_title
+        text title_source
     }
     COURSE_MODULES {
         text id PK
         text course_id FK
         text title
         int  sort_order
+        text relative_path
+        text detected_title
+        text title_source
     }
     LESSONS {
         text id PK
         text module_id FK
         text title
         int  sort_order
+        text relative_path
+        text detected_title
+        text title_source
     }
     LESSON_MEDIA {
         text lesson_id FK
@@ -76,6 +88,8 @@ erDiagram
         text media_file_id FK
         text title
         int  page_count
+        text detected_title
+        text title_source
     }
     DOCUMENT_LINKS {
         text id PK
@@ -126,13 +140,25 @@ erDiagram
 - `DocumentLink` valida que ao menos um destino (curso/módulo/aula) existe.
 - Espaço reservado para fingerprint: `media_files.sha256` + `media_tracks.metadata`.
 
+### Proveniência de título (Fase 2)
+
+- `title_source` ∈ {`detected`, `manual`, `manifest`} registra a origem do
+  título. Precedência: **manual > manifest > detected**.
+- Um rescan **nunca** sobrescreve um título `manual`.
+- `detected_title` guarda sempre o último título derivado do sistema de arquivos.
+- `source_id` + `relative_path` dão identidade de origem a cursos/módulos/aulas,
+  evitando duplicação em reescaneamentos (índices únicos parciais).
+- `media_files.last_seen_at` guarda o token da execução que observou o arquivo;
+  arquivos não vistos viram `availability = 'missing'` (sem deleção).
+- `library_sources.display_name` é um rótulo amigável independente do caminho.
+
 ### Ajustes em relação ao esboço do enunciado
 
-| Enunciado | Implementado | Justificativa |
-| --- | --- | --- |
-| entidade `Module` | `CourseModule` (tabela `course_modules`) | evitar colisão com o conceito de módulo ES/Node |
-| `Document` sem timestamps | idem (sem timestamps) | segue o esboço; sem necessidade de auditoria ainda |
-| `Module`/`Lesson` sem timestamps | idem | mantém o esboço mínimo, sem campos especulativos |
+| Enunciado                        | Implementado                             | Justificativa                                      |
+| -------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| entidade `Module`                | `CourseModule` (tabela `course_modules`) | evitar colisão com o conceito de módulo ES/Node    |
+| `Document` sem timestamps        | idem (sem timestamps)                    | segue o esboço; sem necessidade de auditoria ainda |
+| `Module`/`Lesson` sem timestamps | idem                                     | mantém o esboço mínimo, sem campos especulativos   |
 
 ## 4. Contratos de repositório
 
@@ -140,16 +166,20 @@ Os contratos vivem em `core/*/repository.ts` e são implementados em
 `infra/sqlite/repositories/*`. Eles **não** referenciam tipos de framework.
 
 ### LibraryRepository
+
 ```ts
 createSource(input: CreateLibrarySource): Promise<LibrarySource>;
 findSourceById(id): Promise<LibrarySource | null>;
 findSourceByVolumeId(volumeId): Promise<LibrarySource | null>;
+findSourceByRootPath(rootPath): Promise<LibrarySource | null>;   // Fase 2
 listSources(): Promise<LibrarySource[]>;
 updateSourceStatus(id, input): Promise<LibrarySource | null>;
+updateSourcePath(id, input): Promise<LibrarySource | null>;       // Fase 2
 deleteSource(id): Promise<void>;                 // catálogo apenas
 ```
 
 ### MediaRepository
+
 ```ts
 create(input): Promise<MediaFile>;
 findById(id): Promise<MediaFile | null>;
@@ -165,8 +195,11 @@ deleteTrack(id): Promise<void>;
 ```
 
 ### CourseRepository
+
 ```ts
 create/findById/list/update/delete;
+findBySourceAndPath(sourceId, relativePath);        // Fase 2
+listBySource(sourceId);                             // Fase 2
 createModule/listModules;
 createLesson/findLessonById/listLessons;
 attachMedia/listLessonMedia/detachMedia;
@@ -174,12 +207,14 @@ getTree(courseId): Promise<CourseTree | null>;    // agregado transacional
 ```
 
 ### DocumentRepository
+
 ```ts
 create/findById/findByMediaFileId/list/delete;
 createLink/listLinks/deleteLink;
 ```
 
 ### ProgressRepository
+
 ```ts
 savePlayback(input): Promise<PlaybackProgress>;   // upsert por aula
 getPlayback(lessonId): Promise<PlaybackProgress | null>;
@@ -188,13 +223,15 @@ getReading(documentId): Promise<ReadingProgress | null>;
 ```
 
 ### JobRepository
+
 ```ts
 enqueue/findById/listByStatus/update/delete;
 ```
 
 ### SettingsRepository
+
 ```ts
-get(key)/set(key, value)/list()/delete(key);
+get(key) / set(key, value) / list() / delete key;
 ```
 
 ## 5. Entrada, saída e erros
@@ -218,3 +255,7 @@ Esses campos são **view-model** e pertencem à camada de aplicação/UI; o dom�
 guarda apenas dados canônicos. `Course.metadata` (JSON) é o ponto de extensão
 para tags/cover sem alterar o esquema. O contrato de busca em `core/search` já
 espelha `SearchResultKind`/`SearchFilter` do client para futura ligação real.
+
+A fronteira frontend↔backend (ports no FE, casos de uso no núcleo) está descrita
+em [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) e
+[`../../docs/DDD_GUIDELINES.md`](../../docs/DDD_GUIDELINES.md).
