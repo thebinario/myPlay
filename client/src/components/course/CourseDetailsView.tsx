@@ -11,7 +11,8 @@ import {
   FileText, 
   Code, 
   ExternalLink, 
-  GraduationCap 
+  GraduationCap,
+  Edit 
 } from 'lucide-react';
 
 interface CourseDetailsViewProps {
@@ -20,6 +21,7 @@ interface CourseDetailsViewProps {
   onToggleLesson: (courseId: string, lessonId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMaterial?: (material: Material) => void;
+  onEditCourse?: (courseId: string) => void;
 }
 
 export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
@@ -28,6 +30,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   onToggleLesson,
   onPlayLesson,
   onOpenMaterial,
+  onEditCourse,
 }) => {
   // Inicialmente expande todos os módulos para visualização rápida e sem atrito
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(() => {
@@ -231,11 +234,12 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
             />
           </div>
 
-          {/* Quick Continue Action Button */}
-          {nextLesson && (
-            <div style={{ marginTop: '8px' }}>
+          {/* Action Buttons Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+            {nextLesson && (
               <button
                 onClick={() => onPlayLesson && onPlayLesson(course.id, nextLesson.id)}
+                aria-label={`Continuar: ${nextLesson.title}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -261,8 +265,40 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                 <Play size={16} fill="#0D111B" />
                 Continuar: {nextLesson.title}
               </button>
-            </div>
-          )}
+            )}
+
+            {onEditCourse && (
+              <button
+                onClick={() => onEditCourse(course.id)}
+                aria-label="Editar organização do curso"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#1A2234',
+                  color: '#F0F4FC',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '10px',
+                  padding: '10px 18px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#A594FF';
+                  e.currentTarget.style.color = '#A594FF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.color = '#F0F4FC';
+                }}
+              >
+                <Edit size={16} />
+                Editar Curso
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

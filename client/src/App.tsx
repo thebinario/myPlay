@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Sidebar } from './components/common/Sidebar';
 import { LibraryView } from './components/library/LibraryView';
 import { CourseDetailsView } from './components/course/CourseDetailsView';
+import { CourseEditorView } from './components/editor/CourseEditorView';
+import { VideoPlayerView } from './components/player/VideoPlayerView';
 import { HomeView } from './components/home/HomeView';
 import { NavigationTab, Course, LibraryItem } from './types/library';
 import { 
@@ -14,6 +16,7 @@ import {
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('library');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [items, setItems] = useState<LibraryItem[]>(() => MOCK_LIBRARY);
 
   const selectedCourse = selectedCourseId
@@ -22,8 +25,9 @@ export const App: React.FC = () => {
 
   const handleNavigate = (tab: NavigationTab) => {
     setCurrentTab(tab);
-    if (tab !== 'course-details') {
+    if (tab !== 'course-details' && tab !== 'editor' && tab !== 'player') {
       setSelectedCourseId(null);
+      setSelectedLessonId(null);
     }
   };
 
@@ -34,7 +38,23 @@ export const App: React.FC = () => {
 
   const handleBackToLibrary = () => {
     setSelectedCourseId(null);
+    setSelectedLessonId(null);
     setCurrentTab('library');
+  };
+
+  const handlePlayLesson = (courseId: string, lessonId: string) => {
+    setSelectedCourseId(courseId);
+    setSelectedLessonId(lessonId);
+    setCurrentTab('player');
+  };
+
+  const handleEditCourse = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    setCurrentTab('editor');
+  };
+
+  const handleSaveEditedCourse = (updatedCourse: Course) => {
+    setItems(prev => prev.map(item => (item.id === updatedCourse.id ? { ...updatedCourse } : item)));
   };
 
   const handleToggleLesson = (courseId: string, lessonId: string) => {
@@ -77,6 +97,25 @@ export const App: React.FC = () => {
             course={selectedCourse}
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
+            onPlayLesson={handlePlayLesson}
+            onEditCourse={handleEditCourse}
+          />
+        )}
+
+        {currentTab === 'editor' && selectedCourse && (
+          <CourseEditorView
+            initialCourse={selectedCourse}
+            onSave={handleSaveEditedCourse}
+            onBack={() => setCurrentTab('course-details')}
+          />
+        )}
+
+        {currentTab === 'player' && selectedCourse && selectedLessonId && (
+          <VideoPlayerView
+            course={selectedCourse}
+            initialLessonId={selectedLessonId}
+            onBack={() => setCurrentTab('course-details')}
+            onCompleteLesson={(lessonId) => handleToggleLesson(selectedCourse.id, lessonId)}
           />
         )}
 

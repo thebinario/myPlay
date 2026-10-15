@@ -1,4 +1,4 @@
-import { Course, Movie, Document, LibraryItem } from '../types/library';
+import { Course, Movie, Document, LibraryItem, SubtitleTrack } from '../types/library';
 
 export const MOCK_COURSES: Course[] = [
   {
@@ -28,6 +28,12 @@ export const MOCK_COURSES: Course[] = [
             completed: true,
             videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
             order: 1,
+            lastPlaybackPosition: 120, // 2 minutos já assistidos
+            subtitles: [
+              { id: 'sub-pt', label: 'Português (Brasil)', language: 'pt-BR', isDefault: true, content: 'Nesta aula discutiremos Tauri vs Electron.' },
+              { id: 'sub-en', label: 'English', language: 'en', content: 'In this lesson we compare Tauri with Electron.' },
+              { id: 'sub-es', label: 'Español', language: 'es', content: 'En esta lección comparamos Tauri con Electron.' }
+            ],
             materials: [
               {
                 id: 'mat-1',
@@ -316,6 +322,106 @@ export class MockLibraryService {
       const matchTags = item.tags.some(t => t.toLowerCase().includes(lower));
       return matchTitle || matchDesc || matchCategory || matchTags;
     });
+  }
+
+  // --- MÉTODOS PARA ENTREGA 02: EDITOR E PLAYER ---
+
+  private playbackPositions = new Map<string, number>();
+  private subtitlePreferences = new Map<string, string | null>();
+
+  saveCourse(updatedCourse: Course): Course {
+    // Preserva integridade, recalcula total de duração e progresso
+    let totalSec = 0;
+    let totalLessons = 0;
+    let completedLessons = 0;
+
+    updatedCourse.modules.forEach(m => {
+      m.lessons.forEach(l => {
+        totalSec += l.duration || 0;
+        totalLessons += 1;
+        if (l.completed) completedLessons += 1;
+      });
+    });
+
+    updatedCourse.totalDuration = totalSec;
+    updatedCourse.progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+    const index = this.items.findIndex(i => i.id === updatedCourse.id);
+    if (index >= 0) {
+      this.items[index] = JSON.parse(JSON.stringify(updatedCourse));
+    }
+    return JSON.parse(JSON.stringify(updatedCourse));
+  }
+
+  savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void {
+    const key = `${courseId}:${lessonId}`;
+    this.playbackPositions.set(key, positionSeconds);
+
+    const course = this.getCourseById(courseId);
+    if (course) {
+      for (const m of course.modules) {
+        for (const l of m.lessons) {
+          if (l.id === lessonId) {
+            l.lastPlaybackPosition = positionSeconds;
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  getPlaybackPosition(courseId: string, lessonId: string): number {
+    const key = `${courseId}:${lessonId}`;
+    if (this.playbackPositions.has(key)) {
+      return this.playbackPositions.get(key)!;
+    }
+    const course = this.getCourseById(courseId);
+    if (course) {
+      for (const m of course.modules) {
+        for (const l of m.lessons) {
+          if (l.id === lessonId && l.lastPlaybackPosition) {
+            return l.lastPlaybackPosition;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+  saveSubtitlePreference(courseId: string, lessonId: string, subtitleId: string | null): void {
+    const key = `${courseId}:${lessonId}`;
+    this.subtitlePreferences.set(key, subtitleId);
+  }
+
+  getSubtitlePreference(courseId: string, lessonId: string): string | null {
+    const key = `${courseId}:${lessonId}`;
+    if (this.subtitlePreferences.has(key)) {
+      return this.subtitlePreferences.get(key)!;
+    }
+    return null;
+  }
+
+  addCustomSubtitle(courseId: string, lessonId: string, subtitle: SubtitleTrack): void {
+    const course = this.getCourseById(courseId);
+    if (course) {
+      for (const m of course.modules) {
+        for (const l of m.lessons) {
+          if (l.id === lessonId) {
+            l.subtitles = l.subtitles || [];
+            l.subtitles.push(subtitle);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  resetCourse(courseId: string): Course | undefined {
+    const original = MOCK_COURSES.find(c => c.id === courseId);
+    if (original) {
+      return this.saveCourse(JSON.parse(JSON.stringify(original)));
+    }
+    return undefined;
   }
 }
 
