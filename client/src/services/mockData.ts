@@ -1,4 +1,4 @@
-import { Course, Movie, Document, LibraryItem, SubtitleTrack, PdfReadingState, PdfPageChunk } from '../types/library';
+import { Course, Movie, Document, LibraryItem, SubtitleTrack, PdfReadingState, PdfPageChunk, SearchResult, SearchFilter, ISearchService } from '../types/library';
 
 export const MOCK_COURSES: Course[] = [
   {
@@ -504,6 +504,133 @@ export class MockLibraryService {
     }
     return undefined;
   }
+
+  // ─── ETAPA 3B: PESQUISA UNIVERSAL ────────────────────────────────────────────
+
+  /** Normaliza texto para busca: minúsculas + remove acentos */
+  private normalize(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private matches(haystack: string, needle: string): boolean {
+    return this.normalize(haystack).includes(this.normalize(needle));
+  }
+
+  search(query: string, filter: SearchFilter = 'all'): SearchResult[] {
+    const q = query.trim();
+    if (!q) return [];
+
+    const results: SearchResult[] = [];
+
+    // Cursos e Aulas
+    if (filter === 'all' || filter === 'course' || filter === 'lesson') {
+      for (const course of this.items.filter(i => i.type === 'course') as Course[]) {
+        const courseMatches =
+          this.matches(course.title, q) ||
+          this.matches(course.description, q) ||
+          this.matches(course.category, q) ||
+          course.tags.some(t => this.matches(t, q));
+
+        if ((filter === 'all' || filter === 'course') && courseMatches) {
+          results.push({
+            kind: 'course',
+            itemId: course.id,
+            title: course.title,
+            context: course.description,
+            available: true,
+            progressLabel: course.progress > 0 ? `${course.progress}% concluído` : undefined,
+            coverUrl: course.coverUrl,
+          });
+        }
+
+        if (filter === 'all' || filter === 'lesson') {
+          for (const mod of course.modules) {
+            for (const lesson of mod.lessons) {
+              const lessonMatches =
+                this.matches(lesson.title, q) ||
+                this.matches(mod.title, q);
+              if (lessonMatches) {
+                results.push({
+                  kind: 'lesson',
+                  itemId: lesson.id,
+                  lessonId: lesson.id,
+                  moduleId: mod.id,
+                  courseId: course.id,
+                  title: lesson.title,
+                  context: `${course.title} • ${mod.title}`,
+                  available: !lesson.isUnavailable,
+                  progressLabel: lesson.completed ? 'Concluída' : lesson.lastPlaybackPosition ? `Retomar em ${Math.floor((lesson.lastPlaybackPosition || 0) / 60)}min` : undefined,
+                  coverUrl: course.coverUrl,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Filmes
+    if (filter === 'all' || filter === 'movie') {
+      for (const movie of this.items.filter(i => i.type === 'movie') as Movie[]) {
+        const movieMatches =
+          this.matches(movie.title, q) ||
+          this.matches(movie.description, q) ||
+          this.matches(movie.category, q) ||
+          movie.tags.some(t => this.matches(t, q));
+        if (movieMatches) {
+          results.push({
+            kind: 'movie',
+            itemId: movie.id,
+            title: movie.title,
+            context: movie.description,
+            available: true,
+            progressLabel: movie.progress > 0 ? `${movie.progress}% assistido` : undefined,
+            coverUrl: movie.coverUrl,
+          });
+        }
+      }
+    }
+
+    // Documentos
+    if (filter === 'all' || filter === 'document') {
+      for (const doc of this.items.filter(i => i.type === 'document') as Document[]) {
+        const docMatches =
+          this.matches(doc.title, q) ||
+          this.matches(doc.description, q) ||
+          this.matches(doc.category, q) ||
+          doc.tags.some(t => this.matches(t, q));
+        if (docMatches) {
+          results.push({
+            kind: 'document',
+            itemId: doc.id,
+            title: doc.title,
+            context: doc.description,
+            available: !doc.isUnavailable,
+            progressLabel: doc.lastReadPage > 1 ? `Página ${doc.lastReadPage} de ${doc.totalPages}` : undefined,
+            coverUrl: doc.coverUrl,
+          });
+        }
+      }
+    }
+
+    return results;
+  }
 }
 
 export const mockLibraryService = new MockLibraryService();
+
+/** Implementação do contrato ISearchService via MockLibraryService */
+export class MockSearchService implements ISearchService {
+  private svc: MockLibraryService;
+  constructor(svc?: MockLibraryService) {
+    this.svc = svc ?? mockLibraryService;
+  }
+  search(query: string, filter: SearchFilter): SearchResult[] {
+    return this.svc.search(query, filter);
+  }
+}
+
+export const mockSearchService = new MockSearchService();

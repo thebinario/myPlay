@@ -111,3 +111,34 @@ export type NavigationTab =
   | 'settings'
   | 'editor'
   | 'pdf-viewer';
+
+// ─── Pesquisa Universal (Etapa 3B) ───────────────────────────────────────────
+
+export type SearchResultKind = 'course' | 'lesson' | 'movie' | 'document';
+export type SearchFilter = 'all' | SearchResultKind;
+
+export interface SearchResult {
+  /** Tipo do resultado */
+  kind: SearchResultKind;
+  /** ID do item raiz (curso, filme, documento) */
+  itemId: string;
+  /** Se for aula, ID da aula */
+  lessonId?: string;
+  /** Se for aula, ID do módulo pai */
+  moduleId?: string;
+  /** Se for aula, ID do curso pai */
+  courseId?: string;
+  title: string;
+  /** Texto de contexto exibido abaixo do título */
+  context: string;
+  /** Indica se o arquivo está disponível localmente */
+  available: boolean;
+  /** Progresso 0-100 (para cursos, filmes) ou página atual (para docs) */
+  progressLabel?: string;
+  coverUrl?: string;
+}
+
+/** Contrato desacoplado – preparado para futura implementação SQLite/FTS5 */
+export interface ISearchService {
+  search(query: string, filter: SearchFilter): SearchResult[];
+}
