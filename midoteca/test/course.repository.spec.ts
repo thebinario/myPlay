@@ -37,9 +37,7 @@ describe('course repository', () => {
     const course = await app.courses.create({ title: 'Original' });
     const updated = await app.courses.update({ id: course.id, title: 'Renomeado' });
     expect(updated.title).toBe('Renomeado');
-    await expect(
-      app.courses.update({ id: 'missing', title: 'x' }),
-    ).rejects.toThrow();
+    await expect(app.courses.update({ id: 'missing', title: 'x' })).rejects.toThrow();
   });
 
   it('auto-increments module and lesson sort order', async () => {

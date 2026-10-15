@@ -51,9 +51,9 @@ describe('job repository', () => {
   });
 
   it('rejects updating an unknown job', async () => {
-    await expect(
-      app.jobs.update('missing', { status: 'running' }),
-    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(app.jobs.update('missing', { status: 'running' })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 
   it('deletes a job', async () => {

@@ -57,6 +57,7 @@ interface MediaRow {
   modified_at: string | null;
   sha256: string | null;
   availability: string;
+  last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +82,7 @@ function mapMedia(row: MediaRow): MediaFile {
     modifiedAt: row.modified_at,
     sha256: row.sha256,
     availability: row.availability as MediaAvailability,
+    lastSeenAt: row.last_seen_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -99,7 +101,7 @@ function mapTrack(row: TrackRow): MediaTrack {
 
 const MEDIA_SELECT = `
   SELECT id, source_id, relative_path, media_type, file_size, duration_ms,
-         modified_at, sha256, availability, created_at, updated_at
+         modified_at, sha256, availability, last_seen_at, created_at, updated_at
   FROM media_files
 `;
 
@@ -125,6 +127,7 @@ export class SqliteMediaRepository implements MediaRepository {
       availability: input.availability
         ? assertOneOf(input.availability, MEDIA_AVAILABILITIES, 'availability')
         : 'unverified',
+      lastSeenAt: normalizeIso(input.lastSeenAt, 'lastSeenAt'),
       createdAt: now,
       updatedAt: now,
     };
@@ -134,8 +137,8 @@ export class SqliteMediaRepository implements MediaRepository {
         .prepare(
           `INSERT INTO media_files
              (id, source_id, relative_path, media_type, file_size, duration_ms,
-              modified_at, sha256, availability, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              modified_at, sha256, availability, last_seen_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           file.id,
@@ -147,6 +150,7 @@ export class SqliteMediaRepository implements MediaRepository {
           file.modifiedAt,
           file.sha256,
           file.availability,
+          file.lastSeenAt,
           file.createdAt,
           file.updatedAt,
         );
@@ -157,9 +161,7 @@ export class SqliteMediaRepository implements MediaRepository {
   }
 
   async findById(id: string): Promise<MediaFile | null> {
-    const row = this.db.prepare(`${MEDIA_SELECT} WHERE id = ?`).get(id) as
-      | MediaRow
-      | undefined;
+    const row = this.db.prepare(`${MEDIA_SELECT} WHERE id = ?`).get(id) as MediaRow | undefined;
     return row ? mapMedia(row) : null;
   }
 
@@ -183,9 +185,7 @@ export class SqliteMediaRepository implements MediaRepository {
   async findBySha256(sha256: string): Promise<MediaFile[]> {
     const digest = normalizeSha256(sha256);
     if (digest === null) return [];
-    const rows = this.db
-      .prepare(`${MEDIA_SELECT} WHERE sha256 = ?`)
-      .all(digest) as MediaRow[];
+    const rows = this.db.prepare(`${MEDIA_SELECT} WHERE sha256 = ?`).all(digest) as MediaRow[];
     return rows.map(mapMedia);
   }
 
@@ -215,12 +215,15 @@ export class SqliteMediaRepository implements MediaRepository {
         input.modifiedAt === undefined
           ? existing.modifiedAt
           : normalizeIso(input.modifiedAt, 'modifiedAt'),
-      sha256:
-        input.sha256 === undefined ? existing.sha256 : normalizeSha256(input.sha256),
+      sha256: input.sha256 === undefined ? existing.sha256 : normalizeSha256(input.sha256),
       availability:
         input.availability === undefined
           ? existing.availability
           : assertOneOf(input.availability, MEDIA_AVAILABILITIES, 'availability'),
+      lastSeenAt:
+        input.lastSeenAt === undefined
+          ? existing.lastSeenAt
+          : normalizeIso(input.lastSeenAt, 'lastSeenAt'),
       updatedAt: nowIso(),
     };
 
@@ -229,7 +232,8 @@ export class SqliteMediaRepository implements MediaRepository {
         .prepare(
           `UPDATE media_files
              SET relative_path = ?, media_type = ?, file_size = ?, duration_ms = ?,
-                 modified_at = ?, sha256 = ?, availability = ?, updated_at = ?
+                 modified_at = ?, sha256 = ?, availability = ?, last_seen_at = ?,
+                 updated_at = ?
            WHERE id = ?`,
         )
         .run(
@@ -240,6 +244,7 @@ export class SqliteMediaRepository implements MediaRepository {
           next.modifiedAt,
           next.sha256,
           next.availability,
+          next.lastSeenAt,
           next.updatedAt,
           next.id,
         );
@@ -249,10 +254,7 @@ export class SqliteMediaRepository implements MediaRepository {
     return next;
   }
 
-  async setAvailability(
-    id: string,
-    availability: MediaAvailability,
-  ): Promise<void> {
+  async setAvailability(id: string, availability: MediaAvailability): Promise<void> {
     const value = assertOneOf(availability, MEDIA_AVAILABILITIES, 'availability');
     this.db
       .prepare('UPDATE media_files SET availability = ?, updated_at = ? WHERE id = ?')

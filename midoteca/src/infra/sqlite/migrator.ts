@@ -35,9 +35,7 @@ export function runMigrations(
   `);
 
   const applied = new Set<number>(
-    (db.prepare('SELECT id FROM schema_migrations').all() as AppliedRow[]).map(
-      (row) => row.id,
-    ),
+    (db.prepare('SELECT id FROM schema_migrations').all() as AppliedRow[]).map((row) => row.id),
   );
 
   const ordered = [...migrations].sort((a, b) => a.id - b.id);
@@ -49,14 +47,15 @@ export function runMigrations(
       try {
         migration.up(db);
       } catch (error) {
-        throw new PersistenceError(
-          `Migration ${migration.id} (${migration.name}) failed`,
-          { cause: error },
-        );
+        throw new PersistenceError(`Migration ${migration.id} (${migration.name}) failed`, {
+          cause: error,
+        });
       }
-      db.prepare(
-        'INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)',
-      ).run(migration.id, migration.name, nowIso());
+      db.prepare('INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)').run(
+        migration.id,
+        migration.name,
+        nowIso(),
+      );
     });
     appliedNow.push(migration.id);
   }
@@ -68,9 +67,8 @@ export function runMigrations(
 }
 
 export function getCurrentVersion(db: SqliteDatabase): number {
-  const row = db
-    .prepare('SELECT MAX(id) AS version FROM schema_migrations')
-    .get() as { version: number | null } | undefined;
+  const row = db.prepare('SELECT MAX(id) AS version FROM schema_migrations').get() as
+    { version: number | null } | undefined;
   return row?.version ?? 0;
 }
 

@@ -4,13 +4,7 @@ import type { JsonObject } from '../shared/json';
  * A `MediaFile` is a physical file on a `LibrarySource`. Logical content
  * (lessons, documents) references it, never the other way around.
  */
-export type MediaType =
-  | 'video'
-  | 'audio'
-  | 'pdf'
-  | 'subtitle'
-  | 'image'
-  | 'other';
+export type MediaType = 'video' | 'audio' | 'pdf' | 'subtitle' | 'image' | 'other';
 
 /**
  * Whether the file is currently reachable. A missing file downgrades to
@@ -33,6 +27,8 @@ export interface MediaFile {
   /** Content hash for dedup/fingerprint; NOT globally unique on purpose. */
   sha256: string | null;
   availability: MediaAvailability;
+  /** ISO time this row was last observed by a successful scan; null if never. */
+  lastSeenAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

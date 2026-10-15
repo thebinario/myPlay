@@ -9,6 +9,8 @@ export interface LibrarySource {
   id: string;
   /** Absolute root path of the mounted volume when it was added. */
   rootPath: string;
+  /** Friendly label independent of the path (e.g. "HD Cursos"). */
+  displayName: string | null;
   /** Stable-ish volume/device identifier used for automatic drive recognition. */
   volumeId: string | null;
   status: LibrarySourceStatus;

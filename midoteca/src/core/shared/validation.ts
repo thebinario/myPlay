@@ -32,10 +32,7 @@ export function assertNonNegativeNumber(value: unknown, field: string): number {
   return num;
 }
 
-export function assertOptionalNonNegativeNumber(
-  value: unknown,
-  field: string,
-): number | null {
+export function assertOptionalNonNegativeNumber(value: unknown, field: string): number | null {
   if (value === undefined || value === null) return null;
   return assertNonNegativeNumber(value, field);
 }
@@ -67,9 +64,7 @@ export function assertOneOf<T extends string>(
   field: string,
 ): T {
   if (typeof value !== 'string' || !allowed.includes(value as T)) {
-    throw new ValidationError(
-      `Field "${field}" must be one of: ${allowed.join(', ')}`,
-    );
+    throw new ValidationError(`Field "${field}" must be one of: ${allowed.join(', ')}`);
   }
   return value as T;
 }

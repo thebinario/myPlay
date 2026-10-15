@@ -55,9 +55,7 @@ describe('library source repository', () => {
     });
     expect(scanned?.lastScanAt).toBe('2026-10-15T10:00:00.000Z');
 
-    expect(
-      await app.library.updateSourceStatus('missing', { status: 'active' }),
-    ).toBeNull();
+    expect(await app.library.updateSourceStatus('missing', { status: 'active' })).toBeNull();
   });
 
   it('deletes a source idempotently', async () => {

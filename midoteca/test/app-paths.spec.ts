@@ -13,9 +13,7 @@ describe('application data paths', () => {
   it('honors the MIDOTECA_DATA_DIR override', () => {
     process.env.MIDOTECA_DATA_DIR = join('/tmp', 'custom-midoteca');
     expect(resolveAppDataDir()).toBe(join('/tmp', 'custom-midoteca'));
-    expect(resolveDefaultDatabasePath()).toBe(
-      join('/tmp', 'custom-midoteca', 'midoteca.db'),
-    );
+    expect(resolveDefaultDatabasePath()).toBe(join('/tmp', 'custom-midoteca', 'midoteca.db'));
   });
 
   it('resolves a non-empty platform default when unset', () => {

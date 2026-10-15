@@ -82,9 +82,7 @@ describe('referential integrity and constraints', () => {
       )
       .run(source.id, now, now);
     app.database
-      .prepare(
-        `INSERT INTO documents (id, media_file_id, title) VALUES ('d1', 'm1', 't')`,
-      )
+      .prepare(`INSERT INTO documents (id, media_file_id, title) VALUES ('d1', 'm1', 't')`)
       .run();
 
     expect(() =>
@@ -128,9 +126,9 @@ describe('referential integrity and constraints', () => {
 
   it('rolls back an explicit transaction that fails midway', async () => {
     const source = await app.library.createSource({ rootPath: '/Volumes/HD' });
-    const before = (app.database
-      .prepare('SELECT COUNT(*) AS c FROM media_files')
-      .get() as { c: number }).c;
+    const before = (
+      app.database.prepare('SELECT COUNT(*) AS c FROM media_files').get() as { c: number }
+    ).c;
 
     expect(() =>
       app.database.transaction(() => {
@@ -150,9 +148,9 @@ describe('referential integrity and constraints', () => {
       }),
     ).toThrow();
 
-    const after = (app.database
-      .prepare('SELECT COUNT(*) AS c FROM media_files')
-      .get() as { c: number }).c;
+    const after = (
+      app.database.prepare('SELECT COUNT(*) AS c FROM media_files').get() as { c: number }
+    ).c;
     expect(after).toBe(before);
     expect(
       app.database.prepare("SELECT id FROM media_files WHERE id = 'tx1'").get(),

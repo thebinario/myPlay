@@ -1,9 +1,5 @@
 import type { JsonObject } from '../shared/json';
-import type {
-  MediaAvailability,
-  MediaTrackKind,
-  MediaType,
-} from './entities';
+import type { MediaAvailability, MediaTrackKind, MediaType } from './entities';
 
 export interface CreateMediaFile {
   id?: string;
@@ -15,6 +11,7 @@ export interface CreateMediaFile {
   modifiedAt?: string | null;
   sha256?: string | null;
   availability?: MediaAvailability;
+  lastSeenAt?: string | null;
 }
 
 export interface UpdateMediaFile {
@@ -26,6 +23,7 @@ export interface UpdateMediaFile {
   availability?: MediaAvailability;
   mediaType?: MediaType;
   relativePath?: string;
+  lastSeenAt?: string | null;
 }
 
 export interface CreateMediaTrack {

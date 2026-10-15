@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createMidoteca, type Midoteca } from '../src/index';
+import { createMidoteca } from '../src/index';
 import { createTempDatabase, type TempDatabase } from './helpers/temp-db';
 
 describe('database initialization and migrations', () => {
@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1]);
-      expect(app.migration?.currentVersion).toBe(1);
+      expect(app.migration?.applied).toEqual([1, 2]);
+      expect(app.migration?.currentVersion).toBe(2);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(1);
+      expect(second.migration?.currentVersion).toBe(2);
     } finally {
       second.close();
     }
@@ -59,7 +59,10 @@ describe('database initialization and migrations', () => {
       const rows = app.database
         .prepare('SELECT id, name FROM schema_migrations ORDER BY id')
         .all() as Array<{ id: number; name: string }>;
-      expect(rows).toEqual([{ id: 1, name: '0001-initial-schema' }]);
+      expect(rows).toEqual([
+        { id: 1, name: '0001-initial-schema' },
+        { id: 2, name: '0002-indexing' },
+      ]);
     } finally {
       app.close();
     }

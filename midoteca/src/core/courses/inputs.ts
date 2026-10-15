@@ -1,4 +1,5 @@
 import type { JsonObject } from '../shared/json';
+import type { TitleSource } from '../shared/title-source';
 import type { LessonMediaRole } from './entities';
 
 export interface CreateCourse {
@@ -6,6 +7,10 @@ export interface CreateCourse {
   title: string;
   description?: string | null;
   metadata?: JsonObject | null;
+  sourceId?: string | null;
+  relativePath?: string | null;
+  detectedTitle?: string | null;
+  titleSource?: TitleSource;
 }
 
 export interface UpdateCourse {
@@ -13,6 +18,8 @@ export interface UpdateCourse {
   title?: string;
   description?: string | null;
   metadata?: JsonObject | null;
+  /** Explicit provenance when updating the title (defaults to `manual`). */
+  titleSource?: TitleSource;
 }
 
 export interface CreateCourseModule {
@@ -20,6 +27,9 @@ export interface CreateCourseModule {
   courseId: string;
   title: string;
   sortOrder?: number;
+  relativePath?: string | null;
+  detectedTitle?: string | null;
+  titleSource?: TitleSource;
 }
 
 export interface CreateLesson {
@@ -27,6 +37,9 @@ export interface CreateLesson {
   moduleId: string;
   title: string;
   sortOrder?: number;
+  relativePath?: string | null;
+  detectedTitle?: string | null;
+  titleSource?: TitleSource;
 }
 
 export interface CreateLessonMedia {

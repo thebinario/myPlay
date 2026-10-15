@@ -70,9 +70,9 @@ describe('document repository', () => {
 
   it('rejects a link with no target', async () => {
     const doc = await app.documents.create({ mediaFileId, title: 'Doc' });
-    await expect(
-      app.documents.createLink({ documentId: doc.id }),
-    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(app.documents.createLink({ documentId: doc.id })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it('deletes a document and cascades its links (media kept)', async () => {

@@ -92,9 +92,7 @@ describe('progress repository', () => {
   });
 
   it('validates playback input', async () => {
-    await expect(
-      app.progress.savePlayback({ lessonId, positionMs: -1 }),
-    ).rejects.toThrow();
+    await expect(app.progress.savePlayback({ lessonId, positionMs: -1 })).rejects.toThrow();
   });
 
   it('saves and reads reading progress', async () => {

@@ -1,15 +1,14 @@
 import { ValidationError } from '../../../core/shared/errors';
 import {
   assertNonEmptyString,
+  assertOneOf,
   assertOptionalNonNegativeNumber,
   normalizeOptionalString,
   resolveId,
 } from '../../../core/shared/validation';
+import { TITLE_SOURCES, type TitleSource } from '../../../core/shared/title-source';
 import type { Document, DocumentLink } from '../../../core/documents/entities';
-import type {
-  CreateDocument,
-  CreateDocumentLink,
-} from '../../../core/documents/inputs';
+import type { CreateDocument, CreateDocumentLink } from '../../../core/documents/inputs';
 import type { DocumentRepository } from '../../../core/documents/repository';
 import type { SqliteDatabase } from '../database';
 import { mapSqliteError } from '../errors';
@@ -19,6 +18,8 @@ interface DocumentRow {
   media_file_id: string;
   title: string;
   page_count: number | null;
+  detected_title: string | null;
+  title_source: string;
 }
 
 interface LinkRow {
@@ -35,6 +36,8 @@ function mapDocument(row: DocumentRow): Document {
     mediaFileId: row.media_file_id,
     title: row.title,
     pageCount: row.page_count,
+    detectedTitle: row.detected_title,
+    titleSource: row.title_source as TitleSource,
   };
 }
 
@@ -49,30 +52,39 @@ function mapLink(row: LinkRow): DocumentLink {
 }
 
 const DOCUMENT_SELECT = `
-  SELECT id, media_file_id, title, page_count FROM documents
+  SELECT id, media_file_id, title, page_count, detected_title, title_source
+  FROM documents
 `;
 
 export class SqliteDocumentRepository implements DocumentRepository {
   constructor(private readonly db: SqliteDatabase) {}
 
   async create(input: CreateDocument): Promise<Document> {
+    const title = assertNonEmptyString(input.title, 'title');
     const document: Document = {
       id: resolveId(input.id, 'id'),
       mediaFileId: assertNonEmptyString(input.mediaFileId, 'mediaFileId'),
-      title: assertNonEmptyString(input.title, 'title'),
+      title,
       pageCount: assertOptionalNonNegativeNumber(input.pageCount, 'pageCount'),
+      detectedTitle: input.detectedTitle === undefined ? title : input.detectedTitle,
+      titleSource: input.titleSource
+        ? assertOneOf(input.titleSource, TITLE_SOURCES, 'titleSource')
+        : 'detected',
     };
     try {
       this.db
         .prepare(
-          `INSERT INTO documents (id, media_file_id, title, page_count)
-           VALUES (?, ?, ?, ?)`,
+          `INSERT INTO documents
+             (id, media_file_id, title, page_count, detected_title, title_source)
+           VALUES (?, ?, ?, ?, ?, ?)`,
         )
         .run(
           document.id,
           document.mediaFileId,
           document.title,
           document.pageCount,
+          document.detectedTitle,
+          document.titleSource,
         );
     } catch (error) {
       throw mapSqliteError(error, 'createDocument');
@@ -82,22 +94,18 @@ export class SqliteDocumentRepository implements DocumentRepository {
 
   async findById(id: string): Promise<Document | null> {
     const row = this.db.prepare(`${DOCUMENT_SELECT} WHERE id = ?`).get(id) as
-      | DocumentRow
-      | undefined;
+      DocumentRow | undefined;
     return row ? mapDocument(row) : null;
   }
 
   async findByMediaFileId(mediaFileId: string): Promise<Document | null> {
-    const row = this.db
-      .prepare(`${DOCUMENT_SELECT} WHERE media_file_id = ?`)
-      .get(mediaFileId) as DocumentRow | undefined;
+    const row = this.db.prepare(`${DOCUMENT_SELECT} WHERE media_file_id = ?`).get(mediaFileId) as
+      DocumentRow | undefined;
     return row ? mapDocument(row) : null;
   }
 
   async list(): Promise<Document[]> {
-    const rows = this.db
-      .prepare(`${DOCUMENT_SELECT} ORDER BY title`)
-      .all() as DocumentRow[];
+    const rows = this.db.prepare(`${DOCUMENT_SELECT} ORDER BY title`).all() as DocumentRow[];
     return rows.map(mapDocument);
   }
 
@@ -125,13 +133,7 @@ export class SqliteDocumentRepository implements DocumentRepository {
           `INSERT INTO document_links (id, document_id, course_id, module_id, lesson_id)
            VALUES (?, ?, ?, ?, ?)`,
         )
-        .run(
-          link.id,
-          link.documentId,
-          link.courseId,
-          link.moduleId,
-          link.lessonId,
-        );
+        .run(link.id, link.documentId, link.courseId, link.moduleId, link.lessonId);
     } catch (error) {
       throw mapSqliteError(error, 'createDocumentLink');
     }

@@ -35,10 +35,7 @@ describe('media repository', () => {
     expect(byId?.relativePath).toBe('curso/aula-01.mp4');
     expect(byId?.availability).toBe('unverified');
 
-    const byPath = await app.media.findBySourceAndRelativePath(
-      sourceId,
-      'curso/aula-01.mp4',
-    );
+    const byPath = await app.media.findBySourceAndRelativePath(sourceId, 'curso/aula-01.mp4');
     expect(byPath?.id).toBe(created.id);
     expect(await app.media.listBySource(sourceId)).toHaveLength(1);
   });

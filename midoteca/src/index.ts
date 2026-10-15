@@ -1,16 +1,27 @@
 import { resolveDefaultDatabasePath } from './core/shared/app-paths';
 import type { CourseRepository } from './core/courses/repository';
 import type { DocumentRepository } from './core/documents/repository';
+import type { EventBus } from './core/indexing/events';
+import { Indexer } from './core/indexing/indexer';
+import { ResourceGovernor } from './core/indexing/resource-governor';
 import type { JobRepository } from './core/jobs/repository';
+import { LibraryQueryService } from './core/library/queries';
 import type { LibraryRepository } from './core/library/repository';
+import { LibrarySourceService } from './core/library/service';
 import type { MediaRepository } from './core/media/repository';
 import type { ProgressRepository } from './core/progress/repository';
 import type { SettingsRepository } from './core/settings/repository';
+import { TypedEventBus } from './infra/events/typed-event-bus';
+import { FsManifestLoader } from './infra/fs/manifest-loader';
+import { RecursiveFileScanner } from './infra/fs/recursive-scanner';
+import { FsSourceProbe } from './infra/fs/source-probe';
 import { SqliteDatabase } from './infra/sqlite/database';
 import { runMigrations, type MigrationResult } from './infra/sqlite/migrator';
 import { SqliteCourseRepository } from './infra/sqlite/repositories/course.repository.sqlite';
 import { SqliteDocumentRepository } from './infra/sqlite/repositories/document.repository.sqlite';
+import { SqliteIndexingStore } from './infra/sqlite/repositories/indexing.store.sqlite';
 import { SqliteJobRepository } from './infra/sqlite/repositories/job.repository.sqlite';
+import { SqliteLibraryQueryStore } from './infra/sqlite/repositories/library-query.repository.sqlite';
 import { SqliteLibraryRepository } from './infra/sqlite/repositories/library.repository.sqlite';
 import { SqliteMediaRepository } from './infra/sqlite/repositories/media.repository.sqlite';
 import { SqliteProgressRepository } from './infra/sqlite/repositories/progress.repository.sqlite';
@@ -41,6 +52,16 @@ export interface Midoteca {
   readonly jobs: JobRepository;
   readonly settings: SettingsRepository;
   readonly migration: MigrationResult | null;
+  /** Transport-agnostic domain event bus (IPC/WebSocket can subscribe). */
+  readonly events: EventBus;
+  /** Cooperative back-pressure controller for indexing. */
+  readonly governor: ResourceGovernor;
+  /** Manage physical storage roots (add/validate/remove). */
+  readonly sources: LibrarySourceService;
+  /** Incremental scanner + reconciler. */
+  readonly indexer: Indexer;
+  /** Paginated read-side queries. */
+  readonly queries: LibraryQueryService;
   close(): void;
 }
 
@@ -56,9 +77,26 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     migration = runMigrations(database);
   }
 
+  const library = new SqliteLibraryRepository(database);
+  const events = new TypedEventBus();
+  const governor = new ResourceGovernor();
+  const probe = new FsSourceProbe();
+
+  const sources = new LibrarySourceService({ library, probe, events });
+  const indexer = new Indexer({
+    store: new SqliteIndexingStore(database),
+    library,
+    scanner: new RecursiveFileScanner(),
+    probe,
+    events,
+    governor,
+    manifestLoader: new FsManifestLoader(),
+  });
+  const queries = new LibraryQueryService(new SqliteLibraryQueryStore(database));
+
   return {
     database,
-    library: new SqliteLibraryRepository(database),
+    library,
     media: new SqliteMediaRepository(database),
     courses: new SqliteCourseRepository(database),
     documents: new SqliteDocumentRepository(database),
@@ -66,6 +104,11 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     jobs: new SqliteJobRepository(database),
     settings: new SqliteSettingsRepository(database),
     migration,
+    events,
+    governor,
+    sources,
+    indexer,
+    queries,
     close: () => database.close(),
   };
 }

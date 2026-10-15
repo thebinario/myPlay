@@ -12,9 +12,7 @@ const path = require('node:path');
 const { createMidoteca } = require('../dist/index.js');
 
 const target = process.argv[2];
-const app = createMidoteca(
-  target ? { databaseFile: path.resolve(target) } : {},
-);
+const app = createMidoteca(target ? { databaseFile: path.resolve(target) } : {});
 
 const migration = app.migration;
 if (!migration) {

@@ -7,11 +7,7 @@ import {
   assertOptionalInteger,
   resolveId,
 } from '../../../core/shared/validation';
-import {
-  JOB_STATUSES,
-  type Job,
-  type JobStatus,
-} from '../../../core/jobs/entities';
+import { JOB_STATUSES, type Job, type JobStatus } from '../../../core/jobs/entities';
 import type { CreateJob, UpdateJob } from '../../../core/jobs/inputs';
 import type { JobRepository } from '../../../core/jobs/repository';
 import type { SqliteDatabase } from '../database';
@@ -89,9 +85,7 @@ export class SqliteJobRepository implements JobRepository {
   }
 
   async findById(id: string): Promise<Job | null> {
-    const row = this.db.prepare(`${JOB_SELECT} WHERE id = ?`).get(id) as
-      | JobRow
-      | undefined;
+    const row = this.db.prepare(`${JOB_SELECT} WHERE id = ?`).get(id) as JobRow | undefined;
     return row ? mapJob(row) : null;
   }
 
@@ -116,8 +110,7 @@ export class SqliteJobRepository implements JobRepository {
       input.status === undefined
         ? existing.status
         : assertOneOf(input.status, JOB_STATUSES, 'status');
-    const checkpoint =
-      input.checkpoint === undefined ? existing.checkpoint : input.checkpoint;
+    const checkpoint = input.checkpoint === undefined ? existing.checkpoint : input.checkpoint;
     const attempts = existing.attempts + (input.incrementAttempts ? 1 : 0);
 
     this.db

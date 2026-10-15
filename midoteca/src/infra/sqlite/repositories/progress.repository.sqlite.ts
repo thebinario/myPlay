@@ -7,14 +7,8 @@ import {
   normalizeOptionalString,
   resolveId,
 } from '../../../core/shared/validation';
-import type {
-  PlaybackProgress,
-  ReadingProgress,
-} from '../../../core/progress/entities';
-import type {
-  SavePlaybackProgress,
-  SaveReadingProgress,
-} from '../../../core/progress/inputs';
+import type { PlaybackProgress, ReadingProgress } from '../../../core/progress/entities';
+import type { SavePlaybackProgress, SaveReadingProgress } from '../../../core/progress/inputs';
 import type { ProgressRepository } from '../../../core/progress/repository';
 import type { SqliteDatabase } from '../database';
 import { mapSqliteError } from '../errors';
@@ -95,14 +89,7 @@ export class SqliteProgressRepository implements ProgressRepository {
              completed_at = excluded.completed_at,
              updated_at   = excluded.updated_at`,
         )
-        .run(
-          resolveId(input.id, 'id'),
-          lessonId,
-          positionMs,
-          durationMs,
-          completedAt,
-          updatedAt,
-        );
+        .run(resolveId(input.id, 'id'), lessonId, positionMs, durationMs, completedAt, updatedAt);
     } catch (error) {
       throw mapSqliteError(error, 'savePlaybackProgress');
     }
@@ -154,15 +141,7 @@ export class SqliteProgressRepository implements ProgressRepository {
              theme        = excluded.theme,
              updated_at   = excluded.updated_at`,
         )
-        .run(
-          resolveId(input.id, 'id'),
-          documentId,
-          page,
-          scrollRatio,
-          zoom,
-          theme,
-          updatedAt,
-        );
+        .run(resolveId(input.id, 'id'), documentId, page, scrollRatio, zoom, theme, updatedAt);
     } catch (error) {
       throw mapSqliteError(error, 'saveReadingProgress');
     }

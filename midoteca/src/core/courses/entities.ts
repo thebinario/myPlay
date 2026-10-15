@@ -1,9 +1,14 @@
 import type { JsonObject } from '../shared/json';
+import type { TitleSource } from '../shared/title-source';
 
 /**
  * A `Course` is a logical container. It is intentionally decoupled from any
  * physical file: its lessons are linked to media files through `LessonMedia`,
  * so a course survives renames, remounts and re-encodes of its files.
+ *
+ * Courses discovered from the filesystem carry `sourceId` + `relativePath`
+ * (their stable identity) and a `titleSource`. Manually created courses leave
+ * those null.
  */
 export interface Course {
   id: string;
@@ -11,6 +16,13 @@ export interface Course {
   description: string | null;
   /** Free-form extensible data (tags, cover, external ids, ...). */
   metadata: JsonObject | null;
+  /** Owning library source for discovered courses; null for manual ones. */
+  sourceId: string | null;
+  /** Path relative to the source root; null for manual courses. */
+  relativePath: string | null;
+  /** Last title derived from the filesystem; null for manual courses. */
+  detectedTitle: string | null;
+  titleSource: TitleSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +36,9 @@ export interface CourseModule {
   courseId: string;
   title: string;
   sortOrder: number;
+  relativePath: string | null;
+  detectedTitle: string | null;
+  titleSource: TitleSource;
 }
 
 export interface Lesson {
@@ -31,17 +46,16 @@ export interface Lesson {
   moduleId: string;
   title: string;
   sortOrder: number;
+  relativePath: string | null;
+  detectedTitle: string | null;
+  titleSource: TitleSource;
 }
 
 /**
  * Role a media file plays within a lesson. A lesson may reference many files,
  * and the same file may appear in several lessons.
  */
-export type LessonMediaRole =
-  | 'primary'
-  | 'supplementary'
-  | 'attachment'
-  | 'subtitle';
+export type LessonMediaRole = 'primary' | 'supplementary' | 'attachment' | 'subtitle';
 
 export interface LessonMedia {
   lessonId: string;

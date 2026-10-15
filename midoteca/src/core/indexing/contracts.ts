@@ -12,5 +12,4 @@ export const INDEXING_JOB_TYPES = {
   PROBE_MEDIA: 'indexing.probe-media',
 } as const;
 
-export type IndexingJobType =
-  (typeof INDEXING_JOB_TYPES)[keyof typeof INDEXING_JOB_TYPES];
+export type IndexingJobType = (typeof INDEXING_JOB_TYPES)[keyof typeof INDEXING_JOB_TYPES];

@@ -1,8 +1,4 @@
-import {
-  ConflictError,
-  PersistenceError,
-  type MidotecaError,
-} from '../../core/shared/errors';
+import { ConflictError, PersistenceError, type MidotecaError } from '../../core/shared/errors';
 
 interface SqliteErrorLike {
   code?: string;

@@ -3,11 +3,16 @@
  * `MediaFile`. Keeping the logical document separate from the physical file
  * allows the same document to be re-linked to a repaired/moved file.
  */
+import type { TitleSource } from '../shared/title-source';
+
 export interface Document {
   id: string;
   mediaFileId: string;
   title: string;
   pageCount: number | null;
+  /** Last title derived from the filesystem. */
+  detectedTitle: string | null;
+  titleSource: TitleSource;
 }
 
 /**

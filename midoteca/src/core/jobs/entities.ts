@@ -5,13 +5,7 @@ import type { JsonObject } from '../shared/json';
  * only persists the queue; no worker runs it yet. `payload` and `checkpoint`
  * are free-form so new job types do not require schema changes.
  */
-export type JobStatus =
-  | 'pending'
-  | 'running'
-  | 'paused'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+export type JobStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 
 export interface Job {
   id: string;
