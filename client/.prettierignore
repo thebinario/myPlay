@@ -1,0 +1,21 @@
+node_modules
+dist
+build
+storybook-static
+coverage
+*.md
+package-lock.json
+yarn.lock
+.git
+
+# Código legado do myPlay, já excluído do tsconfig/eslint (não faz parte do build).
+# Ver docs/REFACTORING_ROADMAP.md (P0 — remover).
+src/components/AddVideo.tsx
+src/components/EditVideoDialog.tsx
+src/components/ScanDirectory.tsx
+src/components/VideoList.tsx
+src/components/VideoPlayer.tsx
+src/setupProxy.js
+src/index.tsx
+src/reportWebVitals.ts
+src/setupTests.ts

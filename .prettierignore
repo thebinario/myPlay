@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+storybook-static
+coverage
+*.md
+package-lock.json
+yarn.lock
+.git
