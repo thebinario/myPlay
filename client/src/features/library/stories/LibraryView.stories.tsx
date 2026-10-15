@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { LibraryView } from '../../../components/library/LibraryView';
-import { mockLibraryService } from '../../../services/mockData';
+import { MOCK_LIBRARY, MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '../../../services/mockData';
 
 const meta: Meta<typeof LibraryView> = {
   title: 'Library/LibraryView',
@@ -11,18 +11,24 @@ const meta: Meta<typeof LibraryView> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    onNavigate: { action: 'navigate' },
-    onSelect: { action: 'select' },
+    items: { control: false },
+    onSelectCourse: { action: 'select-course' },
+    onOpenMovie: { action: 'open-movie' },
+    onOpenDocument: { action: 'open-document' },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof LibraryView>;
 
+const defaultArgs = {
+  items: MOCK_LIBRARY,
+  onSelectCourse: () => {},
+};
+
 export const Default: Story = {
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
   },
 };
 
@@ -35,8 +41,8 @@ export const WithCourses: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    items: MOCK_COURSES,
   },
 };
 
@@ -49,8 +55,8 @@ export const WithMovies: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    items: MOCK_MOVIES,
   },
 };
 
@@ -63,7 +69,21 @@ export const WithDocuments: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    items: MOCK_DOCUMENTS,
+  },
+};
+
+export const EmptyState: Story = {
+  parameters: {
+    backgrounds: { default: 'custom' },
+    background: {
+      name: 'dark',
+      value: '#0D111B',
+    },
+  },
+  args: {
+    ...defaultArgs,
+    items: [],
   },
 };

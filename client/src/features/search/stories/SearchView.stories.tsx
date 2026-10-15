@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SearchView } from '../../../components/search/SearchView';
-import { mockLibraryService } from '../../../services/mockData';
 
 const meta: Meta<typeof SearchView> = {
   title: 'Search/SearchView',
@@ -11,18 +10,27 @@ const meta: Meta<typeof SearchView> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    onNavigate: { action: 'navigate' },
-    onSelect: { action: 'select' },
+    initialQuery: { control: { type: 'text' } },
+    onOpenCourse: { action: 'open-course' },
+    onOpenLesson: { action: 'open-lesson' },
+    onOpenMovie: { action: 'open-movie' },
+    onOpenDocument: { action: 'open-document' },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof SearchView>;
 
+const defaultArgs = {
+  onOpenCourse: () => {},
+  onOpenLesson: () => {},
+  onOpenMovie: () => {},
+  onOpenDocument: () => {},
+};
+
 export const Default: Story = {
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
   },
 };
 
@@ -35,8 +43,8 @@ export const WithCourses: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    initialQuery: 'React',
   },
 };
 
@@ -49,8 +57,8 @@ export const WithMovies: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    initialQuery: 'Código',
   },
 };
 
@@ -63,7 +71,7 @@ export const EmptyState: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    initialQuery: 'resultado-inexistente',
   },
 };

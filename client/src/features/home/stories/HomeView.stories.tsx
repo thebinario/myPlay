@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { HomeView } from '../../../components/home/HomeView';
-import { mockLibraryService } from '../../../services/mockData';
+import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '../../../services/mockData';
 
 const meta: Meta<typeof HomeView> = {
   title: 'Home/HomeView',
@@ -11,18 +11,31 @@ const meta: Meta<typeof HomeView> = {
     background: { default: '#0D111B' },
   },
   argTypes: {
-    onNavigate: { action: 'navigate' },
-    onSelect: { action: 'select' },
+    courses: { control: false },
+    movies: { control: false },
+    documents: { control: false },
+    onSelectCourse: { action: 'select-course' },
+    onOpenMovie: { action: 'open-movie' },
+    onOpenDocument: { action: 'open-document' },
+    onExploreLibrary: { action: 'explore-library' },
+    onSearchOpen: { action: 'search-open' },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof HomeView>;
 
+const defaultArgs = {
+  courses: MOCK_COURSES,
+  movies: MOCK_MOVIES,
+  documents: MOCK_DOCUMENTS,
+  onSelectCourse: () => {},
+  onExploreLibrary: () => {},
+};
+
 export const Default: Story = {
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
   },
 };
 
@@ -35,8 +48,7 @@ export const WithProgress: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
   },
 };
 
@@ -49,7 +61,9 @@ export const EmptyState: Story = {
     },
   },
   args: {
-    onNavigate: () => {},
-    onSelect: () => {},
+    ...defaultArgs,
+    courses: [],
+    movies: [],
+    documents: [],
   },
 };

@@ -1,27 +1,44 @@
-import React from 'react';
+import { useEffect, useRef, useState, ReactNode } from 'react';
 
 interface TooltipProps {
-  children: React.ReactNode;
+  children: ReactNode;
   text: string;
   placement?: 'top' | 'bottom' | 'left' | 'right';
   delay?: number;
 }
 
 export const Tooltip = ({ children, text, placement = 'top', delay = 0 }: TooltipProps) => {
-  const [isHovered, setIsHovered] = React.useState(false);
-  const [showTimeout, setShowTimeout] = React.useState<number | null>(null);
-  const [hideTimeout, setHideTimeout] = React.useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const showTimeout = useRef<number | null>(null);
+  const hideTimeout = useRef<number | null>(null);
 
   const show = () => {
-    setShowTimeout(window.setTimeout(() => setIsHovered(true), delay));
+    if (hideTimeout.current) {
+      clearTimeout(hideTimeout.current);
+      hideTimeout.current = null;
+    }
+    showTimeout.current = window.setTimeout(() => setIsHovered(true), delay);
   };
 
   const hide = () => {
-    setHideTimeout(window.setTimeout(() => setIsHovered(false), delay));
+    if (showTimeout.current) {
+      clearTimeout(showTimeout.current);
+      showTimeout.current = null;
+    }
+    hideTimeout.current = window.setTimeout(() => setIsHovered(false), delay);
   };
+
+  useEffect(() => {
+    return () => {
+      if (showTimeout.current) clearTimeout(showTimeout.current);
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+    };
+  }, []);
 
   return (
     <div
+      onMouseEnter={show}
+      onMouseLeave={hide}
       style={{
         position: 'relative',
         display: 'inline-flex',

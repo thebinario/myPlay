@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { VideoPlayerView } from '../../../components/player/VideoPlayerView';
-import { mockLibraryService } from '../../../services/mockData';
-import { Course, Lesson } from '../../../types/library';
+import { Course } from '../../../types/library';
 
 const mockCourse: Course = {
   id: 'course-react-desktop',
@@ -13,6 +12,7 @@ const mockCourse: Course = {
   totalDuration: 14400,
   progress: 45,
   tags: ['React', 'Tauri', 'TypeScript', 'Desktop'],
+  createdAt: '2026-02-10T10:00:00Z',
   modules: [
     {
       id: 'mod-1',

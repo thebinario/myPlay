@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Sidebar } from '../../../components/common/Sidebar';
-import { NavigationTab } from '../../../types/library';
 
 const meta: Meta<typeof Sidebar> = {
   title: 'Components/Sidebar (Composed)',

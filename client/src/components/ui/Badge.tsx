@@ -1,11 +1,11 @@
 import { forwardRef, SVGProps } from 'react';
 
-interface BadgeProps extends SVGProps<SVGGElement> {
+interface BadgeProps extends SVGProps<SVGSVGElement> {
   variant?: 'default' | 'success' | 'warning' | 'error' | 'violet';
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Badge = forwardRef<SVGGElement, BadgeProps>(({ 
+export const Badge = forwardRef<SVGSVGElement, BadgeProps>(({ 
   children, 
   variant = 'default', 
   size = 'md',
@@ -49,13 +49,13 @@ export const Badge = forwardRef<SVGGElement, BadgeProps>(({
     justifyContent: 'center',
     fontWeight: 600,
     ...variantStyles[variant],
-    ...(className && { className }),
   };
 
   return (
     <svg
       ref={ref}
       viewBox="0 0 24 24"
+      className={className}
       style={styles}
       {...props}
     >

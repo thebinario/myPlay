@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowLeft, Volume2, VolumeX, Play, Pause, SkipBack, SkipForward, Subtitles, RefreshCw, Check, X, Upload, RotateCcw, RotateCw } from 'lucide-react';
 
 interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ElementType;

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Icon } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 interface SearchFieldProps {
   placeholder?: string;
   onChange: (query: string) => void;
   onClear?: () => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export const SearchField = ({ 
@@ -24,7 +25,7 @@ export const SearchField = ({
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div className={className} style={{ position: 'relative', width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
         <input
           type="text"
@@ -44,8 +45,7 @@ export const SearchField = ({
             transition: 'border-color 0.15s ease',
           }}
         />
-        <Icon
-          name="Search"
+        <Search
           size={16}
           color="#64748B"
           style={{ margin: '0 8px' }}
@@ -66,10 +66,9 @@ export const SearchField = ({
             fontSize: '12px',
             cursor: 'pointer',
             padding: '4px',
-            '&:hover': { color: '#FFFFFF' },
           }}
         >
-          <Icon name="X" size={14} />
+          <X size={14} />
         </button>
       )}
     </div>

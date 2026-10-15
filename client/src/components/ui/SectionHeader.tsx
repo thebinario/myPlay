@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SectionHeaderProps {
   title: string;
   subtitle?: string;
@@ -8,7 +6,7 @@ interface SectionHeaderProps {
 
 export const SectionHeader = ({ title, subtitle, className }: SectionHeaderProps) => {
   return (
-    <div style={{ className }}>
+    <div className={className}>
       <h2 style={{ color: '#F8FAFC', fontSize: '16px', fontWeight: 600, margin: '0 0 4px', letterSpacing: '0.5px' }}>
         {title}
       </h2>
