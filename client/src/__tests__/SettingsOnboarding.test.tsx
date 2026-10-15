@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App from '../App';
 function settings() { fireEvent.click(screen.getByRole('button',{name:/configurações/i})); }
@@ -20,9 +20,9 @@ describe('Configurações, bibliotecas e primeiro acesso simulados',()=>{
     fireEvent.click(screen.getByRole('button',{name:'Adicionar',exact:true}));
     expect(screen.getByText('F:\\Estudos')).toBeInTheDocument();
     const card=screen.getByText('F:\\Estudos').closest('article')!;
-    fireEvent.click(card.querySelector('button')!);
+    fireEvent.click(within(card as HTMLElement).getByRole('button',{name:'Simular desconexão'}));
     expect(card).toHaveTextContent('Desconectada');
-    fireEvent.click(screen.getByRole('button',{name:'Retirar'}));
+    fireEvent.click(within(card as HTMLElement).getByRole('button',{name:'Retirar'}));
     expect(screen.getByText(/Nenhum arquivo físico será excluído/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'Confirmar retirada'}));
     expect(screen.queryByText('F:\\Estudos')).not.toBeInTheDocument();
