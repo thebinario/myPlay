@@ -10,6 +10,9 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
+  // Electron loads `dist/index.html` over `file://`, so assets must be resolved
+  // relatively (`./assets/...`) instead of from the filesystem root.
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {

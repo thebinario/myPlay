@@ -104,12 +104,17 @@ Electron 44 — `v8::External::Value` passou a exigir um `tag`). O núcleo fixa
 `^12.11.1`; os testes do núcleo (123) seguem verdes nessa versão.
 
 Verificação sem abrir janela (boota o kernel dentro do Electron, roda migrações e
-faz um round-trip RPC): `npm run desktop:smoke` (com o ABI do Electron ativo).
+faz um round-trip RPC): `npm run desktop:smoke` (recompila o ABI do Electron e
+roda o smoke).
 
 Fluxo de desenvolvimento: `npm run desktop:core` (builda `@midoteca/core`),
 `npm run dev` (Vite em `:3333`) e, em outro terminal,
 `MIDOTECA_DEV_URL=http://localhost:3333 npm run desktop:start`. Produção:
 `npm run desktop:prod` (build do núcleo + bundle + Electron carregando `dist/`).
+
+`desktop:start`, `desktop:prod` e `desktop:smoke` recompilam o `better-sqlite3`
+para o ABI do Electron automaticamente; use `npm run desktop:start:fast` para
+abrir novamente sem repetir o `electron-rebuild`.
 
 ## Segurança
 

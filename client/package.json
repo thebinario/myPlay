@@ -20,8 +20,9 @@
     "desktop:core": "npm --prefix ../midoteca run build",
     "desktop:rebuild": "electron-rebuild -f -w better-sqlite3 -v 44.8.0 -m ../midoteca",
     "desktop:rebuild:node": "npm --prefix ../midoteca rebuild better-sqlite3",
-    "desktop:start": "electron electron/main.cjs",
-    "desktop:smoke": "MIDOTECA_SMOKE=1 electron electron/main.cjs",
+    "desktop:start": "npm run desktop:rebuild && electron electron/main.cjs",
+    "desktop:start:fast": "electron electron/main.cjs",
+    "desktop:smoke": "npm run desktop:rebuild && MIDOTECA_SMOKE=1 electron electron/main.cjs",
     "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start"
   },
   "dependencies": {
