@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Subtitles, Upload } from 'lucide-react';
 import type { SubtitleTrack } from '@/core/domain/library';
-import { IconButton } from '@/shared/ui/IconButton';
+import { IconButton } from '@/shared/ui/components/IconButton';
 
 interface SubtitleMenuProps {
   subtitles: SubtitleTrack[];

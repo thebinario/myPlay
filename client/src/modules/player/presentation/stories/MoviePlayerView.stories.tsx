@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect, waitFor, fireEvent } from 'storybook/test';
-import { MoviePlayerView } from '@/modules/player/presentation/MoviePlayerView';
+import { MoviePlayerView } from '@/modules/player/presentation/views/MoviePlayerView';
 import { MOCK_MOVIES } from '@/modules/library/infrastructure/mock-library-repository';
 import { Movie } from '@/core/domain/library';
 

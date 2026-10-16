@@ -11,7 +11,7 @@ import {
   Film,
   Check,
 } from 'lucide-react';
-import { Spinner } from '@/shared/ui/Spinner';
+import { Spinner } from '@/shared/ui/components/Spinner';
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 import { useAutoHideControls } from '@/modules/player/presentation/hooks/useAutoHideControls';
 

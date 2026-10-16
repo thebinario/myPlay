@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Play, Pause, X, Maximize2, RotateCcw } from 'lucide-react';
-import { Spinner } from '@/shared/ui/Spinner';
+import { Spinner } from '@/shared/ui/components/Spinner';
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 
 export interface MiniPlayerProps {

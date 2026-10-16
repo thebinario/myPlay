@@ -5,6 +5,11 @@
 > decisões de código; lá ficam as áreas, camadas e regras de dependência. Vale
 > para **backend (`midoteca/`)** e **frontend (`client/`)** — mesma arquitetura,
 > mesmas camadas. Regra permanente em [`../AGENTS.md`](../AGENTS.md).
+>
+> **Vocabulário:** o artefato que o hexagonal chama de *port* é chamado aqui de
+> **contrato** (o adapter é a implementação). Cada contrato mora no arquivo pelo
+> seu papel: `domain/repositories.ts` (repositórios + comandos) ou
+> `domain/contracts.ts` (demais dependências externas).
 
 ## 1. Bounded contexts
 
@@ -14,7 +19,7 @@ compartilhado (2+ contextos) sobe para `core/domain/`.
 
 ### Backend (`midoteca/src/modules/`)
 
-| Contexto | Responsabilidade | Port principal |
+| Contexto | Responsabilidade | Contrato principal |
 | --- | --- | --- |
 | `library` | Fontes de armazenamento, disponibilidade, consultas | `LibraryRepository` |
 | `media` | Arquivos físicos + trilhas | `MediaRepository` |
@@ -22,7 +27,7 @@ compartilhado (2+ contextos) sobe para `core/domain/`.
 | `documents` | PDF lógico + vínculos | `DocumentRepository` |
 | `progress` | Progresso de reprodução/leitura | `ProgressRepository` |
 | `indexing` | Descoberta, organização, reconciliação incremental | `IndexingStore`, `FileScanner`, `SourceProbe`, `ManifestLoader` |
-| `search` | Contrato de busca | `SearchPort` (fronteira) |
+| `search` | Contrato de busca | `SearchRepository` (fronteira) |
 | `jobs` | Fila de trabalho persistida | `JobRepository` |
 | `settings` | Preferências chave/valor | `SettingsRepository` |
 
@@ -39,10 +44,11 @@ compartilhado (2+ contextos) sobe para `core/domain/`.
 | `settings` | Preferências |
 
 O contrato agregado do FE é `LibraryRepository`
-(`client/src/core/ports/libraryRepository.ts`), composto por ports menores
-(`LibraryCatalogRepository`, `PlaybackStateRepository`, `ReadingStateRepository`,
-`PageProvider`, `ISearchService`). O agregado é conveniência de composição; cada
-adapter deve implementar **somente** os ports que realmente sustenta.
+(`client/src/core/contracts/library-repository.ts`), composto por contratos
+menores (`LibraryCatalogRepository`, `PlaybackStateRepository`,
+`ReadingStateRepository`, `PageProvider`, `ISearchService`). O agregado é
+conveniência de composição; cada adapter deve implementar **somente** os
+contratos que realmente sustenta.
 
 ## 2. Camadas por contexto (vocabulário único)
 
@@ -50,10 +56,10 @@ Idêntico nos dois runtimes — só muda o idioma dos nomes de arquivo:
 
 ```text
 modules/<contexto>/
-├── domain/            # entidades, value objects, regras puras, domain services, ports.ts
-├── application/       # use-cases/ + dto.ts + services/ (orquestração)
+├── domain/            # entities.ts · types.ts · errors.ts · events.ts · repositories.ts · contracts.ts · <regra>.ts
+├── application/       # use-cases/ (escrita) · queries/ (leitura) · dependencies.ts · services/
 ├── infrastructure/    # adapters do contexto (SQLite, fs, IPC/HTTP, mock)
-└── presentation/      # BE: controllers/ · FE: components/ + hooks/
+└── presentation/      # BE: controllers/ · FE: views/ · components/ · providers/ · hooks/ · stories/
 ```
 
 > **Não crie camadas, interfaces ou classes vazias só para seguir o padrão.**
@@ -81,8 +87,8 @@ Proibido importar no **domínio/aplicação**:
 
 Consequências práticas:
 
-- Casos de uso dependem de **abstrações** (`ports`) para sistemas externos.
-- Adaptadores concretos implementam essas abstrações e são montados **apenas** no
+- Casos de uso dependem de **contratos** para sistemas externos.
+- Adaptadores concretos implementam esses contratos e são montados **apenas** no
   composition root (`createMidoteca` / `main.tsx`).
 - Controllers e componentes React são **finos** e delegam a casos de uso.
 - **Nada de regra de negócio em hook de apresentação** — hook apresenta, caso de
@@ -97,26 +103,40 @@ Consequências práticas:
 | **Value object** | Sem identidade; igualdade por valor | `domain/` | `TitleSource`, `relativePath`, `positionMs` + `durationMs` |
 | **Agregado** | Cluster com raiz única, consistência transacional | `domain/` | Curso → módulos → aulas (`getTree`); `LibrarySource` como âncora de caminhos |
 | **Domain service** | Regra que não pertence a uma entidade | `domain/<nome>.ts` | `indexing/organization.ts` (organização pura, sem IO) |
-| **Caso de uso** | Intenção explícita do sistema, um por arquivo | `application/use-cases/` | `AddSource`, `RunScan`, `ToggleLessonCompletion`, `openLesson` |
-| **Port** | Contrato do que a aplicação precisa | `domain/ports.ts` | `LibraryRepository`, `FileScanner`, `SourceProbe` |
-| **Adapter** | Tradução técnica do port | `infrastructure/` ou `platform/` | `Sqlite*Repository`, `RecursiveFileScanner`, `TypedEventBus` |
-| **Evento de domínio** | Fato consumado, publicado após commit | `indexing/events` | `index:completed`, `index:progress` |
+| **Caso de uso (escrita)** | Intenção explícita do sistema, um por arquivo | `application/use-cases/` | `AddSource`, `RunScan`, `ToggleLessonCompletion`, `openLesson` |
+| **Consulta (leitura)** | Leitura explícita, um por arquivo | `application/queries/` | `ListCourses`, `GetDocumentDetails`, `SearchLibrary` |
+| **Read model** | Projeção de leitura (não é entidade) | `application/queries/` | `CourseSummary`, `DocumentSummary`, `Paged` |
+| **Contrato de repositório** | Persistência de agregado + seus comandos | `domain/repositories.ts` | `LibraryRepository`, `CreateLibrarySource` |
+| **Contrato externo** | Demais dependências de fora | `domain/contracts.ts` | `FileScanner`, `SourceProbe`, `EventBus` |
+| **Adapter** | Tradução técnica do contrato | `infrastructure/` ou `platform/` | `Sqlite*Repository`, `FsSourceProbe`, `TypedEventBus` |
+| **Evento de domínio** | Fato consumado, publicado após commit | `domain/events.ts` | `index:completed`, `index:progress` |
 | **ACL (anticorrupção)** | Tradução entre modelos diferentes | `infrastructure/` do consumidor | adapter do FE traduzindo domínio canônico → view-model; ingestão de legado |
 
-### 4.1 Convenções de caso de uso
+### 4.1 Convenções de caso de uso e consulta
 
-- **Um caso de uso por arquivo**, nomeado pela intenção
-  (`add-source.ts`, `run-scan.ts`, `toggle-lesson-completion.ts`).
-- Entrada e saída tipadas no próprio caso de uso (DTOs), sem expor entidades
-  internas quando isso vazar detalhe de persistência.
-- Sem framework: o caso de uso recebe ports por injeção (construtor ou factory) e
-  devolve valor/promessa. Nada de decorador, nada de `this.request`.
+- **Um arquivo por operação**, nomeado pela intenção: `use-cases/add-source.ts`
+  (escrita), `queries/list-courses.ts` (leitura).
+- **Entrada e saída colocalizadas** no arquivo da operação (ou importadas do
+  caso de uso dono quando compartilhadas). **Não** criar `dto.ts`.
+- Sem framework: a operação recebe contratos por injeção (construtor ou factory)
+  e devolve valor/promessa. Nada de decorador, nada de `this.request`.
 - Transação e consistência ficam no caso de uso (ou no serviço que ele chama),
   nunca no controller/componente.
 - Orquestração de **vários** casos de uso ou de passos com política própria vai
   em `application/services/` — e o serviço não substitui casos de uso explícitos.
+- Dependências repetidas por 2+ operações viram um tipo em
+  `application/dependencies.ts` — não um `dto.ts` genérico.
 
-### 4.2 Quando extrair (e quando não)
+### 4.2 Órgão de leitura (read side)
+
+- Read models (projeções) moram na **application**: `queries/read-models.ts`
+  (se compartilhados) ou no próprio arquivo da consulta.
+- Quando a consulta vai direto à projeção (SQL otimizado), o contrato do store
+  fica em `application/queries/store.ts` e o adapter em
+  `infrastructure/<ctx>.query.sqlite.ts`.
+- O domínio **não** conhece read models nem store de leitura.
+
+### 4.3 Quando extrair (e quando não)
 
 | Extraia | Não extraia |
 | --- | --- |
@@ -125,16 +145,20 @@ Consequências práticas:
 | Cálculo com invariante (progresso, próxima aula, validação) | Formatação pura de texto |
 | Orquestração com IO + regra | `if` de apresentação |
 
-## 5. Ports & Adapters na prática
+## 5. Contratos & Adapters na prática
 
 ### Backend
 
 ```ts
-// domain/ports.ts (módulo) — contrato
+// domain/repositories.ts — contrato + comandos colocalizados
+export interface CreateLibrarySource { rootPath: string; displayName?: string | null }
 export interface LibraryRepository {
-  addSource(input: AddSourceInput): Promise<LibrarySource>;
+  addSource(input: CreateLibrarySource): Promise<LibrarySource>;
   // ...
 }
+
+// domain/contracts.ts — dependência externa que não é repositório
+export interface SourceProbe { check(rootPath: string): Promise<SourceAvailability> }
 
 // infrastructure/ — adapter concreto
 export class SqliteLibraryRepository implements LibraryRepository { /* ... */ }
@@ -146,13 +170,13 @@ createMidoteca() → { sources: new LibrarySourceService({ library, probe, event
 ### Frontend
 
 ```ts
-// core/ports/libraryRepository.ts — port do runtime
+// core/contracts/library-repository.ts — contrato de fronteira do runtime
 export interface LibraryRepository extends LibraryCatalogRepository, /* ... */ {}
 
 // modules/library/infrastructure/ — adapter atual
 export class MockLibraryService implements LibraryRepository { /* memória */ }
 
-// modules/<ctx>/infrastructure/ — adapter futuro, MESMO port
+// modules/<ctx>/infrastructure/ — adapter futuro, MESMO contrato
 export class IpcLibraryRepository implements LibraryRepository { /* chama o núcleo */ }
 
 // app/main.tsx — composição
@@ -161,8 +185,9 @@ export class IpcLibraryRepository implements LibraryRepository { /* chama o núc
 
 ## 6. Entrada, saída e erros (backend)
 
-- **Entradas** (`domain/inputs.ts`): comandos com `id?` opcional (ids
-  determinísticos em testes) e campos opcionais quando fizer sentido.
+- **Comandos de escrita**: colocalizados com o caso de uso
+  (`application/use-cases/<op>.ts`) ou com o repositório que os consome
+  (`domain/repositories.ts`), com `id?` opcional (ids determinísticos em testes).
 - **Saídas**: entidades de domínio, **sem** tipos do driver.
 - **Validação**: na borda do adapter (`core/validation.ts`), lançando
   `ValidationError` antes de tocar o banco.
@@ -189,12 +214,13 @@ export class IpcLibraryRepository implements LibraryRepository { /* chama o núc
 | --- | --- | --- |
 | **SRP** | O arquivo tem uma razão para mudar? | arquivo acima do indicador com múltiplos assuntos (ex.: serviço com CRUD + streaming + transcodificação) |
 | **OCP** | Para adicionar caso novo, preciso editar `if` existente? | `switch` crescendo em service/controller; novo tipo de mídia mexendo em código de leitura |
-| **LSP** | Todo adapter passa o mesmo teste de contrato? | adapter com comportamento divergente do port; método "não suportado" |
-| **ISP** | Algum consumidor é obrigado a implementar o que não usa? | port agregado grande; adapter com métodos vazios/`throw` |
+| **LSP** | Todo adapter passa o mesmo teste de contrato? | adapter com comportamento divergente do contrato; método "não suportado" |
+| **ISP** | Algum consumidor é obrigado a implementar o que não usa? | contrato agregado grande; adapter com métodos vazios/`throw` |
 | **DIP** | O domínio conhece detalhe de infraestrutura? | `import` de driver/SDK em `domain`/`application`; instanciação direta de adapter fora de `app/` |
 
 Regra prática: **se um `import` de tecnologia aparece em `domain/` ou
-`application/`, a arquitetura foi violada** — reverter o `import` para um port.
+`application/`, a arquitetura foi violada** — reverter o `import` para um
+contrato.
 
 ## 9. Anti-padrões (evidência no legado myPlay)
 
@@ -206,12 +232,14 @@ Regra prática: **se um `import` de tecnologia aparece em `domain/` ou
 | Progresso dentro da entidade de conteúdo | `Video.lastPosition` | `playback_progress` por aula |
 | Duas entidades para o mesmo conceito | `video/` e `modules/video/` | uma entidade canônica; remover código morto |
 | Componente gigante com lógica | `client/.../VideoPlayer.tsx` (996 linhas) | extrair hooks/casos de uso/subcomponentes |
+| **Arquivos guarda-chuva** (`dto.ts`, `inputs.ts`, `queries.ts` com N operações) | núcleo atual | separar por operação/por papel (`use-cases/`, `queries/`, `repositories.ts`, `contracts.ts`) — P8 |
 | Duas convenções para o mesmo conceito | backend por sufixo × frontend por pasta | modelo único em [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 
 ## 10. Checklist de revisão (PR)
 
 - [ ] Domínio não importa framework/infra (checar imports).
-- [ ] Novo comportamento externo atrás de um port + adapter.
+- [ ] Novo comportamento externo atrás de um contrato + adapter.
+- [ ] Arquivos nos nomes canônicos (sem `dto.ts`/`inputs.ts`/`ports.ts`).
 - [ ] Adapter alocado pela regra de contexto único × compartilhado
       ([`ARCHITECTURE.md`](ARCHITECTURE.md) §6).
 - [ ] Casos de uso explícitos para operações com regra de negócio.

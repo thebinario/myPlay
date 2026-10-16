@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect } from 'storybook/test';
-import { Tooltip } from '@/shared/ui/Tooltip';
+import { Tooltip } from '@/shared/ui/components/Tooltip';
 
 const meta: Meta<typeof Tooltip> = {
   title: 'UI/Tooltip',

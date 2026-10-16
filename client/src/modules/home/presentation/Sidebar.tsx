@@ -1,6 +1,6 @@
 import React from 'react';
-import { Badge } from '@/shared/ui/Badge';
-import { IconButton } from '@/shared/ui/IconButton';
+import { Badge } from '@/shared/ui/components/Badge';
+import { IconButton } from '@/shared/ui/components/IconButton';
 import { Home, Library, Search, Settings, BookOpen } from 'lucide-react';
 import { NavigationTab } from '@/core/domain/library';
 

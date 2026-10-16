@@ -25,14 +25,14 @@
 | Frontend | `test/<espelho>.test.tsx` (migrando de `client/src/__tests__/`) |
 | Helpers | `test/helpers/` (`temp-db.ts`, `temp-library.ts`) |
 | Stories | colocalizadas no `presentation/` do contexto (`*.stories.tsx`) — contam como teste visual/contrato de UI |
-| Contrato de port | `test/contracts/<port>.spec.ts`, rodado contra **cada** adapter |
+| Teste de contrato | `test/contracts/<contrato>.spec.ts`, rodado contra **cada** adapter |
 
 ## 3. Pirâmide de testes
 
 ```text
         ▲  E2E / Storybook (visual + fluxo)          — poucos, críticos
        ╱ ╲ Componente (React Testing Library)         — telas e interações
-      ╱   ╲ Contrato (port ↔ adapter)                  — garante o contrato
+      ╱   ╲ Contrato (contrato ↔ adapter)              — garante o contrato
      ╱     ╲ Integração (SQLite/FS reais)              — persistência e IO
     ╱───────╲ Unitário (domínio e casos de uso)        — muitos, rápidos
 ```
@@ -42,12 +42,12 @@
 | Camada | Objetivo do teste | Backend | Frontend |
 | --- | --- | --- | --- |
 | `domain/` | invariantes e regras puras, sem IO | `organization`, `manifest`, `resource-governor`, validação | cálculo de progresso, próxima aula, validação de edição |
-| `application/` | caso de uso com ports dublados determinísticos | `AddSource`, `RunScan`, `ToggleLessonCompletion` | `openLesson`, `saveCourse`, `persistPlaybackPosition` |
-| `infrastructure/` | adapter real contra o contrato do port | repositórios SQLite (arquivo real), scanner FS (árvore temp) | `MockLibraryService`, `libraryStorage`; futuro `IpcLibraryRepository` |
+| `application/` | caso de uso com contratos dublados determinísticos | `AddSource`, `RunScan`, `ToggleLessonCompletion` | `openLesson`, `saveCourse`, `persistPlaybackPosition` |
+| `infrastructure/` | adapter real contra o contrato | repositórios SQLite (arquivo real), scanner FS (árvore temp) | `MockLibraryService`, `libraryStorage`; futuro `IpcLibraryRepository` |
 | `presentation/` | comportamento visível ao usuário | controller: status/erro/validação de entrada | `@testing-library/react` (papéis/labels), Storybook |
 | fronteira runtime | adapter ↔ núcleo, com dados reais | — | adapter IPC/HTTP contra o núcleo `midoteca` |
 
-Regra do `application/`: caso de uso é testado **sem** framework — recebe ports
+Regra do `application/`: caso de uso é testado **sem** framework — recebe contratos
 (inclusive dublês em memória) e devolve valor. Se um caso de uso só pode ser
 testado com React/HTTP, ele está na camada errada.
 
@@ -75,12 +75,11 @@ npm run build       # tsc -p tsconfig.build.json
 npm run db:migrate  # aplica migrações (requer build)
 ```
 
-Estado atual **verificado por inspeção**: **17 arquivos de spec** em `test/`
-(domínio, repositórios SQLite, migrações/idempotência, integridade referencial,
-scanner, organização, manifesto, indexação incremental, títulos, queries, source
-service, governor). O total de casos ("92 testes") é o número registrado na
-última execução documentada — **reconferir rodando `npm test`** antes de citá-lo
-(este ambiente não tem `node_modules` instalado).
+Estado atual **verificado**: **19 arquivos de spec** em `test/`, com **116 testes
+verdes** (`vitest run`) — domínio, repositórios SQLite, migrações/idempotência,
+integridade referencial, scanner, organização, manifesto, indexação incremental,
+títulos, queries, source service e governor. Reconferir rodando `npm test` antes
+de citar o número.
 
 Exemplo de teste de integração real:
 
@@ -95,8 +94,8 @@ expect(summary.created).toBe(6);
 ## 6. Frontend (`client/`)
 
 **Stack**: Vitest + `@testing-library/react` + jsdom + Storybook.
-Specs hoje em `client/src/__tests__/*.test.tsx` (13 arquivos) — **alvo**:
-`client/test/**` espelhando a árvore (§2).
+Specs hoje em `client/src/__tests__/*.test.tsx` (**17 arquivos / 246 testes**) —
+**alvo**: `client/test/**` espelhando a árvore (§2).
 
 Regras:
 
@@ -133,8 +132,8 @@ como base de código (ver
 
 ## 8. Contratos
 
-Todo **port** deve ter teste de contrato que qualquer adapter precisa satisfazer
-(LSP — [`ARCHITECTURE.md`](ARCHITECTURE.md) §9):
+Todo **contrato** deve ter teste de contrato que qualquer adapter precisa
+satisfazer (LSP — [`ARCHITECTURE.md`](ARCHITECTURE.md) §9):
 
 - Backend: `IndexingStore`, `FileScanner`, `SourceProbe`, `LibraryRepository`.
 - Frontend: `LibraryRepository` — a suíte roda contra `MockLibraryService` hoje e
@@ -157,5 +156,5 @@ Todo **port** deve ter teste de contrato que qualquer adapter precisa satisfazer
 - [ ] `npm test` verde no pacote afetado.
 - [ ] `npm run typecheck` limpo.
 - [ ] Comportamento legado preservado (caracterização) quando aplicável.
-- [ ] Teste de contrato do port atualizado/passando para todo adapter novo.
+- [ ] Teste de contrato atualizado/passando para todo adapter novo.
 - [ ] Nenhum mock desnecessário introduzido.

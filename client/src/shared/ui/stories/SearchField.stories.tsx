@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect, fn } from 'storybook/test';
-import { SearchField } from '@/shared/ui/SearchField';
+import { SearchField } from '@/shared/ui/components/SearchField';
 
 const meta: Meta<typeof SearchField> = {
   title: 'UI/SearchField',

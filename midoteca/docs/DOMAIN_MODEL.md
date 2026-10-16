@@ -162,9 +162,11 @@ erDiagram
 
 ## 4. Contratos de repositório
 
-Os contratos vivem em `modules/<contexto>/domain/ports.ts` e são implementados em
-`modules/<contexto>/infrastructure/*` (ou em `platform/`, quando servem 2+
-contextos). Eles **não** referenciam tipos de framework.
+Os contratos vivem em `modules/<contexto>/domain/repositories.ts` (repositórios
+e seus comandos) e `modules/<contexto>/domain/contracts.ts` (demais dependências
+externas), e são implementados em `modules/<contexto>/infrastructure/*` (ou em
+`platform/`, quando servem 2+ contextos). Eles **não** referenciam tipos de
+framework.
 
 ### LibraryRepository
 
@@ -257,6 +259,6 @@ guarda apenas dados canônicos. `Course.metadata` (JSON) é o ponto de extensão
 para tags/cover sem alterar o esquema. O contrato de busca em `modules/search` já
 espelha `SearchResultKind`/`SearchFilter` do client para futura ligação real.
 
-A fronteira frontend↔backend (ports no FE, casos de uso no núcleo) está descrita
-em [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) e
+A fronteira frontend↔backend (contratos no FE, casos de uso no núcleo) está
+descrita em [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) e
 [`../../docs/DDD_GUIDELINES.md`](../../docs/DDD_GUIDELINES.md).

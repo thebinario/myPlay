@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect, waitFor, fireEvent, fn } from 'storybook/test';
-import { MiniPlayer } from '@/modules/player/presentation/MiniPlayer';
+import { MiniPlayer } from '@/modules/player/presentation/views/MiniPlayer';
 
 function getVideo(testId: string): HTMLVideoElement {
   const el = document.querySelector(`[data-testid="${testId}"]`);

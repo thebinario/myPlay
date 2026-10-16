@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Course } from '@/core/domain/library';
 import { useVideoPlayer } from '@/modules/player/presentation/hooks/useVideoPlayer';
-import { PlayerSurface } from '@/modules/player/presentation/PlayerSurface';
+import { PlayerSurface } from '@/modules/player/presentation/components/PlayerSurface';
 
 interface VideoPlayerViewProps {
   course: Course;

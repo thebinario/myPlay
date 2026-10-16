@@ -22,11 +22,17 @@ React), mas **uma só arquitetura**. Isso significa:
 - a mesma forma de fatia vertical (um diretório por contexto, com as quatro
   camadas dentro);
 - as mesmas regras de dependência, verificáveis por busca de imports;
-- as mesmas práticas de DDD, Clean Architecture, Hexagonal e SOLID.
+- as mesmas práticas de DDD, Clean Architecture, Hexagonal (Ports & Adapters) e
+  SOLID.
 
 O que **pode** variar por lado é apenas o idioma de nomes de arquivo (kebab-case
 no núcleo, `PascalCase` em componentes React — ver
-[`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) §2) e a tecnologia dos adapters.
+[`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) §4) e a tecnologia dos adapters.
+
+> **Vocabulário.** Nesta arquitetura, o artefato que o hexagonal chama de *port*
+> é chamado de **contrato**. Um contrato é uma interface que o runtime precisa de
+> fora; o **adapter** é a implementação concreta. "Ports & Adapters" permanece
+> apenas como o nome do padrão.
 
 ## 2. As cinco áreas de um runtime
 
@@ -35,7 +41,7 @@ Todo runtime da Midoteca se organiza nas **mesmas cinco áreas**:
 | Área | Papel | Pode conter regra de negócio? |
 | --- | --- | --- |
 | `app/` | **Composition root** e shell: único lugar que conhece adapters concretos e monta o grafo de dependências | Não (só montagem/injeção) |
-| `core/` | **Kernel compartilhado** por todos os contextos: tipos/entidades canônicas, `ports` de fronteira do runtime, erros, validação, ids, clock, config | Só o que é **compartilhado**; regra específica mora no contexto |
+| `core/` | **Kernel compartilhado** por todos os contextos: tipos/entidades canônicas, contratos de fronteira do runtime, erros, validação, ids, clock, config | Só o que é **compartilhado**; regra específica mora no contexto |
 | `modules/` | **Um diretório por bounded context** (fatia vertical com as quatro camadas) | Sim — é aqui que a regra vive |
 | `shared/` | Reutilizável entre contextos **sem regra de negócio**: `ui`, `testing`, utilitários neutros | Não |
 | `platform/` | **Adapters técnicos compartilhados por 2+ contextos**: persistência, filesystem, eventos, desktop/IPC, nuvem | Não (só tradução técnica) |
@@ -43,17 +49,47 @@ Todo runtime da Midoteca se organiza nas **mesmas cinco áreas**:
 Regra de alocação de adapter (§6) é o que decide entre `modules/<ctx>/infrastructure`
 e `platform/`.
 
-## 3. As quatro camadas de um contexto
+## 3. As quatro camadas de um contexto (e seus nomes canônicos)
 
 Dentro de cada contexto, as quatro camadas são sempre as mesmas — nos dois
-runtimes:
+runtimes — e **cada tipo de arquivo tem um lugar e um nome fixos**:
 
-| Camada | Responsabilidade | Exemplos (backend) | Exemplos (frontend) |
-| --- | --- | --- | --- |
-| `domain/` | Entidades, value objects, regras puras, domain services, **ports** do contexto. Zero IO, zero framework | `Course`, `LibrarySource`, `organize()` | tipos + regras puras (progresso, próxima aula, validação de edição) |
-| `application/` | **Casos de uso** explícitos + DTOs de entrada/saída. Orquestra domínio e ports | `AddSource`, `RunScan`, `ToggleLessonCompletion` | `openLesson`, `saveCourse`, `persistPlaybackPosition` |
-| `infrastructure/` | **Adapters** que implementam os ports do contexto (driven/driving) | `*.repository.sqlite.ts` do contexto | `mockLibraryRepository`, `libraryStorage`, futuro IPC/HTTP |
-| `presentation/` | Superfície do runtime, **fina**: entrega e recebe, nunca decide | controllers/rotas IPC ou HTTP | componentes + hooks de apresentação |
+| Camada | Responsabilidade | Arquivos canônicos |
+| --- | --- | --- |
+| `domain/` | Entidades, value objects, regras puras, **contratos do contexto**. Zero IO, zero framework | `entities.ts` · `types.ts` · `errors.ts` · `events.ts` · `repositories.ts` · `contracts.ts` · `<regra>.ts` |
+| `application/` | **Casos de uso** explícitos: escrita (`use-cases/`) e leitura (`queries/`), com entrada/saída **colocalizadas** | `use-cases/<verbo>-<sub>.ts` · `queries/<verbo>-<sub>.ts` · `queries/read-models.ts` · `queries/store.ts` · `dependencies.ts` · `services/<nome>.ts` |
+| `infrastructure/` | **Adapters** que implementam os contratos do contexto | `<ctx>.repository.sqlite.ts` · `<ctx>.query.sqlite.ts` · (mock/IPC/HTTP) |
+| `presentation/` | Superfície do runtime, **fina**: entrega e recebe, nunca decide | BE: `controllers/<nome>.controller.ts` · FE: `views/` · `components/` · `providers/` · `hooks/` · `stories/` |
+
+O que cada arquivo de `domain/` contém:
+
+| Arquivo | Contém | Exemplo |
+| --- | --- | --- |
+| `domain/entities.ts` | Entidades e value objects | `Course`, `LibrarySource`, `MediaFile` |
+| `domain/types.ts` | Tipos/enums de domínio que **não** são entidade | `MediaKind`, `IndexStatus` |
+| `domain/errors.ts` | Erros do contexto | `ManifestParseError` |
+| `domain/events.ts` | Eventos de domínio e seus payloads | `LibraryEvent`, `LibraryEventPayloads` |
+| `domain/repositories.ts` | **Interfaces de repositório + seus comandos de entrada** (`CreateX`/`UpdateX`/`MoveX`) | `LibraryRepository`, `CreateLibrarySource`, `IndexingStore` |
+| `domain/contracts.ts` | Demais **contratos** de dependência externa (não-repositório) | `FileScanner`, `SourceProbe`, `ManifestLoader`, `EventBus` |
+| `domain/<regra>.ts` | Regra pura / domain service | `organization.ts`, `manifest.ts` |
+
+E o que cada subpasta de `presentation/` contém (frontend; no backend só
+`controllers/` existe, quando houver transporte):
+
+| Subpasta | Contém | Exemplo |
+| --- | --- | --- |
+| `presentation/views/` | Telas (uma por rota/aba), finas | `views/LibraryView.tsx` |
+| `presentation/components/` | Subcomponentes/átomos **do contexto** | `components/PlayerSurface.tsx` |
+| `presentation/providers/` | React Context/Provider (só onde existe) | `providers/LibraryProvider.tsx` |
+| `presentation/hooks/` | Hooks de apresentação | `hooks/useVideoPlayer.ts` |
+| `presentation/stories/` | Stories do Storybook | `stories/MiniPlayer.stories.tsx` |
+
+> **Só crie a subpasta que tiver conteúdo** (`AGENTS.md` §2). Design system fica
+> em `shared/ui/{components,stories}/`.
+
+> **Regra de ouro dos contratos:** persistência de agregado → `repositories.ts`;
+> **qualquer outra** dependência externa → `contracts.ts`. Comandos usados por um
+> repositório moram junto do repositório, **nunca** em um `inputs.ts` à parte.
 
 Fluxo permitido:
 
@@ -61,6 +97,9 @@ Fluxo permitido:
 presentation ──► application ──► domain ◄── infrastructure
        (fino)          (casos de uso)   (regras)     (adapters)
 ```
+
+**Não existe** `dto.ts`, `inputs.ts` genérico nem um `queries.ts` com várias
+operações. Motivos e alternativas em [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) §4.
 
 ## 4. Estrutura canônica (idêntica nos dois runtimes)
 
@@ -72,16 +111,36 @@ presentation ──► application ──► domain ◄── infrastructure
 │   └── navigation/               # estado de interface/navegação (frontend)
 ├── core/                         # KERNEL COMPARTILHADO (não é um contexto)
 │   ├── domain/                   # entidades/tipos canônicos usados por 2+ contextos
-│   ├── ports/                    # contratos de fronteira do runtime (in/out)
+│   ├── contracts/                # contratos de fronteira do runtime (ex.: LibraryRepository do FE)
 │   └── errors.ts · ids.ts · validation.ts · clock.ts · config.ts · ...
 ├── modules/                      # UM DIRETÓRIO POR BOUNDED CONTEXT
 │   └── <contexto>/
-│       ├── domain/               # entidades, VOs, regras puras, services, ports.ts
-│       ├── application/          # use-cases/<verbo>-<substantivo>.ts + dto.ts + services/
+│       ├── domain/               # regra pura
+│       │   ├── entities.ts       # entidades + value objects
+│       │   ├── types.ts          # tipos/enums de domínio (não-entidade)
+│       │   ├── errors.ts · events.ts
+│       │   ├── repositories.ts   # contratos de repositório + comandos (CreateX/UpdateX)
+│       │   ├── contracts.ts      # demais contratos externos (scanner, probe, bus)
+│       │   └── <regra>.ts        # domain service / regra pura
+│       ├── application/
+│       │   ├── use-cases/<verbo>-<sub>.ts   # ESCRITA + input/output colocalizados
+│       │   ├── queries/<verbo>-<sub>.ts     # LEITURA + read model colocalizado
+│       │   ├── queries/read-models.ts       # read models compartilhados por 2+ consultas
+│       │   ├── queries/store.ts             # contrato do store de leitura (projeções)
+│       │   ├── dependencies.ts              # deps compartilhadas por 2+ operações
+│       │   └── services/<nome>.ts           # orquestração/fachada de casos de uso
 │       ├── infrastructure/       # adapters do contexto
-│       └── presentation/         # BE: controllers/ · FE: components/ + hooks/
+│       └── presentation/         # superfície (fina)
+│           ├── controllers/      # BE: <nome>.controller.ts (transporte; quando existir)
+│           ├── views/            # FE: <Nome>View.tsx (telas)
+│           ├── components/       # FE: subcomponentes/átomos locais
+│           ├── providers/        # FE: <Nome>Provider.tsx (Context)
+│           ├── hooks/            # FE: useXxx.ts
+│           └── stories/          # FE: <Nome>.stories.tsx
 ├── shared/                       # reutilizável, SEM regra de negócio
 │   ├── ui/                       # design system (átomos)
+│   │   ├── components/           #   Button, Badge, Spinner, …
+│   │   └── stories/              #   <Atom>.stories.tsx
 │   └── testing/                  # helpers de teste compartilhados
 └── platform/                     # adapters técnicos compartilhados por 2+ contextos
     ├── persistence/              # conexão + migrações (SQLite)
@@ -109,9 +168,9 @@ Matriz permitida (✅ = pode importar):
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `core/` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | `shared/` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| `platform/` | ✅ | ❌ | ✅ | ✅ (só ports) | ❌ | ❌ | ❌ | ❌ |
+| `platform/` | ✅ | ❌ | ✅ | ✅ (só contratos) | ❌ | ❌ | ❌ | ❌ |
 | `modules/*/domain` | ✅ | ❌ | ❌ | ✅ (mesmo ctx) | ❌ | ❌ | ❌ | ❌ |
-| `modules/*/application` | ✅ | ❌ | ❌ | ✅ (mesmo ctx; de outro ctx: **só `domain/`** = contratos/tipos) | ✅ (mesmo ctx) | ❌ | ❌ | ❌ |
+| `modules/*/application` | ✅ | ❌ | ❌ | ✅ (mesmo ctx **e** `domain/` de outro ctx = contratos/tipos) | ✅ (mesmo ctx) | ❌ | ❌ | ❌ |
 | `modules/*/infrastructure` | ✅ | ❌ | ✅ | ✅ (mesmo ctx) | ❌ | ✅ (mesmo ctx) | ❌ | ❌ |
 | `modules/*/presentation` | ✅ | ✅ | ❌ | ✅ (só tipos) | ✅ (mesmo ctx) | ❌ | ✅ (mesmo ctx) | ❌ |
 | `app/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -136,8 +195,9 @@ grep -rnE "modules/[a-z]+/(application|infrastructure)" src/modules/*/domain src
 | `midoteca/src/{core,modules/**/domain,modules/**/application}` | NestJS, TypeORM, SQLite/`better-sqlite3`, Express, Tauri, Axios, FFmpeg, React |
 | `client/src/{core,modules/**/domain,modules/**/application}` | `react`, `react-dom`, `axios`, `@tauri-apps/*`, `localStorage`, `fetch` |
 
-- Inversão de dependência: quem precisa de sistema externo depende de um **port**
-  definido no domínio; o adapter concreto fica na infraestrutura.
+- Inversão de dependência: quem precisa de sistema externo depende de um
+  **contrato** definido na camada interna; o adapter concreto fica na
+  infraestrutura.
 - Nada depende de `app/`; `app/` depende de tudo.
 - Nenhuma escrita em arquivo físico fora de adapters de `platform/fs`
   (regra de ouro: catálogo nunca apaga arquivo — ver §8).
@@ -146,8 +206,8 @@ grep -rnE "modules/[a-z]+/(application|infrastructure)" src/modules/*/domain src
 
 | Situação | Onde fica |
 | --- | --- |
-| Implementa um port de **um único** contexto | `modules/<contexto>/infrastructure/` |
-| Implementa um port consumido por **2+** contextos (conexão, migrações, scanner, bus) | `platform/<tecnologia>/` |
+| Implementa um contrato de **um único** contexto | `modules/<contexto>/infrastructure/` |
+| Implementa um contrato consumido por **2+** contextos (conexão, migrações, scanner, bus) | `platform/<tecnologia>/` |
 | Fala com tecnologia externa específica do runtime (IPC/Tauri, HTTP, nuvem) | `platform/desktop/`, `platform/cloud/` |
 | É um dublê para teste/Storybook | `shared/testing/` ou o próprio `infrastructure/` do contexto (quando é um adapter de verdade em memória) |
 
@@ -155,26 +215,26 @@ Essa regra existe para evitar os dois extremos: adapter de contexto único virar
 "platform" genérico (perde coesão) e infraestrutura compartilhada duplicada em
 cada contexto.
 
-## 7. Ports & Adapters — o mesmo fluxo nos dois lados
+## 7. Contratos & Adapters — o mesmo fluxo nos dois lados
 
 ```text
-port (domain)                 adapter (infrastructure)         composição (app)
-─────────────                 ───────────────────────         ────────────────
-LibraryRepository  ◄──implements──  SqliteLibraryRepository   createMidoteca()
-LibraryRepository  ◄──implements──  MockLibraryService        <LibraryProvider repository={…}>
-LibraryRepository  ◄──implements──  IpcLibraryRepository      (futuro)
+contrato (domain/repositories.ts)   adapter (infrastructure)          composição (app)
+────────────────────────────────    ───────────────────────          ────────────────
+LibraryRepository  ◄──implements──  SqliteLibraryRepository          createMidoteca()
+LibraryRepository  ◄──implements──  MockLibraryService                <LibraryProvider repository={…}>
+LibraryRepository  ◄──implements──  IpcLibraryRepository             (futuro)
 ```
 
 Consequências obrigatórias:
 
 1. **Todo** acesso a sistema externo (banco, fs, rede, IPC, tempo, aleatoriedade)
-   entra por um port.
+   entra por um contrato.
 2. Trocar de tecnologia = escrever um adapter novo, **sem** tocar em domínio,
    casos de uso, controllers ou componentes.
-3. Todo port tem **teste de contrato** que qualquer adapter precisa satisfazer
-   (ver [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) §6).
-4. Ports são **pequenos e segregados** (ISP): prefira vários contratos coesos a
-   um "repository" agregado. O agregado é conveniência de composição, não o
+3. Todo contrato tem **teste de contrato** que qualquer adapter precisa
+   satisfazer (ver [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) §6).
+4. Contratos são **pequenos e segregados** (ISP): prefira vários contratos coesos
+   a um "repository" agregado. O agregado é conveniência de composição, não o
    contrato de um adapter específico.
 
 ## 8. DDD — o que é obrigatório
@@ -208,8 +268,8 @@ kernel (`core/domain/`), nunca importado do `domain/` de outro contexto. Já
 aplicado a `MediaType` (`media` + `indexing`) e `LessonMediaRole` (`courses` +
 `indexing`). Por isso o cruzamento permitido no §5 é **`application/ → domain/`
 de outro contexto** (contratos, ISO do §8 “use ids e contratos”): hoje só há duas
-arestas no backend — `library/application → indexing/domain` (ports `EventBus` e
-`SourceProbe`) e `indexing/application → library/domain/ports`
+arestas no backend — `library/application → indexing/domain` (contratos
+`EventBus` e `SourceProbe`) e `indexing/application → library/domain/repositories`
 (`LibraryRepository`). Nenhum adapter concreto cruza contexto.
 
 ## 9. SOLID aplicado
@@ -218,8 +278,8 @@ arestas no backend — `library/application → indexing/domain` (ports `EventBu
 | --- | --- | --- |
 | **S**RP | Uma razão para mudar por arquivo/camada; controller e componente são finos | `video.service.ts` do legado (458 linhas: CRUD + streaming + transcodificação + scan) foi substituído por contextos separados no núcleo |
 | **O**CP | Novo comportamento = novo adapter/caso de uso, não `if` em código existente | trocar `MockLibraryService` por `IpcLibraryRepository` sem alterar consumidores; novo storage = novo adapter D1/S3 |
-| **L**SP | Todo adapter satisfaz o contrato do port do mesmo jeito | teste de contrato do port roda contra **cada** adapter |
-| **I**SP | Ports pequenos e coesos | subdividir contratos amplos (`LibraryCatalog`/`PlaybackState`/`ReadingState`/`PageProvider`/`Search`) |
+| **L**SP | Todo adapter satisfaz o contrato do mesmo jeito | teste de contrato roda contra **cada** adapter |
+| **I**SP | Contratos pequenos e coesos | subdividir contratos amplos (`LibraryCatalog`/`PlaybackState`/`ReadingState`/`PageProvider`/`Search`) |
 | **D**IP | Domínio e aplicação dependem de abstrações; só `app/` conhece concreto | `createMidoteca()` e `<LibraryProvider repository={…}>` |
 
 ## 10. Quando cada camada existe
@@ -253,7 +313,7 @@ Não são leis; são gatilhos para revisar responsabilidades:
 O alvo acima é o destino; o código migra **quando tocado ou quando o risco
 justificar**, nunca por reescrita total. Mapa por runtime:
 
-### 12.1 Backend (`midoteca/`) — ✅ migrado (P5)
+### 12.1 Backend (`midoteca/`) — ✅ migrado (P5); nomenclatura canônica pendente (P8)
 
 P5 executado sem mudança de comportamento: **72 arquivos movidos**, 92/92 testes
 verdes, `typecheck`/`lint`/`format:check`/`build` em 0 e API pública preservada.
@@ -263,23 +323,25 @@ verdes, `typecheck`/`lint`/`format:check`/`build` em 0 e API pública preservada
 | `src/index.ts` (composition root + API) | `src/app/composition-root.ts` + `src/index.ts` (só API pública) | API pública estável |
 | `src/core/shared/*` (10 arquivos de kernel) | `src/core/*` | + `core/domain/` para vocabulário compartilhado |
 | `src/core/<ctx>/{entities,inputs}.ts` | `src/modules/<ctx>/domain/` | |
-| `src/core/<ctx>/{repository,ports}.ts` | `src/modules/<ctx>/domain/ports.ts` | port junto do domínio do contexto |
+| `src/core/<ctx>/{repository,ports}.ts` | `src/modules/<ctx>/domain/ports.ts` | contrato junto do domínio do contexto |
 | `src/core/<ctx>/{service,queries,indexer}.ts` | `src/modules/<ctx>/application/` | `services/`, `queries.ts`, `resource-governor.ts` |
 | `src/core/<ctx>/<regra pura>.ts` | `src/modules/<ctx>/domain/` | ex.: `indexing/domain/organization.ts`, `manifest.ts` |
 | `src/infra/sqlite/repositories/<ctx>.*.sqlite.ts` | `src/modules/<ctx>/infrastructure/` | adapter de um contexto |
 | `src/infra/sqlite/{database,migrator,migrations}` | `src/platform/persistence/sqlite/` | compartilhado por 2+ contextos |
 | `src/infra/fs/*` | `src/platform/fs/` | `FsSourceProbe` serve `library` **e** `indexing` |
 | `src/infra/events/*` | `src/platform/events/` | compartilhado |
-| `test/*.spec.ts` | mantido | espelha a árvore de `src/` (17 specs) |
+| `test/*.spec.ts` | mantido | espelha a árvore de `src/` (19 specs) |
 
 Decisões tomadas durante a migração (não estavam no mapa acima):
 
-- `library/queries.ts` foi **dividido**: read models + port `LibraryQueryStore` →
-  `modules/library/domain/queries.ts`; `LibraryQueryService` →
-  `modules/library/application/queries.ts`. O adapter implementa o port do
-  **domínio**, sem depender de `application/`.
+- `library/queries.ts` foi **dividido**: read models + contrato `LibraryQueryStore`
+  → `modules/library/domain/queries.ts`; `LibraryQueryService` →
+  `modules/library/application/queries.ts`. O adapter implementa o contrato do
+  **domínio**, sem depender de `application/`. **Alvo P8:** read models + store
+  passam para `application/queries/` (`read-models.ts` + `store.ts`).
 - `indexing/scanner.ts` foi **fundido** em `modules/indexing/domain/ports.ts`
-  (um único `ports.ts` por contexto).
+  (um único `ports.ts` por contexto). **Alvo P8:** repositórios →
+  `domain/repositories.ts`; scanner/probe/loader/bus → `domain/contracts.ts`.
 - `MediaType` e `LessonMediaRole` foram promovidos a `core/domain/` por serem
   usados por 2+ contextos (removeu as últimas arestas `domain → domain`).
 - o barrel de cada contexto passou a reexportar **também** seu adapter, para que
@@ -290,7 +352,8 @@ Decisões tomadas durante a migração (não estavam no mapa acima):
 Casos de uso extraídos em `modules/{library,indexing,courses,documents}/application/use-cases/`,
 com os antigos `services/*` reduzidos a fachadas de orquestração.
 
-Pendências: `presentation/` (transporte) e adapters acima do indicador
+Pendências: `presentation/` (transporte), **padronização de contratos/inputs/DTOs
+(P8 — `docs/REFACTORING_ROADMAP.md` §13)** e adapters acima do indicador
 (`course.repository.sqlite.ts` 430 linhas, `indexing.store.sqlite.ts` 421 linhas).
 
 ### 12.2 Frontend (`client/`) — verificado
@@ -298,7 +361,7 @@ Pendências: `presentation/` (transporte) e adapters acima do indicador
 | Atual | Canonônico | Observação |
 | --- | --- | --- |
 | `src/app/{App.tsx,main.tsx}` | igual ✅ | só falta isolar navegação em `app/navigation/` |
-| `src/core/{domain,ports,config}` | igual ✅ | já é o kernel |
+| `src/core/{domain,contracts,config}` | igual ✅ | já é o kernel (`ports/` → `contracts/` no P8) |
 | `src/shared/ui/*` | igual ✅ | design system |
 | `src/modules/<ctx>/presentation/` | igual ✅ | `features/` → `modules/` concluído |
 | `src/modules/<ctx>/application/use-cases/*` | separado ✅ | casos de uso puros (`courses/search`) |
@@ -325,12 +388,13 @@ permite trocar a origem dos dados (mock → IPC/HTTP) sem alterar consumidores.
 ```text
 client/ (presentation + application)          midoteca/ (application + domain)
    useLibrary() ──► LibraryRepository ──► [adapter de platform/desktop | platform/http] ──► createMidoteca()
-        (port no FE)                          (infra do FE)                                (casos de uso + domínio)
+        (contrato no FE)                      (infra do FE)                                (casos de uso + domínio)
 ```
 
-- O contrato do FE (`client/src/core/ports/libraryRepository.ts`) é o **port**; o
-  núcleo fornece os casos de uso; o adapter que liga os dois é infraestrutura do
-  frontend e ainda **não existe** (ver P3 do roadmap de refatoração).
+- O contrato do FE (`client/src/core/contracts/library-repository.ts`) é o
+  **contrato de fronteira do runtime**; o núcleo fornece os casos de uso; o
+  adapter que liga os dois é infraestrutura do frontend e ainda **não existe**
+  (ver P3 do roadmap de refatoração).
 - `client/src/core/domain/*` modela **view-models** (capa, tags, progresso %). O
   domínio canônico vive em `midoteca/src/modules/*/domain`. A tradução entre os
   dois é uma **camada anticorrupção** dentro do adapter — nunca dentro de um
@@ -349,11 +413,12 @@ client/ (presentation + application)          midoteca/ (application + domain)
 ## 16. Checklist de PR (arquitetura)
 
 - [ ] Cada arquivo novo está na camada correta (§3) e no contexto certo (§2).
+- [ ] Nomes seguem a tabela canônica do §3 (sem `dto.ts`, `inputs.ts`, `ports.ts`).
 - [ ] `domain`/`application` não importam framework nem infraestrutura (§5).
-- [ ] Novo acesso externo entrou por um port + adapter (§7).
+- [ ] Novo acesso externo entrou por um contrato + adapter (§7).
 - [ ] Adapter alocado pela regra do §6 (contexto único × compartilhado).
 - [ ] Nenhuma camada vazia foi criada "para seguir o padrão" (§10).
-- [ ] Ports permanecem pequenos; nenhum contrato inchou (§9, ISP).
+- [ ] Contratos permanecem pequenos; nenhum contrato inchou (§9, ISP).
 - [ ] Regra de ouro respeitada (catálogo não toca arquivo físico) (§8).
-- [ ] Testes de contrato do port continuam válidos para o novo adapter.
+- [ ] Testes de contrato continuam válidos para o novo adapter.
 - [ ] Documentação derivada atualizada quando a regra mudou.

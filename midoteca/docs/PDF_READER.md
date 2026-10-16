@@ -23,8 +23,9 @@ client/src/features/documents/
     └── PdfUnavailableState.tsx# estado offline/erro
 ```
 
-O acesso a dados passa pelo port `LibraryRepository`
-(`client/src/core/ports/libraryRepository.ts`), que compõe
+O acesso a dados passa pelo contrato `LibraryRepository`
+(`client/src/core/contracts/library-repository.ts`; `core/ports/` hoje, renome no
+P8), que compõe
 `ReadingStateRepository` (persistência) e `PageProvider` (páginas). **Nenhum
 componente visual fala direto com pdf.js ou com HTTP/IPC.**
 

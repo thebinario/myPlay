@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { PlaybackControls } from '@/modules/player/presentation/PlaybackControls';
+import { PlaybackControls } from '@/modules/player/presentation/components/PlaybackControls';
 
 const meta: Meta<typeof PlaybackControls> = {
   title: 'Player/PlaybackControls',

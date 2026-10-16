@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pause, Play } from 'lucide-react';
-import { Spinner } from '@/shared/ui/Spinner';
-import { PlayerUnavailableState } from '@/modules/player/presentation/PlayerUnavailableState';
-import { PlayerLoadingState } from '@/modules/player/presentation/PlayerLoadingState';
-import { PlayerEndedState } from '@/modules/player/presentation/PlayerEndedState';
-import { SubtitleMenu } from '@/modules/player/presentation/SubtitleMenu';
-import { SpeedMenu } from '@/modules/player/presentation/SpeedMenu';
-import { PlaybackControls } from '@/modules/player/presentation/PlaybackControls';
+import { Spinner } from '@/shared/ui/components/Spinner';
+import { PlayerUnavailableState } from '@/modules/player/presentation/components/PlayerUnavailableState';
+import { PlayerLoadingState } from '@/modules/player/presentation/components/PlayerLoadingState';
+import { PlayerEndedState } from '@/modules/player/presentation/components/PlayerEndedState';
+import { SubtitleMenu } from '@/modules/player/presentation/components/SubtitleMenu';
+import { SpeedMenu } from '@/modules/player/presentation/components/SpeedMenu';
+import { PlaybackControls } from '@/modules/player/presentation/components/PlaybackControls';
 import type { VideoPlayerState } from '@/modules/player/presentation/hooks/useVideoPlayer';
 
 interface PlayerSurfaceProps {

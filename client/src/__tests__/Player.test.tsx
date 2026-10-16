@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VideoPlayerView } from '@/modules/player/presentation/VideoPlayerView';
+import { VideoPlayerView } from '@/modules/player/presentation/views/VideoPlayerView';
 import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import { Course, Lesson } from '@/core/domain/library';
 

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { BookOpen } from 'lucide-react';
-import { Badge } from '@/shared/ui/Badge';
+import { Badge } from '@/shared/ui/components/Badge';
 
 const meta: Meta<typeof Badge> = {
   title: 'UI/Badge',

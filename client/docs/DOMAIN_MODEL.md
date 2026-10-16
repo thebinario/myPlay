@@ -94,9 +94,10 @@ Regra: campos de apresentação **derivam** do canônico (via adapter) e nunca
 viram chave/identidade. `Course.metadata` (JSON) é o ponto de extensão no núcleo
 para tags/cover sem alterar o esquema SQLite.
 
-## 4. Ports (contratos)
+## 4. Contratos
 
-Em `services/contracts.ts`:
+Em `core/contracts/library-repository.ts` (`core/ports/` hoje; renome para
+`core/contracts/` no P8):
 
 ### `LibraryCatalogRepository`
 

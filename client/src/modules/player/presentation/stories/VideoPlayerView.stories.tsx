@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect, waitFor, fireEvent } from 'storybook/test';
-import { VideoPlayerView } from '@/modules/player/presentation/VideoPlayerView';
+import { VideoPlayerView } from '@/modules/player/presentation/views/VideoPlayerView';
 import { Course } from '@/core/domain/library';
 
 const mockCourse: Course = {

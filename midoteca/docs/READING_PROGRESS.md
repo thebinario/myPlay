@@ -38,10 +38,10 @@ normalizado como ISO-8601 ou `null`.
 
 ## 4. Estado no frontend (parcial)
 
-O leitor do client (`client/src/features/documents/application/usePdfReader.ts`)
-já persiste estado de leitura via o port `ReadingStateRepository`, mas:
+O leitor do client (`client/src/modules/documents/presentation/hooks/usePdfReader.ts`)
+já persiste estado de leitura via o contrato `ReadingStateRepository`, mas:
 
-- o port usa `colorMode` (`dark`\|`original`) e `relativeScrollPosition`, enquanto
+- o contrato usa `colorMode` (`dark`\|`original`) e `relativeScrollPosition`, enquanto
   o backend usa `theme` e `scrollRatio`;
 - **não há `viewMode`** no domínio do client ainda;
 - a implementação atual é `mockLibraryRepository` (localStorage), sem ponte para
@@ -49,7 +49,7 @@ já persiste estado de leitura via o port `ReadingStateRepository`, mas:
 
 **Integração pendente** (planejado): mapear `colorMode↔theme`,
 `relativeScrollPosition↔scrollRatio`, introduzir `viewMode` no client e ligar o
-port a um adaptador HTTP/IPC que fale com `progress.saveReading`/`getReading`.
+contrato a um adaptador HTTP/IPC que fale com `progress.saveReading`/`getReading`.
 Isso é uma tarefa de integração, não de domínio — a persistência do backend já
 está pronta e testada.
 

@@ -12,8 +12,8 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { IconButton } from '@/shared/ui/IconButton';
-import { PlayerTimeline } from '@/modules/player/presentation/PlayerTimeline';
+import { IconButton } from '@/shared/ui/components/IconButton';
+import { PlayerTimeline } from '@/modules/player/presentation/components/PlayerTimeline';
 
 interface PlaybackControlsProps {
   controlsVisibilityStyle: React.CSSProperties;

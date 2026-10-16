@@ -22,6 +22,7 @@ Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
 | **P5** layout canônico do backend | F01/F03 | `modules/` + `platform/` + `app/` |
 | **P6** layout canônico do frontend | F01 | `features/` → `modules/`, testes em `test/` |
 | **P7** casos de uso × hooks no FE | F01/F02 | `application/` sem React |
+| **P8** nomenclatura canônica de contratos/inputs/DTOs | F01 | `repositories.ts`/`contracts.ts`; `use-cases/` + `queries/`; sem `dto.ts`/`inputs.ts` |
 
 ## 1. Princípios
 
@@ -42,7 +43,7 @@ Estrutura única (backend e frontend) definida em
 ```text
 src/
 ├── app/            # composition root + shell
-├── core/           # kernel: domain compartilhado + ports + erros/validação/config
+├── core/           # kernel: domain compartilhado + contratos + erros/validação/config
 ├── modules/<ctx>/{domain,application,infrastructure,presentation}
 ├── shared/         # ui, testing (sem regra de negócio)
 └── platform/       # adapters técnicos compartilhados por 2+ contextos
@@ -53,7 +54,7 @@ src/
 | Área | Situação |
 | --- | --- |
 | `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **116 testes verdes** em `test/`. **Casos de uso explícitos** em `library`, `indexing`, `courses` e `documents` (`application/use-cases/`); `services/*` viraram fachadas. Pendente: `presentation/` (transporte) |
-| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **15 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/` |
+| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **17 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/` |
 | `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
 > Contagens de testes: backend **116 testes** (`vitest run`) e frontend
@@ -66,16 +67,18 @@ src/
 | Prioridade | Alvo | Impacto | Risco | Situação |
 | --- | --- | --- | --- | --- |
 | **P0** | Remover código morto (`legacy/`, `stories/` do CRA, sobras) | Alto (ruído/confusão) | Baixo | ⏳ isolado, fora do build; remoção física pendente |
-| **P5** | Layout canônico do backend (`app/`, `core/`, `modules/`, `platform/`) | Alto (vocabulário único) | Médio (paths/imports) | ✅ layout concluído; casos de uso/presentation pendentes |
+| **P5** | Layout canônico do backend (`app/`, `core/`, `modules/`, `platform/`) | Alto (vocabulário único) | Médio (paths/imports) | ✅ layout concluído; nomenclatura (P8) e `presentation/` pendentes |
 | **P6** | Layout canônico do frontend (`features/` → `modules/`, testes → `test/`) | Médio (vocabulário único) | Baixo (mecânico) | ✅ `features/` → `modules/` + kebab-case da infra; mover testes para `test/` pendente |
 | **P2** | Separar fixtures de adapter em `mock-library-repository.ts` (737 linhas) | Médio | Baixo | ⏳ pendente |
 | **P7** | Casos de uso × hooks de apresentação no FE | Médio (testabilidade) | Médio | ✅ concluído |
+| **P8** | Nomenclatura canônica de contratos/inputs/DTOs (`repositories.ts`/`contracts.ts`, `use-cases/`+`queries/`) | Alto (clareza) | Médio (renames/imports) | ⏳ docs alinhadas; migração de código pendente |
 | **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ bloqueado por decisão de transporte (ADR) |
 | **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | ✅ concluído |
 | **P4** | `domain/` por contexto no FE | Médio | Médio | ✅ `courses`/`documents`/`player` com regra pura; outros contextos sem regra |
 | — | `backend/` legado | — | **Não migrar** | — |
 
-Ordem recomendada: **P0** → **P6** (barato, alinha o vocabulário do frontend ao
+Ordem recomendada: **P0** → **P8** (padroniza a nomenclatura e destrava a
+clareza dos contratos) → **P6** (barato, alinha o vocabulário do frontend ao
 backend já migrado) → **P2/P7** → **P3** (depende do ADR de transporte). O layout
 do backend (**P5**) já está aplicado; restam seus refinamentos internos.
 
@@ -124,10 +127,10 @@ componentes → validar**. Comportamento visual preservado.
 
 ## 7. P2 — `mockLibraryRepository.ts`
 
-Hoje: **737 linhas** em `modules/library/infrastructure/`, atrás do port
+Hoje: **737 linhas** em `modules/library/infrastructure/`, atrás do contrato
 `LibraryRepository`. Restante: separar **fixtures** (`fixtures/`) dos **adapters**
 (`mock-library.ts`, `mock-search.ts`) e extrair a persistência (`library-storage`)
-como port de infraestrutura (já existe) — sem mudar comportamento.
+como contrato de infraestrutura (já existe) — sem mudar comportamento.
 
 ## 8. P3 — Adapter do frontend sobre o núcleo
 
@@ -156,10 +159,10 @@ chama o núcleo (`createMidoteca`), injetado em `<LibraryProvider repository={�
 
 ## 9. P4 — `domain/` + casos de uso no FE
 
-Estrutura de contexto já existe. Restante: extrair regras puras (cálculo de
-progresso, próxima aula, validação de edição) para `modules/<ctx>/domain/`
-conforme forem tocadas, mantendo `presentation/` só com apresentação. **Nenhum
-contexto tem `domain/` hoje** (verificado).
+Estrutura de contexto já existe. **Aplicado** onde há regra pura (`courses`,
+`documents`, `player`); contextos sem regra pura (`home`, `search`, `settings`)
+não têm `domain/` — criar só quando a regra aparecer, mantendo `presentation/`
+só com apresentação.
 
 ## 10. P5 — Layout canônico do backend — ✅ **layout aplicado**
 
@@ -187,10 +190,10 @@ contexto tem `domain/` hoje** (verificado).
 `core/domain/{media-type,lesson-media-role}.ts` promovidos + barrels ajustados.
 Nenhum arquivo de esquema/mídia tocado.
 
-**Testes:** nenhum teste novo (migração de layout); **os 17 specs / 92 testes
+**Testes:** nenhum teste novo (migração de layout); **os 19 specs / 116 testes
 existentes serviram de caracterização** e seguem verdes.
 
-**Validação:** `npm test` 92/92 · `typecheck` 0 · `lint` 0 · `format:check` 0 ·
+**Validação:** `npm test` 116/116 · `typecheck` 0 · `lint` 0 · `format:check` 0 ·
 `build` 0 · `node scripts/migrate.cjs` aplica `1, 2` · E2E contra `dist`
 (`createMidoteca` → `addSource` → `listSources` → `runIndexScan` → `queries`)
 funcionando · varredura de imports entre áreas sem violações.
@@ -251,7 +254,36 @@ Testes: +34 casos (`CourseEditing`, `SearchUseCases`, `PdfReading`,
 `useAutoHideControls` são apresentação pura (eventos do `<video>`), então foram
 apenas movidos para `presentation/hooks/`.
 
-## 13. Backend legado (`backend/`)
+## 13. P8 — Nomenclatura canônica de contratos, inputs e DTOs
+
+**Problema:** os arquivos de contrato e de entrada/saída acumulavam
+responsabilidades e nomes genéricos — `domain/inputs.ts` (comandos),
+`application/dto.ts` (I/O + read model + bundle de dependências) e
+`application/queries.ts` com várias operações. `domain/ports.ts` também
+misturava repositório com dependências externas. Resultado: o mesmo conceito em
+dois lugares e nomes que não comunicam o papel.
+
+**Alvo (detalhado em [`ARCHITECTURE.md`](ARCHITECTURE.md) §3 e
+[`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) §4.2):**
+
+| De | Para |
+| --- | --- |
+| `domain/inputs.ts` (`CreateX`/`UpdateX`) | dentro de `domain/repositories.ts`, junto do repositório |
+| `domain/ports.ts` (repositórios) | `domain/repositories.ts` |
+| `domain/ports.ts` / `domain/types.ts` (contratos externos) | `domain/contracts.ts` |
+| `application/dto.ts` (input/output de caso de uso) | colocalizado em `application/use-cases/<op>.ts` |
+| `application/dto.ts` (bundle de deps) | `application/dependencies.ts` |
+| `application/queries.ts` (N operações) | `application/queries/<op>.ts` (1 por consulta) |
+| read models + `LibraryQueryStore` (`domain/queries.ts`) | `application/queries/read-models.ts` + `application/queries/store.ts` |
+| `client/src/core/ports/` | `client/src/core/contracts/` |
+
+**Passos:** por contexto (começar por `library`), caracterizar → renomear/mover →
+ajustar imports → rodar `npm test`. Sem mudança de comportamento. Migrar os
+demais contextos quando tocados ou quando o risco justificar.
+
+**Status:** ⏳ documentação alinhada; migração de código pendente.
+
+## 14. Backend legado (`backend/`)
 
 **Não migrar.** Já auditado e classificado em
 [`../midoteca/docs/MYPLAY_AUDIT.md`](../midoteca/docs/MYPLAY_AUDIT.md):
@@ -260,7 +292,7 @@ arquivo↔registro e exclusão física. Reaproveitar apenas **conceitos** (forma
 parâmetros de transcodificação, ideias de streaming por range/LRU). Quando
 necessário, remover o diretório em PR isolado após confirmar ausência de uso.
 
-## 14. Formato de relato por mudança
+## 15. Formato de relato por mudança
 
 Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 
@@ -271,7 +303,7 @@ Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 - **Resultado da validação** (`npm test`, `typecheck`, `build`)
 - **Dívidas técnicas restantes**
 
-## 15. Não-objetivos
+## 16. Não-objetivos
 
 - Reescrever backend ou frontend inteiros de uma vez.
 - Migrar `backend/` legado.

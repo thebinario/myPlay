@@ -14,7 +14,10 @@
 2. **Mesma arquitetura, mesmas pastas.** Um conceito não pode ter dois lugares
    diferentes nos dois runtimes.
 3. **Cada tecnologia tem seu idioma de nomes de arquivo** (§4), só isso varia.
-4. **Convenção vence preferência.** Novo código segue o padrão existente do
+4. **Nada de nomes guarda-chuva.** `dto.ts`, `inputs.ts` e `queries.ts` (com
+   várias operações) não existem: cada arquivo diz o que é (`repositories.ts`,
+   `contracts.ts`, `use-cases/`, `queries/`).
+5. **Convenção vence preferência.** Novo código segue o padrão existente do
    pacote; código legado migra quando tocado.
 
 ## 2. Estrutura canônica (idêntica nos dois runtimes)
@@ -24,14 +27,15 @@
 ├── app/                          # composition root + shell (único ponto com adapters concretos)
 ├── core/                         # kernel compartilhado (não é um contexto)
 │   ├── domain/                   # tipos canônicos usados por 2+ contextos
-│   ├── ports/                    # contratos de fronteira do runtime
+│   ├── contracts/                # contratos de fronteira do runtime
 │   └── errors.ts · ids.ts · validation.ts · clock.ts · config.ts · ...
 ├── modules/<contexto>/           # fatia vertical por bounded context
-│   ├── domain/                   # entidades, VOs, regras puras, services, ports.ts
-│   ├── application/              # use-cases/ · dto.ts · services/
+│   ├── domain/                   # entities.ts · types.ts · errors.ts · events.ts · repositories.ts · contracts.ts · <regra>.ts
+│   ├── application/              # use-cases/ · queries/ · dependencies.ts · services/
 │   ├── infrastructure/           # adapters do contexto
-│   └── presentation/             # BE: controllers/ · FE: components/ + hooks/
-├── shared/                       # reutilizável, sem regra de negócio (ui/, testing/)
+│   └── presentation/             # BE: controllers/ · FE: views/ · components/ · providers/ · hooks/ · stories/
+├── shared/                       # reutilizável, sem regra de negócio
+│   └── ui/{components,stories}/  # design system + testing/
 └── platform/                     # adapters técnicos compartilhados por 2+ contextos
     ├── persistence/ · fs/ · events/ · desktop/ · cloud/
 ```
@@ -41,7 +45,9 @@
 - **Barrel por contexto** (`index.ts` na raiz do contexto): importe de
   `modules/<ctx>`, não de arquivos internos de outro contexto.
 - **`domain/` não conhece `application/`, `infrastructure/` nem framework.**
-- **`application/` conhece apenas o próprio `domain/` e o `core/`.**
+- **`application/` conhece o próprio `domain/`, o `core/` e o `domain/` de outro
+  contexto** (só contratos/tipos) — **nunca** `application/`, `infrastructure/`
+  ou `presentation/` de outro contexto.
 - **`presentation/` é fino** e só conversa com o `application/` do próprio
   contexto.
 - **Adapters**: um contexto só → `modules/<ctx>/infrastructure/`; 2+ contextos →
@@ -66,23 +72,27 @@
 | Colunas SQLite | `snake_case` | `relative_path`, `title_source` |
 | Campos de domínio (TS) | `camelCase` | `relativePath`, `titleSource` |
 
-### 4.2 Backend (`midoteca/`) — sufixos
+### 4.2 Backend (`midoteca/`) — arquivos canônicos por camada
 
-| Sufixo | Camada | Papel | Exemplo |
+| Arquivo | Camada | Papel | Exemplo |
 | --- | --- | --- | --- |
-| `<ctx>/domain/entities.ts` | domain | entidades/tipos do contexto | `modules/courses/domain/entities.ts` |
-| `<ctx>/domain/inputs.ts` | domain | comandos de entrada (create/update) | `modules/courses/domain/inputs.ts` |
-| `<ctx>/domain/ports.ts` | domain | **ports** do contexto | `modules/library/domain/ports.ts` |
-| `<ctx>/domain/<nome>.ts` | domain | regra pura / domain service | `modules/indexing/domain/organization.ts` |
-| `<ctx>/application/use-cases/<verbo>-<sub>.ts` | application | caso de uso explícito | `modules/library/application/use-cases/add-source.ts` |
-| `<ctx>/application/dto.ts` | application | entrada/saída do caso de uso | `modules/library/application/dto.ts` |
-| `<ctx>/application/services/<nome>.ts` | application | orquestração de casos de uso | `modules/indexing/application/services/scan-runner.ts` |
-| `<ctx>/application/queries.ts` | application | read side (consultas) | `modules/library/application/queries.ts` |
+| `<ctx>/domain/entities.ts` | domain | entidades + value objects | `modules/courses/domain/entities.ts` |
+| `<ctx>/domain/types.ts` | domain | tipos/enums de domínio (não-entidade) | `modules/indexing/domain/types.ts` |
+| `<ctx>/domain/errors.ts` · `events.ts` | domain | erros e eventos do contexto | `modules/indexing/domain/events.ts` |
+| `<ctx>/domain/repositories.ts` | domain | **contrato de repositório + seus comandos** (`CreateX`/`UpdateX`) | `modules/library/domain/repositories.ts` |
+| `<ctx>/domain/contracts.ts` | domain | demais **contratos** externos (scanner, probe, bus) | `modules/indexing/domain/contracts.ts` |
+| `<ctx>/domain/<regra>.ts` | domain | regra pura / domain service | `modules/indexing/domain/organization.ts` |
+| `<ctx>/application/use-cases/<verbo>-<sub>.ts` | application | caso de uso de **escrita** + input/output | `modules/library/application/use-cases/add-source.ts` |
+| `<ctx>/application/queries/<verbo>-<sub>.ts` | application | **consulta** + read model | `modules/library/application/queries/list-courses.ts` |
+| `<ctx>/application/queries/read-models.ts` | application | read models usados por 2+ consultas | `modules/library/application/queries/read-models.ts` |
+| `<ctx>/application/queries/store.ts` | application | contrato do store de leitura (projeções) | `modules/library/application/queries/store.ts` |
+| `<ctx>/application/dependencies.ts` | application | deps compartilhadas por 2+ operações | `modules/courses/application/dependencies.ts` |
+| `<ctx>/application/services/<nome>.ts` | application | orquestração/fachada de casos de uso | `modules/indexing/application/services/indexer.ts` |
 | `<ctx>/infrastructure/<ctx>.repository.sqlite.ts` | infrastructure | adapter de repositório | `modules/media/infrastructure/media.repository.sqlite.ts` |
-| `<ctx>/infrastructure/<nome>.store.sqlite.ts` | infrastructure | adapter de store auxiliar | `modules/indexing/infrastructure/indexing.store.sqlite.ts` |
+| `<ctx>/infrastructure/<ctx>.query.sqlite.ts` | infrastructure | adapter do store de leitura | `modules/library/infrastructure/library.query.sqlite.ts` |
 | `<ctx>/presentation/<nome>.controller.ts` | presentation | controller/rota (fino) | `modules/library/presentation/library.controller.ts` |
 | `platform/persistence/sqlite/*` | platform | conexão, migrações | `database.ts`, `migrator.ts`, `migrations/NNNN-*.ts` |
-| `platform/fs/*` · `platform/events/*` | platform | adapters compartilhados | `recursive-scanner.ts`, `typed-event-bus.ts` |
+| `platform/fs/*` · `platform/events/*` | platform | adapters compartilhados | `source-probe.ts`, `typed-event-bus.ts` |
 | `index.ts` | — | barrel do contexto / API pública | `modules/library/index.ts` |
 | `*.spec.ts` | — | teste (unit/integração/contrato) | `test/indexer.spec.ts` |
 
@@ -93,32 +103,36 @@ Convenções TypeScript (backend):
 - Imports por caminho relativo dentro do pacote; **não** criar aliases sem config.
 - Sem `any`; use tipos do domínio. Erros do driver não vazam.
 
-### 4.3 Frontend (`client/`) — sufixos
+### 4.3 Frontend (`client/`) — arquivos canônicos por camada
 
-| Sufixo | Camada | Papel | Exemplo |
+| Arquivo | Camada | Papel | Exemplo |
 | --- | --- | --- | --- |
-| `presentation/<Nome>View.tsx` | presentation | tela (fina) | `modules/library/presentation/LibraryView.tsx` |
-| `presentation/<Nome>.tsx` | presentation | subcomponente/átomo local | `presentation/MiniPlayer.tsx` |
+| `presentation/views/<Nome>View.tsx` | presentation | tela (fina) | `modules/library/presentation/views/LibraryView.tsx` |
+| `presentation/components/<Nome>.tsx` | presentation | subcomponente/átomo local | `modules/player/presentation/components/PlayerSurface.tsx` |
+| `presentation/providers/<Nome>Provider.tsx` | presentation | React Context/Provider | `modules/library/presentation/providers/LibraryProvider.tsx` |
 | `presentation/hooks/useXxx.ts` | presentation | **hook de apresentação** | `presentation/hooks/useAutoHideControls.ts` |
+| `presentation/stories/<Nome>.stories.tsx` | presentation | story do Storybook | `presentation/stories/MiniPlayer.stories.tsx` |
 | `application/use-cases/<verbo>-<sub>.ts` | application | **caso de uso** (sem React) | `modules/courses/application/use-cases/save-course.ts` |
 | `domain/<nome>.ts` | domain | entidades/regras puras | `modules/player/domain/progress.ts` |
 | `infrastructure/<nome>.ts` | infrastructure | adapter (mock/persistência/IPC) | `modules/library/infrastructure/mock-library-repository.ts` |
-| `*.stories.tsx` | presentation | story do Storybook | `LibraryView.stories.tsx` |
-| `useXxx.ts` (kernel/hook reutilizável) | presentation/shared | hook genérico | `shared/ui/useXxx.ts` |
+| `core/contracts/<nome>.ts` | core | contrato de fronteira do runtime | `core/contracts/library-repository.ts` |
 | `*.config.ts` | core | configuração | `core/config/app.config.ts` |
-| `*.ts` (ports) | core | contratos | `core/ports/library-repository.ts` |
-| `PascalCase.tsx` (Provider) | presentation | React Context/Provider | `modules/library/presentation/LibraryProvider.tsx` |
+| `shared/ui/components/<Atom>.tsx` | shared | átomo do design system | `shared/ui/components/Button.tsx` |
+| `shared/ui/stories/<Atom>.stories.tsx` | shared | story do átomo | `shared/ui/stories/Button.stories.tsx` |
 | `*.test.tsx` / `*.test.ts` | — | teste | `test/library.test.tsx` |
 
 Convenções React:
 
 - **Um componente por arquivo**, `PascalCase`, exportado nomeado.
 - Views terminam com `View`; átomos do design system **não** (`Button`, `Badge`).
+- Subdivisão de `presentation/`: `views/` (telas), `components/` (peças do
+  contexto), `providers/` (Context), `hooks/`, `stories/` — **só as que tiverem
+  conteúdo**.
 - Props tipadas com `interface <Nome>Props`.
 - Componentes **não** acessam repositório, HTTP/IPC ou `localStorage`: usam
   `useLibrary()` / `useLibraryRepository()`.
-- Átomos reutilizáveis em `shared/ui/`; específicos em
-  `modules/<ctx>/presentation/`.
+- Átomos reutilizáveis em `shared/ui/components/`; específicos em
+  `modules/<ctx>/presentation/components/`.
 - **Hook não contém regra de negócio**: cálculo/invariante vai para `domain/`;
   passo de aplicação vai para `application/use-cases/`.
 - Indicadores de tamanho: componente ~150 linhas, hook ~120
@@ -126,10 +140,10 @@ Convenções React:
 
 ### 4.4 Storybook
 
-- Stories colocalizadas com o componente
-  (`modules/<ctx>/presentation/<Nome>.stories.tsx`), exportando `Default` e
+- Stories em `presentation/stories/<Nome>.stories.tsx` (contexto) e
+  `shared/ui/stories/<Atom>.stories.tsx` (design system), exportando `Default` e
   variações de estado (`Loading`, `Empty`, `Error`) quando pertinentes; título
-  `Modules/<Contexto>/<Nome>`.
+  `Modules/<Contexto>/<Nome>` (contexto) ou `Shared/UI/<Nome>` (design system).
 
 ## 5. Migrações (backend)
 
@@ -142,21 +156,29 @@ Convenções React:
 
 | Quero criar… | Backend (`midoteca/`) | Frontend (`client/`) |
 | --- | --- | --- |
-| Entidade/tipo do contexto | `modules/<ctx>/domain/entities.ts` | `modules/<ctx>/domain/<assunto>.ts` |
+| Entidade/value object | `modules/<ctx>/domain/entities.ts` | `modules/<ctx>/domain/<assunto>.ts` |
+| Tipo/enum de domínio | `modules/<ctx>/domain/types.ts` | `modules/<ctx>/domain/<assunto>.ts` |
 | Tipo usado por 2+ contextos | `core/domain/*` | `core/domain/*` |
-| Comando de entrada | `modules/<ctx>/domain/inputs.ts` | props do caso de uso / hook |
-| Contrato (port) do contexto | `modules/<ctx>/domain/ports.ts` | `modules/<ctx>/domain/ports.ts` |
-| Contrato de fronteira do runtime | `core/ports/*` | `core/ports/*` |
-| Caso de uso | `modules/<ctx>/application/use-cases/*` | `modules/<ctx>/application/use-cases/*` |
-| Orquestração de casos de uso | `modules/<ctx>/application/services/*` | `modules/<ctx>/application/*` |
-| Consulta/read side | `modules/<ctx>/application/queries.ts` | `application/` do contexto |
+| Contrato de repositório + comandos (`CreateX`) | `modules/<ctx>/domain/repositories.ts` | `modules/<ctx>/domain/repositories.ts` |
+| Outro contrato externo (scanner, probe, bus) | `modules/<ctx>/domain/contracts.ts` | `modules/<ctx>/domain/contracts.ts` |
+| Contrato de fronteira do runtime | `core/contracts/*` | `core/contracts/*` |
+| Caso de uso (**escrita**) + seu input/output | `modules/<ctx>/application/use-cases/<verbo>-<sub>.ts` | `modules/<ctx>/application/use-cases/<verbo>-<sub>.ts` |
+| Consulta (**leitura**) + read model | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` |
+| Read model compartilhado por 2+ consultas | `modules/<ctx>/application/queries/read-models.ts` | `modules/<ctx>/application/queries/read-models.ts` |
+| Contrato do store de leitura | `modules/<ctx>/application/queries/store.ts` | — |
+| Dependências comuns a 2+ operações | `modules/<ctx>/application/dependencies.ts` | `modules/<ctx>/application/dependencies.ts` |
+| Orquestração de casos de uso | `modules/<ctx>/application/services/*` | `modules/<ctx>/application/services/*` |
 | Regra pura | `modules/<ctx>/domain/*` | `modules/<ctx>/domain/*` |
 | Adapter do contexto | `modules/<ctx>/infrastructure/*` | `modules/<ctx>/infrastructure/*` |
 | Adapter compartilhado (2+ ctx) | `platform/<tech>/*` | `platform/<tech>/*` |
 | Acesso a FS | `platform/fs/*` ou `modules/<ctx>/infrastructure/*` | — (fica no núcleo) |
 | Controller/rota | `modules/<ctx>/presentation/*.controller.ts` | — |
-| Componente visual | — | `modules/<ctx>/presentation/` ou `shared/ui/` |
+| Componente visual (tela) | — | `modules/<ctx>/presentation/views/<Nome>View.tsx` |
+| Subcomponente/átomo do contexto | — | `modules/<ctx>/presentation/components/<Nome>.tsx` |
+| Átomo do design system | — | `shared/ui/components/<Atom>.tsx` |
+| Provider/Context | — | `modules/<ctx>/presentation/providers/<Nome>Provider.tsx` |
 | Hook de apresentação | — | `modules/<ctx>/presentation/hooks/useXxx.ts` |
+| Story | — | `modules/<ctx>/presentation/stories/<Nome>.stories.tsx` ou `shared/ui/stories/<Atom>.stories.tsx` |
 | Composição/injeção | `app/composition-root.ts` | `app/main.tsx` |
 | Teste | `test/<espelho>.spec.ts` | `test/<espelho>.test.tsx` |
 | Migração | `platform/persistence/sqlite/migrations/NNNN-*.ts` | — |

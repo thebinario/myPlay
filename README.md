@@ -37,8 +37,8 @@ de UI externa.
 **Arquitetura (modelo canônico, igual ao backend — `docs/ARCHITECTURE.md`)**
 
 - `src/app/` — composition root (`main.tsx`) e shell (`App.tsx`).
-- `src/core/ports/libraryRepository.ts` — contratos (`LibraryRepository` e ports
-  menores de catálogo, reprodução, leitura, páginas e pesquisa).
+- `src/core/contracts/library-repository.ts` — contratos (`LibraryRepository` e
+  contratos menores de catálogo, reprodução, leitura, páginas e pesquisa).
 - `src/core/domain/library.ts` — domínio/view-models do app.
 - `src/modules/<contexto>/{domain,application,infrastructure,presentation}` —
   contextos (`library`, `home`, `courses`, `player`, `documents`, `search`,

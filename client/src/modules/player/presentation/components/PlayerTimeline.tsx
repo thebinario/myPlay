@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProgressBar } from '@/shared/ui/ProgressBar';
+import { ProgressBar } from '@/shared/ui/components/ProgressBar';
 
 interface PlayerTimelineProps {
   currentTime: number;

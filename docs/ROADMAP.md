@@ -43,10 +43,10 @@ A última coluna reflete o **estado real do repositório hoje**.
 | Biblioteca | Interface e mocks | Catálogo persistente | `client/src/modules/library/infrastructure/mock-library-repository.ts`; núcleo já indexa |
 | Cursos e aulas | Telas funcionais sobre mocks | Modelo de domínio consistente | domínio em `midoteca/src/modules/courses` |
 | Editor | Edição inline e drag-and-drop | Componentes menores e persistência | `modules/courses/presentation/CourseEditorView.tsx` (extraído) |
-| Player | Interface presente | Reprodução local real e retomada | `modules/player/presentation/MoviePlayerView`/`VideoPlayerView` |
+| Player | Interface presente | Reprodução local real e retomada | `modules/player/presentation/views/MoviePlayerView`/`VideoPlayerView` |
 | Pesquisa | Implementação sobre mocks | Busca no catálogo real | `LibraryQueryService` (núcleo) |
 | Leitor PDF | Provedor e páginas simulados | PDF real com leitura parcial | `modules/documents/presentation/PdfViewer.tsx` (extraído) |
-| Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `modules/*/presentation/*.stories.tsx` |
+| Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `modules/*/presentation/stories/*.stories.tsx` |
 | Configurações | Placeholder | Tela real e preferências persistentes | `modules/settings/presentation` |
 | HDs e indexação | Parcial | Integração desktop | `midoteca/src/modules/indexing` (Fases 1–2) |
 | Nuvem | Planejada | Posterior ao MVP | — |
@@ -362,7 +362,7 @@ regras do sistema.
 MIDOTECA
 │
 ├── app/                     # composition root + shell
-├── core/                    # kernel: domain compartilhado + ports + erros/validação/config
+├── core/                    # kernel: domain compartilhado + contratos + erros/validação/config
 ├── modules/                 # um por bounded context (backend e frontend)
 │   ├── library/  courses/  documents/  media/  progress/
 │   ├── indexing/  search/  jobs/  settings/
@@ -378,33 +378,31 @@ Dentro de um módulo relevante:
 
 ```text
 courses/
-├── domain/
-│   ├── entities/
-│   ├── value-objects/
-│   └── services/
+├── domain/                  # entities.ts · types.ts · errors.ts · events.ts
+│   ├── repositories.ts      #   contratos de repositório + comandos (CreateX)
+│   ├── contracts.ts         #   demais contratos externos
+│   └── organization.ts      #   regra pura / domain service
 ├── application/
-│   ├── use-cases/
-│   └── ports/
-├── infrastructure/
-│   └── adapters/
-└── presentation/
-    ├── components/
-    ├── hooks/
-    └── pages/
+│   ├── use-cases/           # escrita: 1 arquivo por operação (+ input/output)
+│   ├── queries/             # leitura: 1 arquivo por consulta (+ read model)
+│   ├── dependencies.ts      # deps compartilhadas por 2+ operações
+│   └── services/            # orquestração/fachada (opcional)
+├── infrastructure/          # adapters do contexto
+└── presentation/            # BE: controllers/ · FE: views/ · components/ · providers/ · hooks/ · stories/
 ```
 
 > Referência, **não** obrigação de criar todos os diretórios antecipadamente:
 > camada sem responsabilidade real não deve existir
 > ([`ARCHITECTURE.md`](ARCHITECTURE.md) §10). A convergência incremental do
 > código atual está em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md) —
-> backend **P5**, frontend **P6/P7**.
+> backend **P5/P8**, frontend **P6/P7**.
 
 ### Regras técnicas permanentes
 
 - **DDD:** modelar regras reais do domínio, respeitando os limites dos contextos.
 - **TDD:** testes antes de novas regras e testes de caracterização antes de refatorações.
 - **Clean Architecture:** domínio e casos de uso independentes da infraestrutura concreta.
-- **Hexagonal:** serviços externos acessados por portas e adaptadores.
+- **Hexagonal:** serviços externos acessados por contratos e adaptadores.
 - **Storybook:** componentes visuais relevantes com stories e estados verificáveis.
 - **Componentização:** responsabilidade única e composição antes da duplicação.
 - **Offline-first:** catálogo e histórico disponíveis sem internet.
