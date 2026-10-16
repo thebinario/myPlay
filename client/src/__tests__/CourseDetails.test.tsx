@@ -51,6 +51,7 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
 
   it('deve abrir um PDF da grade do módulo pelo identificador do documento', () => {
     const handleOpenDocument = vi.fn();
+    const handleToggleDocumentRead = vi.fn();
     const courseWithModulePdf = {
       ...sampleCourse,
       modules: sampleCourse.modules.map((module, index) =>
@@ -83,11 +84,16 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
         onBack={vi.fn()}
         onToggleLesson={vi.fn()}
         onOpenDocument={handleOpenDocument}
+        onToggleDocumentRead={handleToggleDocumentRead}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir PDF Apostila do módulo.pdf' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Marcar Apostila do módulo.pdf como lido' }),
+    );
     expect(handleOpenDocument).toHaveBeenCalledWith('doc-module-1');
+    expect(handleToggleDocumentRead).toHaveBeenCalledWith('doc-module-1');
   });
 
   it('deve disparar onToggleLesson ao clicar no checkbox de conclusão da aula', () => {

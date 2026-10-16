@@ -6,7 +6,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import App from '@/app/App';
-import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_COURSES,
+  mockLibraryService,
+} from '@/modules/library/infrastructure/mock-library-repository';
 
 const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
 
@@ -43,6 +46,8 @@ describe('App — fonte única de verdade do catálogo', () => {
     await user.click(screen.getByLabelText(`Assistir aula ${lesson.title}`));
 
     expect(await screen.findByText(lesson.title)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByTestId('player-status')).toHaveTextContent('Reproduzindo'));
+    await waitFor(() =>
+      expect(screen.getByTestId('player-status')).toHaveTextContent('Reproduzindo'),
+    );
   });
 });

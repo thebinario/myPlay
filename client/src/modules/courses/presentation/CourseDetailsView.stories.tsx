@@ -41,6 +41,8 @@ const meta: Meta<typeof CourseDetailsView> = {
     onToggleLesson: { action: 'toggle-lesson' },
     onPlayLesson: { action: 'play-lesson' },
     onOpenMaterial: { action: 'open-material' },
+    onOpenDocument: { action: 'open-document' },
+    onToggleDocumentRead: { action: 'toggle-document-read' },
     onEditCourse: { action: 'edit-course' },
   },
 };

@@ -14,6 +14,8 @@ export function normalizeReadingState(state: PdfReadingState): PdfReadingState {
     zoom: state.zoom || 1,
     colorMode: state.colorMode || 'dark',
     relativeScrollPosition: state.relativeScrollPosition || 0,
+    lastAccessedAt: state.lastAccessedAt,
+    completedAt: state.completedAt,
   };
 }
 

@@ -11,7 +11,10 @@ import {
   ISearchService,
 } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
-import { STORAGE_VERSION, type LibraryStorage } from '@/modules/library/infrastructure/library-storage';
+import {
+  STORAGE_VERSION,
+  type LibraryStorage,
+} from '@/modules/library/infrastructure/library-storage';
 
 export const MOCK_COURSES: Course[] = [
   {
@@ -411,6 +414,30 @@ export class MockLibraryService implements LibraryRepository {
     }
   }
 
+  private replaceDocument(document: Document): void {
+    const direct = this.items.some((item) => item.type === 'document' && item.id === document.id);
+    if (direct) {
+      this.replaceItem(document);
+      return;
+    }
+    this.items = this.items.map((item) =>
+      item.type !== 'course'
+        ? item
+        : {
+            ...item,
+            documents: item.documents?.map((candidate) =>
+              candidate.id === document.id ? document : candidate,
+            ),
+            modules: item.modules.map((module) => ({
+              ...module,
+              documents: module.documents?.map((candidate) =>
+                candidate.id === document.id ? document : candidate,
+              ),
+            })),
+          },
+    );
+  }
+
   searchItems(query: string, type: 'all' | 'course' | 'movie' | 'document' = 'all'): LibraryItem[] {
     const lower = query.toLowerCase().trim();
     const baseItems = this.getItems(type);
@@ -519,8 +546,18 @@ export class MockLibraryService implements LibraryRepository {
   private pdfReadingStates = new Map<string, PdfReadingState>();
 
   getDocumentById(id: string): Document | undefined {
-    const item = this.items.find((i) => i.id === id && i.type === 'document');
-    return item as Document | undefined;
+    return this.items
+      .flatMap((item) =>
+        item.type === 'document'
+          ? [item]
+          : item.type === 'course'
+            ? [
+                ...(item.documents ?? []),
+                ...item.modules.flatMap((module) => module.documents ?? []),
+              ]
+            : [],
+      )
+      .find((document) => document.id === id);
   }
 
   saveDocumentReadingState(docId: string, state: PdfReadingState): void {
@@ -531,9 +568,14 @@ export class MockLibraryService implements LibraryRepository {
       return;
     }
     // Atualiza o catálogo apenas quando a página muda (rolagem/zoom não re-renderizam a Home)
-    const next: Document = { ...doc, readingState: { ...state }, lastReadPage: state.currentPage };
-    if (doc.lastReadPage !== state.currentPage) {
-      this.replaceItem(next);
+    const next: Document = {
+      ...doc,
+      readingState: { ...state },
+      lastReadPage: state.currentPage,
+      isRead: !!state.completedAt,
+    };
+    if (doc.lastReadPage !== state.currentPage || doc.isRead !== next.isRead) {
+      this.replaceDocument(next);
       this.emit();
     } else {
       this.persist();

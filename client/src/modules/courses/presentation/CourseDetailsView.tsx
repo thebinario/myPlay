@@ -23,6 +23,7 @@ interface CourseDetailsViewProps {
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMaterial?: (material: Material) => void;
   onOpenDocument?: (documentId: string) => void;
+  onToggleDocumentRead?: (documentId: string) => void;
   onEditCourse?: (courseId: string) => void;
 }
 
@@ -34,6 +35,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   onPlayLesson,
   onOpenMaterial,
   onOpenDocument,
+  onToggleDocumentRead,
   onEditCourse,
 }) => {
   // Inicialmente expande todos os módulos para visualização rápida e sem atrito
@@ -392,7 +394,8 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                         borderRadius: '4px',
                       }}
                     >
-                      {modCompletedLessons}/{mod.lessons.length} aulas · {moduleDocuments.length} PDFs
+                      {modCompletedLessons}/{mod.lessons.length} aulas · {moduleDocuments.length}{' '}
+                      PDFs
                     </span>
                   </div>
 
@@ -566,32 +569,66 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                         )}
                       </div>
                     ))}
-                    {moduleDocuments.map((document) => (
-                      <button
-                        key={document.id}
-                        type="button"
-                        aria-label={`Abrir PDF ${document.title}`}
-                        onClick={() => onOpenDocument?.(document.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '14px 20px',
-                          border: 0,
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          background: 'transparent',
-                          color: '#F0F4FC',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <FileText size={16} color="#A594FF" />
-                        <span>{document.title}</span>
-                        <span style={{ marginLeft: 'auto', color: '#64748B' }}>
-                          {document.totalPages > 0 ? `${document.totalPages} págs` : 'PDF'}
-                        </span>
-                      </button>
-                    ))}
+                    {moduleDocuments.map((document) => {
+                      const isRead = document.isRead ?? !!document.readingState?.completedAt;
+                      return (
+                        <div
+                          key={document.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`Abrir PDF ${document.title}`}
+                            onClick={() => onOpenDocument?.(document.id)}
+                            style={{
+                              display: 'flex',
+                              flex: 1,
+                              minWidth: 0,
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '14px 20px',
+                              border: 0,
+                              background: 'transparent',
+                              color: '#F0F4FC',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <FileText size={16} color="#A594FF" />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {document.title}
+                            </span>
+                            <span style={{ marginLeft: 'auto', color: '#64748B' }}>
+                              {document.totalPages > 0 ? `${document.totalPages} págs` : 'PDF'}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Marcar ${document.title} como ${isRead ? 'não lido' : 'lido'}`}
+                            title={isRead ? 'Marcar como não lido' : 'Marcar como lido'}
+                            onClick={() => onToggleDocumentRead?.(document.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 16px',
+                              padding: '6px',
+                              border: 0,
+                              borderRadius: '50%',
+                              background: 'transparent',
+                              color: isRead ? '#10B981' : '#64748B',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isRead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
-import type { Course } from '@/core/domain/library';
+import type { Course, Document } from '@/core/domain/library';
 import type { ContentType, LibraryItem, SearchFilter, SearchResult } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
 import { loadLibraryCatalog } from '@/modules/library/infrastructure/ipc/load-library-catalog';
@@ -10,6 +10,7 @@ export class IpcLibraryRepository implements LibraryRepository {
   private readonly listeners = new Set<() => void>();
   private refreshing: Promise<void> | null = null;
   private detachEvents: (() => void) | null = null;
+  private readonly readingProgressTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     private readonly bridge: MidotecaBridge,
@@ -40,6 +41,21 @@ export class IpcLibraryRepository implements LibraryRepository {
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
       this.items = await loadLibraryCatalog(this.bridge);
+      this.items.flatMap(getDocumentsFromItem).forEach((document) => {
+        if (document.readingState) {
+          this.delegate.saveDocumentReadingState(document.id, document.readingState);
+        }
+      });
+      this.items.forEach((item) => {
+        if (item.type !== 'course') return;
+        item.modules.forEach((module) =>
+          module.lessons.forEach((lesson) => {
+            if (lesson.lastPlaybackPosition !== undefined) {
+              this.delegate.savePlaybackPosition(item.id, lesson.id, lesson.lastPlaybackPosition);
+            }
+          }),
+        );
+      });
       this.emit();
     })();
 
@@ -64,9 +80,12 @@ export class IpcLibraryRepository implements LibraryRepository {
     return item?.type === 'course' ? item : undefined;
   }
 
+  private replaceCatalogItem(item: LibraryItem): void {
+    this.items = this.items.map((current) => (current.id === item.id ? item : current));
+  }
+
   getDocumentById(id: string) {
-    const item = this.items.find((entry) => entry.id === id && entry.type === 'document');
-    return item?.type === 'document' ? item : undefined;
+    return this.items.flatMap(getDocumentsFromItem).find((document) => document.id === id);
   }
 
   subscribe(listener: () => void): () => void {
@@ -134,15 +153,77 @@ export class IpcLibraryRepository implements LibraryRepository {
   }
 
   toggleLessonCompletion(courseId: string, lessonId: string) {
-    return this.delegate.toggleLessonCompletion(courseId, lessonId);
+    const course = this.getCourseById(courseId);
+    const target = course?.modules
+      .flatMap((module) => module.lessons)
+      .find((lesson) => lesson.id === lessonId);
+    if (!course || !target) return undefined;
+
+    const completed = !target.completed;
+    const modules = course.modules.map((module) => ({
+      ...module,
+      lessons: module.lessons.map((lesson) =>
+        lesson.id === lessonId ? { ...lesson, completed } : lesson,
+      ),
+    }));
+    const lessonCount = modules.reduce((total, module) => total + module.lessons.length, 0);
+    const completedCount = modules.reduce(
+      (total, module) => total + module.lessons.filter((lesson) => lesson.completed).length,
+      0,
+    );
+    const updated = {
+      ...course,
+      modules,
+      progress: lessonCount ? Math.round((completedCount / lessonCount) * 100) : 0,
+    };
+    this.replaceCatalogItem(updated);
+    this.emit();
+    this.persistPlaybackProgress(
+      lessonId,
+      this.delegate.getPlaybackPosition(courseId, lessonId),
+      target.duration,
+      completed,
+    );
+    return updated;
   }
 
   savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void {
     this.delegate.savePlaybackPosition(courseId, lessonId, positionSeconds);
+    const course = this.getCourseById(courseId);
+    const lesson = course?.modules
+      .flatMap((module) => module.lessons)
+      .find((item) => item.id === lessonId);
+    if (lesson) {
+      this.persistPlaybackProgress(lessonId, positionSeconds, lesson.duration, lesson.completed);
+    }
+  }
+
+  private persistPlaybackProgress(
+    lessonId: string,
+    positionSeconds: number,
+    durationSeconds: number,
+    completed: boolean,
+  ): void {
+    void this.bridge
+      .invoke('progress.savePlayback', {
+        lessonId,
+        positionMs: Math.round(positionSeconds * 1000),
+        durationMs: durationSeconds > 0 ? Math.round(durationSeconds * 1000) : null,
+        completedAt: completed ? new Date().toISOString() : null,
+      })
+      .catch((error: unknown) => {
+        console.error('[library] falha ao salvar progresso da aula', error);
+      });
   }
 
   getPlaybackPosition(courseId: string, lessonId: string): number {
-    return this.delegate.getPlaybackPosition(courseId, lessonId);
+    const lesson = this.getCourseById(courseId)
+      ?.modules.flatMap((module) => module.lessons)
+      .find((item) => item.id === lessonId);
+    return Math.max(
+      this.delegate.getPlaybackPosition(courseId, lessonId),
+      lesson?.lastPlaybackPosition ?? 0,
+    );
   }
 
   saveSubtitlePreference(courseId: string, lessonId: string, subtitleId: string | null): void {
@@ -162,6 +243,10 @@ export class IpcLibraryRepository implements LibraryRepository {
   }
 
   getDocumentReadingState(documentId: string) {
+    const document = this.items
+      .flatMap(getDocumentsFromItem)
+      .find((item) => item.id === documentId);
+    if (document?.readingState) return document.readingState;
     return this.delegate.getDocumentReadingState(documentId);
   }
 
@@ -169,7 +254,39 @@ export class IpcLibraryRepository implements LibraryRepository {
     documentId: string,
     state: Parameters<LibraryRepository['saveDocumentReadingState']>[1],
   ): void {
+    const previousState = this.getDocumentReadingState(documentId);
     this.delegate.saveDocumentReadingState(documentId, state);
+    this.items = this.items.map((item) =>
+      updateDocumentInItem(item, documentId, (document) => ({
+        ...document,
+        lastReadPage: state.currentPage,
+        isRead: !!state.completedAt,
+        readingState: { ...state },
+      })),
+    );
+    this.emit();
+    const save = () => {
+      this.readingProgressTimers.delete(documentId);
+      void this.bridge
+        .invoke('progress.saveReading', {
+          documentId,
+          page: state.currentPage,
+          scrollRatio: state.relativeScrollPosition,
+          zoom: state.zoom,
+          theme: state.colorMode,
+          completedAt: state.completedAt ?? null,
+        })
+        .catch((error: unknown) => {
+          console.error('[library] falha ao salvar progresso do PDF', error);
+        });
+    };
+    const pendingSave = this.readingProgressTimers.get(documentId);
+    if (pendingSave) clearTimeout(pendingSave);
+    if (previousState?.completedAt !== state.completedAt) {
+      save();
+      return;
+    }
+    this.readingProgressTimers.set(documentId, setTimeout(save, 250));
   }
 
   setDocumentUnavailable(documentId: string, unavailable: boolean): void {
@@ -179,9 +296,10 @@ export class IpcLibraryRepository implements LibraryRepository {
   async saveDocumentPageCount(documentId: string, pageCount: number): Promise<void> {
     await this.bridge.invoke('documents.updatePageCount', { documentId, pageCount });
     this.items = this.items.map((item) =>
-      item.type === 'document' && item.id === documentId
-        ? { ...item, totalPages: pageCount }
-        : item,
+      updateDocumentInItem(item, documentId, (document) => ({
+        ...document,
+        totalPages: pageCount,
+      })),
     );
     this.emit();
   }
@@ -202,4 +320,31 @@ export class IpcLibraryRepository implements LibraryRepository {
   search(query: string, filter: SearchFilter): SearchResult[] {
     return this.delegate.search(query, filter);
   }
+}
+
+function getDocumentsFromItem(item: LibraryItem): Document[] {
+  if (item.type === 'document') return [item];
+  if (item.type !== 'course') return [];
+  return [...(item.documents ?? []), ...item.modules.flatMap((module) => module.documents ?? [])];
+}
+
+function updateDocumentInItem(
+  item: LibraryItem,
+  documentId: string,
+  update: (document: Document) => Document,
+): LibraryItem {
+  if (item.type === 'document') return item.id === documentId ? update(item) : item;
+  if (item.type !== 'course') return item;
+  return {
+    ...item,
+    documents: item.documents?.map((document) =>
+      document.id === documentId ? update(document) : document,
+    ),
+    modules: item.modules.map((module) => ({
+      ...module,
+      documents: module.documents?.map((document) =>
+        document.id === documentId ? update(document) : document,
+      ),
+    })),
+  };
 }

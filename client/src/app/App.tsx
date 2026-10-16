@@ -81,6 +81,40 @@ export const App: React.FC = () => {
 
   const selectedMovie = selectedMovieId ? movies.find((m) => m.id === selectedMovieId) : undefined;
 
+  const homeCourses = courses.map((course) => {
+    const lessons = course.modules.flatMap((module) => module.lessons);
+    const duration = lessons.reduce((total, lesson) => total + lesson.duration, 0);
+    const watched = lessons.reduce(
+      (total, lesson) =>
+        total +
+        Math.min(repository.getPlaybackPosition(course.id, lesson.id), lesson.duration || Infinity),
+      0,
+    );
+    const playbackProgress =
+      watched > 0
+        ? Math.max(1, Math.min(99, Math.floor((watched / (duration || watched)) * 100)))
+        : 0;
+    return course.progress > 0 ? course : { ...course, progress: playbackProgress };
+  });
+  const homeDocuments = [
+    ...new Map(
+      [
+        ...docs,
+        ...courses.flatMap((course) => [
+          ...(course.documents ?? []),
+          ...course.modules.flatMap((module) => module.documents ?? []),
+        ]),
+      ].map((document) => [document.id, document]),
+    ).values(),
+  ].map((document) => {
+    const readingState = repository.getDocumentReadingState(document.id);
+    return {
+      ...document,
+      lastReadPage: Math.max(document.lastReadPage, readingState.currentPage),
+      readingState,
+    };
+  });
+
   // ── Mídia exibida no mini player ─────────────────────────────────────────────
   const miniCourse = session?.courseId
     ? (items.find((i) => i.id === session.courseId && i.type === 'course') as Course | undefined)
@@ -217,6 +251,22 @@ export const App: React.FC = () => {
     repository.toggleLessonCompletion(courseId, lessonId);
   };
 
+  const handleCompleteLesson = (courseId: string, lessonId: string) => {
+    const lesson = repository
+      .getCourseById(courseId)
+      ?.modules.flatMap((module) => module.lessons)
+      .find((item) => item.id === lessonId);
+    if (lesson && !lesson.completed) repository.toggleLessonCompletion(courseId, lessonId);
+  };
+
+  const handleToggleDocumentRead = (documentId: string) => {
+    const state = repository.getDocumentReadingState(documentId);
+    repository.saveDocumentReadingState(documentId, {
+      ...state,
+      completedAt: state.completedAt ? null : new Date().toISOString(),
+    });
+  };
+
   // Atalho global Ctrl+K / Cmd+K → abre pesquisa
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -266,9 +316,9 @@ export const App: React.FC = () => {
       <main className="main-content" style={{ flex: 1, height: '100vh', overflowY: 'auto' }}>
         {currentTab === 'home' && (
           <HomeView
-            courses={courses}
+            courses={homeCourses}
             movies={movies}
-            documents={docs}
+            documents={homeDocuments}
             onSelectCourse={handleSelectCourse}
             onOpenMovie={handleOpenMovie}
             onOpenDocument={handleOpenDocument}
@@ -305,6 +355,7 @@ export const App: React.FC = () => {
             )}
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
+            onToggleDocumentRead={handleToggleDocumentRead}
             onPlayLesson={handlePlayLesson}
             onOpenDocument={handleOpenDocument}
             onEditCourse={handleEditCourse}
@@ -328,7 +379,7 @@ export const App: React.FC = () => {
             course={selectedCourse}
             initialLessonId={selectedLessonId}
             onBack={handleBackFromLessonPlayer}
-            onCompleteLesson={(lessonId) => handleToggleLesson(selectedCourse.id, lessonId)}
+            onCompleteLesson={(lessonId) => handleCompleteLesson(selectedCourse.id, lessonId)}
             resumeTime={resumeTime}
             autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
             onProgress={handlePlayerProgress}

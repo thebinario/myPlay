@@ -153,6 +153,8 @@ export function usePdfReader(document: Document): PdfReaderState {
         zoom: currentZoom,
         colorMode: mode,
         relativeScrollPosition: scroll,
+        lastAccessedAt: new Date().toISOString(),
+        completedAt: repository.getDocumentReadingState(document.id).completedAt,
       });
     },
     [repository, document.id],
@@ -194,7 +196,9 @@ export function usePdfReader(document: Document): PdfReaderState {
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     if (target.scrollHeight - target.clientHeight > 0) {
-      setRelativeScrollPosition(scrollRatio(target.scrollTop, target.scrollHeight, target.clientHeight));
+      setRelativeScrollPosition(
+        scrollRatio(target.scrollTop, target.scrollHeight, target.clientHeight),
+      );
     }
   }, []);
 

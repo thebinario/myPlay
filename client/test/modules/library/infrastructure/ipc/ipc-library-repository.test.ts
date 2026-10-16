@@ -181,13 +181,36 @@ function wireCatalog(handlers: Record<string, (params: unknown) => unknown>) {
     limit: 50,
     offset: 0,
   });
+  handlers['progress.getPlayback'] = () => null;
+  handlers['progress.getReading'] = () => null;
+  handlers['progress.savePlayback'] = (params) => params;
+  handlers['progress.saveReading'] = (params) => params;
 }
 
 describe('IpcLibraryRepository', () => {
   it('hidrata o catálogo real a partir do kernel', async () => {
     const delegate = new MockLibraryService();
-    const { bridge, handlers } = createFakeBridge();
+    const { bridge, handlers, calls } = createFakeBridge();
     wireCatalog(handlers);
+    handlers['progress.getPlayback'] = () => ({
+      id: 'p1',
+      lessonId: 'l1',
+      positionMs: 90_000,
+      durationMs: 90_000,
+      completedAt: '2026-10-16T20:00:00.000Z',
+      updatedAt: '2026-10-16T20:00:00.000Z',
+    });
+    handlers['progress.getReading'] = () => ({
+      id: 'r1',
+      documentId: 'd1',
+      page: 42,
+      scrollRatio: 0,
+      zoom: 1,
+      theme: 'dark',
+      viewMode: 'continuous',
+      completedAt: '2026-10-16T20:00:00.000Z',
+      updatedAt: '2026-10-16T20:00:00.000Z',
+    });
 
     const repository = new IpcLibraryRepository(bridge, delegate);
     repository.hydrate();
@@ -197,7 +220,23 @@ describe('IpcLibraryRepository', () => {
     expect(repository.getItems('course')).toHaveLength(1);
     expect(repository.getItems('movie')).toEqual([]);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].duration).toBe(90);
+    expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(true);
+    expect(repository.getCourseById('c1')?.progress).toBe(100);
     expect(repository.getCourseById('c1')?.modules[0].documents?.[0].id).toBe('d1');
+    expect(repository.getCourseById('c1')?.modules[0].documents?.[0].isRead).toBe(true);
+
+    repository.toggleLessonCompletion('c1', 'l1');
+    const readingState = repository.getDocumentReadingState('d1');
+    repository.saveDocumentReadingState('d1', {
+      ...readingState,
+      completedAt: null,
+    });
+    await flush();
+
+    expect(calls['progress.savePlayback']).toBe(1);
+    expect(calls['progress.saveReading']).toBe(1);
+    expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(false);
+    expect(repository.getCourseById('c1')?.modules[0].documents?.[0].isRead).toBe(false);
   });
 
   it('recarrega o snapshot ao receber eventos do kernel', async () => {

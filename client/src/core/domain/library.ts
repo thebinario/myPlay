@@ -81,6 +81,8 @@ export interface PdfReadingState {
   relativeScrollPosition: number; // 0.0 a 1.0
   zoom: number; // ex: 1 = 100%, 1.25 = 125%, 0.8 = 80%
   colorMode: PdfColorMode;
+  lastAccessedAt?: string;
+  completedAt?: string | null;
 }
 
 export interface PdfPageChunk {
@@ -103,6 +105,7 @@ export interface Document {
   tags: string[];
   createdAt: string;
   readingState?: PdfReadingState;
+  isRead?: boolean;
   isUnavailable?: boolean;
 }
 

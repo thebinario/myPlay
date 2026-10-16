@@ -1,6 +1,6 @@
-import type { CourseTree, MediaFile } from '@midoteca/core';
+import type { CourseTree, MediaFile, ReadingProgress } from '@midoteca/core';
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
-import type { LibraryItem } from '@/core/domain/library';
+import type { Document, LibraryItem } from '@/core/domain/library';
 import {
   mapCourseTree,
   mapDocumentSummary,
@@ -12,7 +12,10 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
   const sources = await bridge.invoke('sources.list');
   const roots = new Map(sources.map((source) => [source.id, source.rootPath]));
   const sourceTypes = new Map(sources.map((source) => [source.id, source.libraryType]));
-  const media = await loadSourceMedia(bridge, sources.map((source) => source.id));
+  const media = await loadSourceMedia(
+    bridge,
+    sources.map((source) => source.id),
+  );
   const courses = await listAllPages((offset) =>
     bridge.invoke('catalog.listCourses', { limit: 200, offset }),
   );
@@ -31,13 +34,79 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
   const linkedDocumentIds = collectLinkedDocumentIds(completeTrees);
   const standaloneDocuments = documents.filter((document) => {
     const mediaFile = media.get(document.mediaFileId);
-    return mediaFile && sourceTypes.get(mediaFile.sourceId) !== 'movie' && !linkedDocumentIds.has(document.id);
+    return (
+      mediaFile &&
+      sourceTypes.get(mediaFile.sourceId) !== 'movie' &&
+      !linkedDocumentIds.has(document.id)
+    );
   });
-  const linkedMedia = collectLinkedMedia(completeTrees, standaloneDocuments.map((doc) => doc.mediaFileId));
+  const linkedMedia = collectLinkedMedia(
+    completeTrees,
+    standaloneDocuments.map((doc) => doc.mediaFileId),
+  );
+  const lessonIds = completeTrees.flatMap((tree) =>
+    tree.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+  );
+  const [playbackProgress, readingProgress] = await Promise.all([
+    Promise.all(
+      lessonIds.map((lessonId) =>
+        bridge.invoke('progress.getPlayback', { lessonId }).catch(() => null),
+      ),
+    ),
+    Promise.all(
+      documents.map((document) =>
+        bridge.invoke('progress.getReading', { documentId: document.id }).catch(() => null),
+      ),
+    ),
+  ]);
+  const playbackByLessonId = new Map(
+    playbackProgress
+      .filter((progress) => progress !== null)
+      .map((progress) => [progress.lessonId, progress]),
+  );
+  const readingByDocumentId = new Map(
+    readingProgress
+      .filter((progress) => progress !== null)
+      .map((progress) => [progress.documentId, progress]),
+  );
 
   return [
-    ...completeTrees.map((tree) => mapCourseTree(tree, media, roots)),
-    ...standaloneDocuments.map((document) => mapDocumentSummary(document, media, roots)),
+    ...completeTrees.map((tree) => {
+      const course = mapCourseTree(tree, media, roots);
+      const modules = course.modules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) => ({
+          ...lesson,
+          completed: !!playbackByLessonId.get(lesson.id)?.completedAt,
+          ...(playbackByLessonId.has(lesson.id)
+            ? { lastPlaybackPosition: (playbackByLessonId.get(lesson.id)?.positionMs ?? 0) / 1000 }
+            : {}),
+        })),
+        documents: module.documents?.map((document) =>
+          applyReadingProgress(document, readingByDocumentId.get(document.id)),
+        ),
+      }));
+      const documents = course.documents?.map((document) =>
+        applyReadingProgress(document, readingByDocumentId.get(document.id)),
+      );
+      const totalLessons = modules.reduce((total, module) => total + module.lessons.length, 0);
+      const completedLessons = modules.reduce(
+        (total, module) => total + module.lessons.filter((lesson) => lesson.completed).length,
+        0,
+      );
+      return {
+        ...course,
+        modules,
+        documents,
+        progress: totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0,
+      };
+    }),
+    ...standaloneDocuments.map((document) =>
+      applyReadingProgress(
+        mapDocumentSummary(document, media, roots),
+        readingByDocumentId.get(document.id),
+      ),
+    ),
     ...[...media.values()]
       .filter((file) => {
         if (file.mediaType !== 'video') return false;
@@ -46,6 +115,26 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
       })
       .map((file) => mapStandaloneVideo(file, roots)),
   ];
+}
+
+function applyReadingProgress(
+  document: Document,
+  progress: ReadingProgress | null | undefined,
+): Document {
+  if (!progress) return document;
+  return {
+    ...document,
+    lastReadPage: progress.page,
+    isRead: !!progress.completedAt,
+    readingState: {
+      currentPage: progress.page,
+      relativeScrollPosition: progress.scrollRatio,
+      zoom: progress.zoom,
+      colorMode: progress.theme === 'original' ? 'original' : 'dark',
+      lastAccessedAt: progress.updatedAt,
+      completedAt: progress.completedAt,
+    },
+  };
 }
 
 function collectLinkedDocumentIds(trees: CourseTree[]): Set<string> {
