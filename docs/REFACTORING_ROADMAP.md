@@ -9,8 +9,8 @@
 
 ## 0. Relação com o roadmap mestre
 
-Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
-[`ROADMAP.md`](ROADMAP.md) e prepara a **F03 (v0.5)**:
+Este documento acompanha a convergência arquitetural junto às fases do
+[`ROADMAP.md`](ROADMAP.md). O adapter já foi iniciado; P3 está em andamento:
 
 | Prioridade aqui | Fase do roadmap mestre | Tema |
 | --- | --- | --- |
@@ -55,14 +55,13 @@ src/
 
 | Área | Situação |
 | --- | --- |
-| `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **116 testes verdes** em `test/`. **Casos de uso explícitos** em `library`, `indexing`, `courses` e `documents` (`application/use-cases/`); `services/*` viraram fachadas. Pendente: `presentation/` (transporte) |
-| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **17 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/`. **Resíduos verificados:** 5 contextos importam `library/presentation/LibraryProvider` (que importa `infrastructure/`) e `core/ports/libraryRepository.ts` é contrato "god" (6 contratos somados) → **P9**; views acima do indicador → **P1**; `player`/`documents` sem `application/` → **P7/P4** |
+| `midoteca/` (backend) | Layout canônico aplicado (P5), API desktop sobre IPC e persistência SQLite disponíveis. O ABI incompatível do `better-sqlite3` bloqueou a execução dos testes de integração nesta revisão; typecheck passou. Não afirmar suite verde sem restaurar o runtime nativo. |
+| `client/` (frontend) | P6/P7 aplicados parcialmente. Produção usa IPC para catálogo/fontes, mas playback, leitura PDF, busca, preferências e onboarding ainda são delegados aos mocks. `LibraryProvider` e `LibraryRepository` mantêm acoplamento entre contextos. O teste focado do mapper e typecheck passaram nesta revisão. |
 | `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
-> Contagens de testes: backend **116 testes** (`vitest run`) e frontend
-> **246 testes / 42 arquivos** (`npm test`), ambos com `typecheck` e `build` em
-> 0. `lint` do frontend acusa erros **pré-existentes** apenas em `src/legacy/`
-> (fora do `tsconfig`, código morto a remover em P0).
+> As contagens históricas não são baseline desta revisão. O teste focado do
+> mapper frontend e os `typecheck` de client/core passaram. A suíte SQLite foi
+> bloqueada antes das asserções pelo ABI incompatível (`149`, runtime `137`).
 
 ## 4. Priorização
 
@@ -76,18 +75,15 @@ src/
 | **P8** | Nomenclatura canônica de contratos/inputs/DTOs (`repositories.ts`/`contracts.ts`, `use-cases/`+`queries/`) | Alto (clareza) | Médio (renames/imports) | ⏳ docs alinhadas; migração de código pendente |
 | **P9** | Seam de DI compartilhado (`shared/providers/`) + contratos por papel em `core/contracts/` | Alto (desacopla 5 contextos; ISP) | Médio (mover Context + split de contrato) | ⏳ docs alinhadas; migração pendente |
 | **P10** | Refino do backend: adapters/domain services acima do indicador + contrato compartilhado por 2+ contextos | Médio/Alto (coesão backend) | Médio (dividir arquivos) | ⏳ docs alinhadas; migração pendente |
-| **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ bloqueado por decisão de transporte (ADR) |
+| **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | 🟡 parcial: catálogo/fontes reais; escrita de cursos, progresso, PDF, busca e preferências ainda usam mocks |
 | **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | 🟡 parcial: hooks/regra extraídos; views ainda 349–560 linhas |
 | **P4** | `domain/` por contexto no FE | Médio | Médio | ✅ `courses`/`documents`/`player` com regra pura; outros contextos sem regra |
 | — | `backend/` legado | — | **Não migrar** | — |
 
-Ordem recomendada: **P0** → **P8** (padroniza a nomenclatura e destrava a
-clareza dos contratos) → **P9** (destrava o acoplamento entre contextos do FE) →
-**P6** (barato, alinha o vocabulário do frontend ao backend já migrado) →
-**P2/P7/P4** → **P10** (refino backend) → **P1** (telas grandes; extração residual)
-→ **P3** (depende do ADR
-de transporte). O layout do backend (**P5**) já está aplicado; restam seus
-refinamentos internos.
+Ordem recomendada: **P0** → **P8** → **P9** → **P6** → **P2/P7/P4** →
+**P10** → concluir **P3**, migrando operações mockadas por domínio. O transporte
+desktop já existe; a porta síncrona e o contrato agregado do frontend são os
+principais bloqueios atuais.
 
 ## 5. P0 — Remover código morto
 
@@ -145,30 +141,24 @@ Hoje: **737 linhas** em `modules/library/infrastructure/`, atrás do contrato
 (`mock-library.ts`, `mock-search.ts`) e extrair a persistência (`library-storage`)
 como contrato de infraestrutura (já existe) — sem mudar comportamento.
 
-## 8. P3 — Adapter do frontend sobre o núcleo
+## 8. P3 — Adapter do frontend sobre o núcleo · 🟡 parcial
 
-Criar `IpcLibraryRepository implements LibraryRepository` (ou HTTP local) que
-chama o núcleo (`createMidoteca`), injetado em `<LibraryProvider repository={…}>`.
-**Nenhum componente muda** — é a prova do desenho Ports & Adapters.
+`IpcLibraryRepository` e `IpcLibrarySourcesRepository` já atravessam o bridge
+desktop e o catálogo consulta SQLite. A composição de produção ainda injeta um
+`MockLibraryService` como delegate para edição/conclusão de cursos, progresso,
+legendas, estado de leitura e busca. Assim, alterações nessas áreas não têm
+persistência autoritativa no núcleo.
 
-**Bloqueios verificados (resolver antes de codificar):**
+**Próximos passos:**
 
-1. **Não existe transporte.** Não há `@tauri-apps/*` nem `src-tauri/` no
-   `client/`, e o ADR `midoteca/docs/adr/0001-backend-runtime.md` **adia** essa
-   decisão. → primeiro entregável: **ADR de transporte**.
-2. **O núcleo não roda no browser**: `"type": "commonjs"` + `better-sqlite3`
-   nativo. A fronteira precisa cruzar processo (HTTP local / IPC / worker).
-3. **A porta do FE é síncrona** (`getItems(): LibraryItem[]`) e o núcleo é
-   assíncrono → o adapter precisa de um **snapshot com cache estável** para
-   `useSyncExternalStore`, ou a porta muda de assinatura (mais churn).
-4. **Impedância de modelo**: o domínio do núcleo é *indexing-first* (plano,
-   `metadata`, `sourceId`, `relativePath`) e o do FE é *apresentação-first*
-   (aninhado, `coverUrl`, `tags`, `progress 0-100`); progresso em **ms** no núcleo
-   × **segundos** no FE; `LibraryQueryService.search` devolve só cursos e
-   documentos, mas `ISearchService` exige aulas e filmes. → **camada
-   anticorrupção** no adapter, com testes de contrato.
-5. **Empacotamento**: não há workspaces; `@midoteca/core` não é dependência do
-   `client/` (exige `build` de `dist` + link/alias).
+1. Separar `LibraryRepository` em portas assíncronas por responsabilidade (P9),
+   para consumir IPC sem snapshots síncronos nem fallback mock em produção.
+2. Migrar organização/conclusão e progresso de playback/leitura para casos de
+   uso e `progress.*`, disponível no contrato desktop.
+3. Conectar a busca ao read model real e completar o contrato para aulas e
+   vídeos antes de remover o comportamento atual.
+4. Migrar preferências e onboarding para `settings.*` e contratos próprios.
+5. Manter mocks somente na composição de desenvolvimento e nos testes.
 
 ## 9. P4 — `domain/` + casos de uso no FE
 

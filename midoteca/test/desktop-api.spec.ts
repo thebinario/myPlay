@@ -121,6 +121,24 @@ describe('desktop API (RPC surface)', () => {
     expect(reading.zoom).toBe(1.25);
   });
 
+  it('persists PDF page count discovered by the renderer', async () => {
+    const sourceId = await scanFixture();
+    const listed = unwrap<{ items: Array<{ id: string; pageCount: number | null }> }>(
+      await api.handle({ method: 'catalog.listDocuments', params: { sourceId } }),
+    );
+    const documentId = listed.items[0].id;
+
+    unwrap(await api.handle({
+      method: 'documents.updatePageCount',
+      params: { documentId, pageCount: 13 },
+    }));
+
+    const updated = unwrap<{ items: Array<{ pageCount: number | null }> }>(
+      await api.handle({ method: 'catalog.listDocuments', params: { sourceId } }),
+    );
+    expect(updated.items[0].pageCount).toBe(13);
+  });
+
   it('stores settings as JSON values', async () => {
     unwrap(
       await api.handle({

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { FolderOpen, FolderPlus } from 'lucide-react';
 import type { AddSourceInput, AddSourceResult } from '@/core/contracts/library-sources';
+import type { LibrarySource } from '@/core/domain/library-source';
 import { Button } from '@/shared/ui/components/Button';
 
 export interface AddSourceFormProps {
   onAdd: (input: AddSourceInput) => AddSourceResult;
+  onAdded?: (source: LibrarySource) => Promise<void>;
   /**
    * Abre o seletor de pasta do sistema operacional. Presente apenas no runtime
    * desktop; ausente em browser/Storybook (só entrada manual).
@@ -17,11 +19,13 @@ export interface AddSourceFormProps {
 
 export const AddSourceForm: React.FC<AddSourceFormProps> = ({
   onAdd,
+  onAdded,
   onPickDirectory,
   label = 'Caminho da pasta',
   inputId = 'source-path-input',
 }) => {
   const [path, setPath] = useState('');
+  const [libraryType, setLibraryType] = useState<'course' | 'movie'>('course');
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(
     null,
   );
@@ -32,12 +36,18 @@ export const AddSourceForm: React.FC<AddSourceFormProps> = ({
     if (picked) setPath(picked);
   };
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const result = onAdd({ path });
+    const result = onAdd({ path, libraryType });
     if (result.ok) {
       setPath('');
       setFeedback({ kind: 'success', text: `Fonte “${result.source.name}” adicionada.` });
+      try {
+        await onAdded?.(result.source);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        setFeedback({ kind: 'error', text: `Não foi possível confirmar a biblioteca: ${reason}` });
+      }
       return;
     }
     setFeedback({
@@ -55,6 +65,19 @@ export const AddSourceForm: React.FC<AddSourceFormProps> = ({
         {label}
       </label>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <label htmlFor={`${inputId}-type`} style={{ color: '#94A3B8', fontSize: '12px' }}>
+          Tipo da biblioteca
+          <select
+            id={`${inputId}-type`}
+            aria-label="Tipo da biblioteca"
+            value={libraryType}
+            onChange={(event) => setLibraryType(event.target.value as 'course' | 'movie')}
+            style={{ display: 'block', minWidth: '150px', padding: '9px 12px' }}
+          >
+            <option value="course">Cursos</option>
+            <option value="movie">Filmes</option>
+          </select>
+        </label>
         <input
           id={inputId}
           value={path}

@@ -108,7 +108,7 @@ export const PdfTextPage: React.FC<PdfTextPageProps> = ({
       >
         <span>MIDOTECA — Leitura Digital</span>
         <span>
-          Página {currentPage} de {totalPages}
+          Página {currentPage} de {totalPages || '—'}
         </span>
       </div>
     </>

@@ -4,6 +4,7 @@
  * never keyed by absolute path, only by (source, relativePath).
  */
 export type LibrarySourceStatus = 'active' | 'offline' | 'scanning' | 'error';
+export type LibraryType = 'course' | 'movie';
 
 export interface LibrarySource {
   id: string;
@@ -11,6 +12,8 @@ export interface LibrarySource {
   rootPath: string;
   /** Friendly label independent of the path (e.g. "HD Cursos"). */
   displayName: string | null;
+  /** Controls how indexed videos are grouped and how this source is filtered. */
+  libraryType: LibraryType;
   /** Stable-ish volume/device identifier used for automatic drive recognition. */
   volumeId: string | null;
   status: LibrarySourceStatus;

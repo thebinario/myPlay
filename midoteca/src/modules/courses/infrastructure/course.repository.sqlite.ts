@@ -29,6 +29,7 @@ import type {
   UpdateLesson,
 } from '../domain/inputs';
 import type { CourseRepository, CourseTree, LessonMoveResult } from '../domain/ports';
+import type { CourseTreeDocument } from '../domain/ports';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
 import { mapSqliteError } from '../../../platform/persistence/sqlite/errors';
 
@@ -71,6 +72,14 @@ interface LessonMediaRow {
   lesson_id: string;
   media_file_id: string;
   role: string;
+}
+
+interface CourseTreeDocumentRow {
+  id: string;
+  media_file_id: string;
+  title: string;
+  page_count: number | null;
+  title_source: string;
 }
 
 const COURSE_SELECT = `
@@ -125,6 +134,16 @@ function mapLessonMedia(row: LessonMediaRow): LessonMedia {
     lessonId: row.lesson_id,
     mediaFileId: row.media_file_id,
     role: row.role as LessonMediaRole,
+  };
+}
+
+function mapTreeDocument(row: CourseTreeDocumentRow): CourseTreeDocument {
+  return {
+    id: row.id,
+    mediaFileId: row.media_file_id,
+    title: row.title,
+    pageCount: row.page_count,
+    titleSource: row.title_source as TitleSource,
   };
 }
 
@@ -584,16 +603,73 @@ export class SqliteCourseRepository implements CourseRepository {
       `SELECT lesson_id, media_file_id, role FROM lesson_media
        WHERE lesson_id = ? ORDER BY role, media_file_id`,
     );
+    const courseDocuments = this.readTreeDocuments('dl.course_id', courseId);
 
     const modules = moduleRows.map((moduleRow) => {
+      const documents = this.readTreeDocuments('dl.module_id', moduleRow.id);
       const lessons = (lessonStmt.all(moduleRow.id) as LessonRow[]).map((lessonRow) => ({
         ...mapLesson(lessonRow),
         media: (mediaStmt.all(lessonRow.id) as LessonMediaRow[]).map(mapLessonMedia),
       }));
-      return { ...mapModule(moduleRow), lessons };
+      return { ...mapModule(moduleRow), documents, lessons };
     });
 
-    return { course: mapCourse(courseRow), modules };
+    const metrics = this.readCourseMetrics(courseId);
+    return {
+      course: mapCourse(courseRow),
+      totalDurationSeconds: metrics.totalDurationSeconds,
+      pdfCount: metrics.pdfCount,
+      documents: courseDocuments,
+      modules,
+    };
+  }
+
+  private readCourseMetrics(courseId: string): {
+    totalDurationSeconds: number;
+    pdfCount: number;
+  } {
+    const row = this.db
+      .prepare(
+        `SELECT
+           CAST(ROUND(COALESCE((
+             SELECT SUM(mf.duration_ms)
+             FROM course_modules cm
+             JOIN lessons l ON l.module_id = cm.id
+             JOIN media_files mf ON mf.id = (
+               SELECT candidate.id
+               FROM lesson_media lm
+               JOIN media_files candidate ON candidate.id = lm.media_file_id
+               WHERE lm.lesson_id = l.id AND candidate.media_type = 'video'
+               ORDER BY CASE WHEN lm.role = 'primary' THEN 0 ELSE 1 END, candidate.id
+               LIMIT 1
+             )
+             WHERE cm.course_id = ? AND mf.media_type = 'video'
+           ), 0) / 1000.0) AS INTEGER) AS total_duration_seconds,
+           (SELECT COUNT(DISTINCT dl.document_id)
+            FROM document_links dl
+            LEFT JOIN course_modules cm ON cm.id = dl.module_id
+            WHERE dl.course_id = ? OR cm.course_id = ?) AS pdf_count`,
+      )
+      .get(courseId, courseId, courseId) as {
+      total_duration_seconds: number;
+      pdf_count: number;
+    };
+
+    return {
+      totalDurationSeconds: row.total_duration_seconds,
+      pdfCount: row.pdf_count,
+    };
+  }
+
+  private readTreeDocuments(targetColumn: 'dl.course_id' | 'dl.module_id', targetId: string) {
+    const rows = this.db
+      .prepare(
+        `SELECT d.id, d.media_file_id, d.title, d.page_count, d.title_source
+         FROM documents d JOIN document_links dl ON dl.document_id = d.id
+         WHERE ${targetColumn} = ? ORDER BY d.title COLLATE NOCASE, d.id`,
+      )
+      .all(targetId) as CourseTreeDocumentRow[];
+    return rows.map(mapTreeDocument);
   }
 
   private readCourse(id: string): Course | null {

@@ -8,6 +8,7 @@ export interface LibrarySettingsSectionProps {
   sourcesSection?: React.ReactNode;
   onResetLibrary?: () => void;
   onOpenOnboarding?: () => void;
+  showDevelopmentControls?: boolean;
 }
 
 export const LibrarySettingsSection: React.FC<LibrarySettingsSectionProps> = ({
@@ -15,6 +16,7 @@ export const LibrarySettingsSection: React.FC<LibrarySettingsSectionProps> = ({
   sourcesSection,
   onResetLibrary,
   onOpenOnboarding,
+  showDevelopmentControls = true,
 }) => {
   const [feedback, setFeedback] = useState(false);
 
@@ -35,40 +37,42 @@ export const LibrarySettingsSection: React.FC<LibrarySettingsSectionProps> = ({
 
       {sourcesSection}
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Button
-          variant="violet"
-          size="sm"
-          data-testid="settings-reset-library"
-          onClick={handleReset}
-        >
-          <RotateCcw size={14} style={{ marginRight: '6px' }} aria-hidden />
-          Restaurar dados de exemplo
-        </Button>
-        {onOpenOnboarding && (
-          <Button variant="secondary" size="sm" onClick={onOpenOnboarding}>
-            <Sparkles size={14} style={{ marginRight: '6px' }} aria-hidden />
-            Abrir primeiro acesso (demonstração)
-          </Button>
-        )}
-        {feedback && (
-          <span
-            data-testid="settings-reset-feedback"
-            role="status"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#10B981',
-              fontSize: '13px',
-              fontWeight: 600,
-            }}
+      {showDevelopmentControls && (
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Button
+            variant="violet"
+            size="sm"
+            data-testid="settings-reset-library"
+            onClick={handleReset}
           >
-            <Check size={15} />
-            Biblioteca restaurada
-          </span>
-        )}
-      </div>
+            <RotateCcw size={14} style={{ marginRight: '6px' }} aria-hidden />
+            Restaurar dados de exemplo
+          </Button>
+          {onOpenOnboarding && (
+            <Button variant="secondary" size="sm" onClick={onOpenOnboarding}>
+              <Sparkles size={14} style={{ marginRight: '6px' }} aria-hidden />
+              Abrir primeiro acesso (demonstração)
+            </Button>
+          )}
+          {feedback && (
+            <span
+              data-testid="settings-reset-feedback"
+              role="status"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#10B981',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              <Check size={15} />
+              Biblioteca restaurada
+            </span>
+          )}
+        </div>
+      )}
     </section>
   );
 };

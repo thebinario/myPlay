@@ -10,7 +10,7 @@ import { SettingsProvider } from '@/modules/settings/presentation/providers/Sett
 import { mockPreferencesRepository } from '@/modules/settings/infrastructure/mock-preferences.repository';
 import { OnboardingProvider } from '@/modules/onboarding/presentation/providers/OnboardingProvider';
 import { mockOnboardingRepository } from '@/modules/onboarding/infrastructure/mock-onboarding.repository';
-import { getMidotecaBridge } from '@/platform/desktop';
+import { getMidotecaBridge, requireMidotecaBridge } from '@/platform/desktop';
 import { IpcLibrarySourcesRepository } from '@/modules/sources/infrastructure/ipc/ipc-library-sources.repository';
 import { IpcImportRunner } from '@/modules/sources/infrastructure/ipc/ipc-import-runner';
 import { IpcLibraryRepository } from '@/modules/library/infrastructure/ipc/ipc-library-repository';
@@ -19,16 +19,19 @@ import '@/index.css';
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
 const mockRepository = new MockLibraryService(localStorageLibraryStorage);
 
-// Fontes e catálogo reais via kernel SQLite quando rodando dentro do Electron; mock no browser.
+// O modo de desenvolvimento preserva os adapters mockados; produção usa SQLite via IPC.
 const bridge = getMidotecaBridge();
-const sourcesRepository = bridge ? new IpcLibrarySourcesRepository(bridge) : undefined;
-const importRunner = bridge ? new IpcImportRunner(bridge) : undefined;
+const runtimeBridge = import.meta.env.PROD ? requireMidotecaBridge() : null;
+const sourcesRepository = runtimeBridge
+  ? new IpcLibrarySourcesRepository(runtimeBridge)
+  : undefined;
+const importRunner = runtimeBridge ? new IpcImportRunner(runtimeBridge) : undefined;
 if (sourcesRepository) void sourcesRepository.hydrate();
 
 // No desktop o catálogo (cursos/documentos) vem do kernel; reprodução/PDF/busca
 // continuam no mock delegado até os contratos respectivos serem migrados (P9).
-const libraryRepository = bridge
-  ? new IpcLibraryRepository(bridge, mockRepository)
+const libraryRepository = runtimeBridge
+  ? new IpcLibraryRepository(runtimeBridge, mockRepository)
   : mockRepository;
 if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate();
 

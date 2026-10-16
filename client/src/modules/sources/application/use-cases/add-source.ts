@@ -20,7 +20,10 @@ export function addSource(deps: SourcesDependencies, input: AddSourceInput): Add
   if (isDuplicateSource(deps.repository.list(), path)) {
     return { ok: false, error: 'duplicate' };
   }
-  const source = createLibrarySource(path, { name: input.name });
+  const source = createLibrarySource(path, {
+    name: input.name,
+    libraryType: input.libraryType,
+  });
   deps.repository.save(source);
   return { ok: true, source };
 }

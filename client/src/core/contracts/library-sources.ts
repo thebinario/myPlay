@@ -1,4 +1,4 @@
-import type { LibrarySource, SourceStatus } from '@/core/domain/library-source';
+import type { LibrarySource, LibraryType, SourceStatus } from '@/core/domain/library-source';
 
 /**
  * Contrato de fronteira do runtime para gerenciamento de fontes.
@@ -11,6 +11,7 @@ import type { LibrarySource, SourceStatus } from '@/core/domain/library-source';
 export interface AddSourceInput {
   path: string;
   name?: string;
+  libraryType?: LibraryType;
 }
 
 /**
@@ -32,6 +33,9 @@ export interface LibrarySourcesRepository {
   list(): LibrarySource[];
   getById(id: string): LibrarySource | undefined;
   save(source: LibrarySource): void;
+  rename(id: string, name: string): Promise<void>;
+  /** Resolves when an optimistic source write has reached the runtime adapter. */
+  waitForPersistence?(id: string): Promise<void>;
   remove(id: string): void;
   /** Verifica se a fonte continua acessível (IO). */
   probe(id: string): Promise<SourceStatus>;
@@ -46,7 +50,9 @@ export interface LibrarySourcesRepository {
 export interface SourcesViewModel {
   sources: LibrarySource[];
   addSource(input: AddSourceInput): AddSourceResult;
+  waitForPersistence?(sourceId: string): Promise<void>;
   removeSource(id: string): void;
+  renameSource(id: string, name: string): Promise<void>;
   reconnectSource(id: string): void;
   disconnectSource(id: string): void;
   checkSource(id: string): void;

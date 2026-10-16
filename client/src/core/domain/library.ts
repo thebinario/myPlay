@@ -38,16 +38,19 @@ export interface CourseModule {
   title: string;
   order: number;
   lessons: Lesson[];
+  documents?: Document[];
 }
 
 export interface Course {
   id: string;
+  sourceId?: string | null;
   type: 'course';
   title: string;
   description: string;
   category: string;
   coverUrl: string;
   totalDuration: number; // segundos
+  pdfCount?: number;
   progress: number; // 0-100
   modules: CourseModule[];
   tags: string[];
@@ -57,6 +60,7 @@ export interface Course {
 
 export interface Movie {
   id: string;
+  sourceId?: string | null;
   type: 'movie';
   title: string;
   description: string;
@@ -86,6 +90,7 @@ export interface PdfPageChunk {
 
 export interface Document {
   id: string;
+  sourceId?: string | null;
   type: 'document';
   title: string;
   description: string;

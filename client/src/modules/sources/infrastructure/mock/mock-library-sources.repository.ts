@@ -68,6 +68,13 @@ export class MockLibrarySourcesRepository implements LibrarySourcesRepository {
     this.emit();
   }
 
+  async rename(id: string, name: string): Promise<void> {
+    const source = this.getById(id);
+    if (!source) throw new Error('Biblioteca não encontrada.');
+    this.sources = this.sources.map((item) => (item.id === id ? { ...item, name } : item));
+    this.emit();
+  }
+
   remove(id: string): void {
     if (!this.sources.some((s) => s.id === id)) return;
     this.sources = this.sources.filter((s) => s.id !== id);

@@ -67,10 +67,15 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
         return midoteca.sources.listSources();
 
       case 'sources.add': {
-        const input = params as { rootPath: string; displayName?: string | null };
+        const input = params as {
+          rootPath: string;
+          displayName?: string | null;
+          libraryType?: 'course' | 'movie';
+        };
         return midoteca.sources.addSource({
           rootPath: input.rootPath,
           displayName: input.displayName ?? null,
+          libraryType: input.libraryType,
         });
       }
 
@@ -89,6 +94,11 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
       case 'sources.updatePath': {
         const { sourceId, rootPath } = params as { sourceId: string; rootPath: string };
         return midoteca.sources.updateSourcePath(sourceId, rootPath);
+      }
+
+      case 'sources.rename': {
+        const { sourceId, displayName } = params as { sourceId: string; displayName: string };
+        return midoteca.sources.updateSourceName(sourceId, displayName);
       }
 
       case 'indexing.scan': {
@@ -135,6 +145,11 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
 
       case 'documents.list':
         return midoteca.documents.list();
+
+      case 'documents.updatePageCount': {
+        const { documentId, pageCount } = params as { documentId: string; pageCount: number };
+        return midoteca.documents.update({ id: documentId, pageCount });
+      }
 
       case 'media.listBySource': {
         const { sourceId } = params as { sourceId: string };

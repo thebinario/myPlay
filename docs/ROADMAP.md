@@ -28,32 +28,36 @@ arquivos legados de uma vez.
 
 | Versão | Tema | Escopo |
 | --- | --- | --- |
-| **v0.1 — Fundação** | *prioridade atual* | Arquitetura progressiva, testes, Storybook, estado consistente e serviços desacoplados |
+| **v0.1 — Fundação** | base em evolução contínua | Arquitetura progressiva, testes, Storybook, estado consistente e serviços desacoplados |
 | **v0.5 — Biblioteca local funcional** | produto | Indexação de HDs, catálogo persistente, cursos, player real, leitor PDF e recuperação de fontes |
 | **v1.0 — Lançamento estável** | distribuição | Instalação desktop, onboarding, desempenho, acessibilidade, testes E2E, backup e distribuição |
 | **v2.0 — Expansão** | pós-MVP | Armazenamento em nuvem, múltiplas fontes de mídia, sincronização opcional e recursos inteligentes |
 
 ## 2. Estado atual do projeto
 
-Ponto de partida (reconfirmar na branch de desenvolvimento antes de executar).
-A última coluna reflete o **estado real do repositório hoje**.
+Snapshot revisado em **16/10/2026**. O produto está na **v0.5 — Biblioteca
+local funcional**. A **F03 é o primeiro gate ainda sem aceite completo**;
+trabalho já implementado nas F03–F07 precisa de integração e validação ponta a
+ponta. O foco imediato é completar a integração real FE ↔ núcleo; F08 e as
+partes de preferências de F09 ainda usam mocks em produção.
 
-| Área | Estado conhecido (protótipo) | Próximo objetivo | Evidência no repo |
+| Área | Estado verificado | Próximo objetivo | Evidência |
 | --- | --- | --- | --- |
-| Biblioteca | Interface e mocks | Catálogo persistente | `client/src/modules/library/infrastructure/mock-library-repository.ts`; núcleo já indexa |
-| Cursos e aulas | Telas funcionais sobre mocks | Modelo de domínio consistente | domínio em `midoteca/src/modules/courses` |
-| Editor | Edição inline e drag-and-drop | Componentes menores e persistência | `modules/courses/presentation/CourseEditorView.tsx` (extraído) |
-| Player | Interface presente | Reprodução local real e retomada | `modules/player/presentation/views/MoviePlayerView`/`VideoPlayerView` |
-| Pesquisa | Implementação sobre mocks | Busca no catálogo real | `LibraryQueryService` (núcleo) |
-| Leitor PDF | Provedor e páginas simulados | PDF real com leitura parcial | `modules/documents/presentation/PdfViewer.tsx` (extraído) |
-| Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `modules/*/presentation/stories/*.stories.tsx` |
-| Configurações | Placeholder | Tela real e preferências persistentes | `modules/settings/presentation` |
-| HDs e indexação | Parcial | Integração desktop | `midoteca/src/modules/indexing` (Fases 1–2) |
-| Nuvem | Planejada | Posterior ao MVP | — |
-| Documentação | Parcialmente desatualizada | Corrigir antes de automatizar | `docs/`, `midoteca/docs/`, `client/docs/` |
+| Catálogo e fontes | SQLite e IPC reais para catálogo/fontes; testes de produção ainda incompletos | validar instalação, persistência e recuperação em desktop | `client/src/modules/library/infrastructure/ipc/`; `midoteca/src/platform/desktop/` |
+| Indexação | Varredura real no núcleo; pausa/cancelamento e metadados de duração ainda limitados | completar controles e extração incremental | `midoteca/src/modules/indexing/` |
+| Cursos e materiais | Organização real e PDFs associados a curso/módulo; progresso/edição ainda não totalmente integrados | persistir organização e progresso ponta a ponta | `midoteca/src/modules/courses/` |
+| Métricas do curso | Duração e contagem de PDFs agora vêm do read model do backend | validar agregados com SQLite nativo | `CourseTree` e `SqliteCourseRepository` |
+| Player | Reprodução local real; posição, conclusão e preferências ainda delegadas ao mock em produção | migrar progresso para `progress.*` e persistir preferências no núcleo | `client/src/modules/library/infrastructure/ipc/ipc-library-repository.ts` |
+| Leitor PDF | PDF.js real e página catalogada; estado de leitura ainda delegado ao mock | persistir página/zoom/rolagem no backend | `client/src/modules/documents/` e contrato `progress.*` |
+| Busca e Início | API de busca existe, mas produção ainda delega busca ao mock | conectar busca e Início a consultas reais | `catalog.search`; `client/src/app/main.tsx` |
+| Configurações | operações de fontes reais; preferências e onboarding ainda mockados | persistir preferências e concluir recuperação | `client/src/app/main.tsx` |
+| Validação e distribuição | sem aceite E2E/instalação nesta revisão; testes SQLite bloqueados por ABI nativa incompatível | restaurar ambiente nativo e fechar F10–F11 | `midoteca/test/`, `client/package.json` |
+| Nuvem/edição PDF | pós-MVP | manter fora do caminho crítico v1 | roadmap v2.0 |
 
-Conclusão: o maior trabalho **não é desenhar novas telas** — é transformar o
-protótipo em um produto com **dados, arquivos e operações reais**.
+**Fase atual:** v0.5; F03 é o primeiro gate aberto, com integração e
+consolidação necessárias nas F03–F07. Não considerar v0.5 concluída enquanto
+reprodução/leitura não persistirem no núcleo e F08 não usar dados reais. A
+edição de PDF permanece pós-MVP.
 
 ## 3. Cronograma indicativo
 
@@ -234,6 +238,18 @@ não suportados mostram mensagens claras, **sem prometer compatibilidade univers
 
 **Aceite:** abrir um PDF real, ler parte de uma página, fechar e retornar ao
 **mesmo ponto** com zoom e aparência preservados.
+
+#### Evolução futura — Edição de PDF · *pós-MVP*
+
+**Entregas planejadas**
+
+- Anotações, marcações e destaques associados às páginas do documento.
+- Persistência das alterações entre sessões e na biblioteca local.
+- Exportação de uma cópia editada, mantendo o PDF de origem intacto.
+- Indicação clara de alterações pendentes e tratamento de falhas ao salvar.
+
+**Aceite:** anotar e destacar um PDF, fechar e reabrir mantendo as alterações,
+exportar uma cópia e confirmar que o arquivo original permanece intacto.
 
 #### Fase 08 — Pesquisa universal e Início
 
@@ -448,10 +464,10 @@ ver [`ARCHITECTURE.md`](ARCHITECTURE.md) e
 | Armazenamento em nuvem | Custos e privacidade | Opt-in, cotas e provedores substituíveis |
 | Infraestrutura legada | Complexidade desnecessária | Reutilizar apenas o que agrega valor |
 
-**Decisão obrigatória antes da Fase 03:** definir o mecanismo definitivo de
-**persistência local** e o **papel do backend NestJS** na versão desktop.
-Recomenda-se registrar em **ADR**, após prova de conceito, **sem assumir** que o
-PostgreSQL atual deve obrigatoriamente acompanhar a instalação.
+**Decisão registrada:** o catálogo usa SQLite local (`better-sqlite3`) e a
+aplicação atual integra o núcleo por IPC do Electron. O ADR 0001 ainda descreve
+essa decisão de transporte como futura; atualizá-lo é uma pendência documental
+da F03. O backend NestJS/PostgreSQL legado não faz parte do runtime desktop.
 
 ---
 
@@ -459,7 +475,7 @@ PostgreSQL atual deve obrigatoriamente acompanhar a instalação.
 
 | MVP (v1.0) | Pós-MVP (v2.0+) |
 | --- | --- |
-| Biblioteca local, cursos, filmes, Player, legendas, PDFs, pesquisa, importação incremental, catálogo offline, persistência, recuperação e aplicativo instalável | Backblaze B2, Google Drive, sincronização entre dispositivos, P2P, Telegram, IA, transcrição, tradução e automação avançada da documentação |
+| Biblioteca local, cursos, filmes, Player, legendas, leitura de PDFs, pesquisa, importação incremental, catálogo offline, persistência, recuperação e aplicativo instalável | Edição de PDFs, Backblaze B2, Google Drive, sincronização entre dispositivos, P2P, Telegram, IA, transcrição, tradução e automação avançada da documentação |
 
 ---
 

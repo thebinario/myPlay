@@ -21,6 +21,7 @@ interface CourseDetailsViewProps {
   onToggleLesson: (courseId: string, lessonId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMaterial?: (material: Material) => void;
+  onOpenDocument?: (documentId: string) => void;
   onEditCourse?: (courseId: string) => void;
 }
 
@@ -30,6 +31,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   onToggleLesson,
   onPlayLesson,
   onOpenMaterial,
+  onOpenDocument,
   onEditCourse,
 }) => {
   // Inicialmente expande todos os módulos para visualização rápida e sem atrito
@@ -374,7 +376,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                         borderRadius: '4px',
                       }}
                     >
-                      {modCompletedLessons}/{mod.lessons.length} aulas
+                      {modCompletedLessons}/{mod.lessons.length} aulas · {mod.documents?.length ?? 0} PDFs
                     </span>
                   </div>
 
@@ -547,6 +549,32 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                           </div>
                         )}
                       </div>
+                    ))}
+                    {mod.documents?.map((document) => (
+                      <button
+                        key={document.id}
+                        type="button"
+                        aria-label={`Abrir PDF ${document.title}`}
+                        onClick={() => onOpenDocument?.(document.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '14px 20px',
+                          border: 0,
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                          background: 'transparent',
+                          color: '#F0F4FC',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <FileText size={16} color="#A594FF" />
+                        <span>{document.title}</span>
+                        <span style={{ marginLeft: 'auto', color: '#64748B' }}>
+                          {document.totalPages > 0 ? `${document.totalPages} págs` : 'PDF'}
+                        </span>
+                      </button>
                     ))}
                   </div>
                 )}

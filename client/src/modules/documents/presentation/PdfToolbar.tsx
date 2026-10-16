@@ -133,7 +133,7 @@ export const PdfToolbar: React.FC<PdfToolbarProps> = ({
       </button>
 
       <span style={{ fontSize: '12px', color: '#E2E8F0', fontWeight: 600 }}>
-        Página <span data-testid="pdf-current-page">{currentPage}</span> de {totalPages}
+        Página <span data-testid="pdf-current-page">{currentPage}</span> de {totalPages || '—'}
       </span>
 
       <button

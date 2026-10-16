@@ -1,7 +1,7 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../../../core/errors';
 import type { EventBus } from '../../../indexing/domain/events';
 import type { SourceProbe } from '../../../indexing/domain/ports';
-import type { LibrarySource } from '../../domain/entities';
+import type { LibrarySource, LibraryType } from '../../domain/entities';
 import type { LibraryRepository } from '../../domain/repositories';
 import { normalizeRootPath } from '../normalize-root-path';
 
@@ -9,6 +9,7 @@ import { normalizeRootPath } from '../normalize-root-path';
 export interface AddSourceInput {
   rootPath: string;
   displayName?: string | null;
+  libraryType?: LibraryType;
 }
 
 export interface AddSourceDependencies {
@@ -44,11 +45,16 @@ export class AddSource {
 
     const displayName =
       input.displayName && input.displayName.trim() !== '' ? input.displayName.trim() : null;
-    const volumeId = await this.deps.probe.volumeId(rootPath);
+    const detectedVolumeId = await this.deps.probe.volumeId(rootPath);
+    const volumeAlreadyRegistered = detectedVolumeId
+      ? await this.deps.library.findSourceByVolumeId(detectedVolumeId)
+      : null;
+    const volumeId = volumeAlreadyRegistered ? null : detectedVolumeId;
 
     const source = await this.deps.library.createSource({
       rootPath,
       displayName,
+      libraryType: input.libraryType ?? 'course',
       volumeId,
       status: 'active',
     });

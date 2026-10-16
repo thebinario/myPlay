@@ -58,6 +58,8 @@ export interface OrganizePlan {
 export interface OrganizeOptions {
   /** Title for the synthetic course built from root-level videos. */
   rootLabel: string;
+  /** Movie libraries keep videos independent instead of grouping them as courses. */
+  libraryType?: 'course' | 'movie';
 }
 
 const IMPLICIT_MODULE_TITLE = 'Aulas';
@@ -67,6 +69,14 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
   const videos = files.filter((f) => f.kind === 'video');
   const pdfs = files.filter((f) => f.kind === 'pdf');
   const subtitles = files.filter((f) => f.kind === 'subtitle');
+
+  if (options.libraryType === 'movie') {
+    return {
+      courses: [],
+      looseDocuments: pdfs.map(toDocument).sort(compareNamed),
+      tracks: matchTracks(videos, subtitles),
+    };
+  }
 
   const courses = new Map<string, CourseBuilder>();
 
@@ -108,7 +118,12 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
   for (const pdf of pdfs) {
     const parts = segments(pdf.relativePath);
     if (parts.length === 1) {
-      looseDocuments.push(toDocument(pdf));
+      const rootCourse = courses.get(ROOT_COURSE_RELATIVE_PATH);
+      if (rootCourse) {
+        rootCourse.addRootDocument(toDocument(pdf), ROOT_COURSE_RELATIVE_PATH);
+      } else {
+        looseDocuments.push(toDocument(pdf));
+      }
       continue;
     }
     const courseSeg = parts[0];
@@ -119,7 +134,7 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
       continue;
     }
     if (parts.length === 2) {
-      builder.addDocument(toDocument(pdf));
+      builder.addRootDocument(toDocument(pdf), courseSeg);
     } else {
       const moduleSeg = parts[1];
       builder
@@ -159,6 +174,12 @@ class CourseBuilder {
 
   addDocument(document: PlannedDocument): void {
     this.documents.push(document);
+  }
+
+  addRootDocument(document: PlannedDocument, implicitModulePath: string): void {
+    const implicitModule = this.modules.get(implicitModulePath);
+    if (implicitModule) implicitModule.addDocument(document);
+    else this.addDocument(document);
   }
 
   build(): PlannedCourse {

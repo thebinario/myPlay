@@ -123,6 +123,49 @@ describe('course repository', () => {
     expect(await app.courses.getTree('missing')).toBeNull();
   });
 
+  it('includes PDFs associated with the course and its modules in the course tree', async () => {
+    const source = await app.library.createSource({ rootPath: '/Volumes/HD' });
+    const modulePdf = await app.media.create({
+      sourceId: source.id,
+      relativePath: 'Curso/Modulo/02 - material.pdf',
+      mediaType: 'pdf',
+    });
+    const coursePdf = await app.media.create({
+      sourceId: source.id,
+      relativePath: 'Curso/01 - geral.pdf',
+      mediaType: 'pdf',
+    });
+    const course = await app.courses.create({ title: 'Curso' });
+    const module = await app.courses.createModule({ courseId: course.id, title: 'Modulo' });
+    const lesson = await app.courses.createLesson({ moduleId: module.id, title: 'Aula' });
+    const video = await app.media.create({
+      sourceId: source.id,
+      relativePath: 'Curso/Modulo/Aula.mp4',
+      mediaType: 'video',
+      durationMs: 123_000,
+    });
+    await app.courses.attachMedia({ lessonId: lesson.id, mediaFileId: video.id, role: 'primary' });
+    const moduleDocument = await app.documents.create({
+      mediaFileId: modulePdf.id,
+      title: '02 - material.pdf',
+      pageCount: 4,
+    });
+    const courseDocument = await app.documents.create({
+      mediaFileId: coursePdf.id,
+      title: '01 - geral.pdf',
+      pageCount: 2,
+    });
+    await app.documentAssociations.attachToModule(moduleDocument.id, module.id);
+    await app.documentAssociations.attachToCourse(courseDocument.id, course.id);
+
+    const tree = await app.courses.getTree(course.id);
+
+    expect(tree?.documents.map((document) => document.id)).toEqual([courseDocument.id]);
+    expect(tree?.modules[0].documents.map((document) => document.id)).toEqual([moduleDocument.id]);
+    expect(tree?.totalDurationSeconds).toBe(123);
+    expect(tree?.pdfCount).toBe(2);
+  });
+
   it('deleting a course cascades modules/lessons but keeps media files', async () => {
     const source = await app.library.createSource({ rootPath: '/Volumes/HD' });
     const media = await app.media.create({

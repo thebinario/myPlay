@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { LibraryItem, Course, Movie, Document } from '@/core/domain/library';
+import type { LibrarySource } from '@/core/domain/library-source';
 import {
+  ArrowLeft,
   Search,
   GraduationCap,
   Film,
@@ -9,9 +11,11 @@ import {
   BookOpen,
   SlidersHorizontal,
 } from 'lucide-react';
+import { LibrarySourceCard } from '@/modules/library/presentation/components/LibrarySourceCard';
 
 interface LibraryViewProps {
   items: LibraryItem[];
+  sources?: LibrarySource[];
   onSelectCourse: (courseId: string) => void;
   onOpenMovie?: (movieId: string) => void;
   onOpenDocument?: (docId: string) => void;
@@ -19,15 +23,25 @@ interface LibraryViewProps {
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
   items,
+  sources,
   onSelectCourse,
   onOpenMovie,
   onOpenDocument,
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'course' | 'movie' | 'document'>('all');
+  const [libraryTypeFilter, setLibraryTypeFilter] = useState<'all' | 'course' | 'movie'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const selectedSource = sources?.find((source) => source.id === selectedSourceId);
+  const visibleSources = sources?.filter(
+    (source) => libraryTypeFilter === 'all' || (source.libraryType ?? 'course') === libraryTypeFilter,
+  );
+  const sourceItems = selectedSourceId
+    ? items.filter((item) => item.sourceId === selectedSourceId)
+    : items;
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    return sourceItems.filter((item) => {
       const matchesTab = activeTab === 'all' || item.type === activeTab;
       if (!matchesTab) return false;
 
@@ -41,7 +55,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
       return matchTitle || matchDesc || matchCategory || matchTags;
     });
-  }, [items, activeTab, searchQuery]);
+  }, [sourceItems, activeTab, searchQuery]);
 
   const tabs = [
     { id: 'all' as const, label: 'Todos', icon: SlidersHorizontal },
@@ -69,6 +83,51 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
+  if (sources && !selectedSource) {
+    return (
+      <div style={{ padding: '32px 40px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#FFFFFF', marginBottom: '6px' }}>
+          Bibliotecas
+        </h1>
+        <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '28px' }}>
+          Selecione uma pasta para acessar seus cursos, filmes e documentos.
+        </p>
+        <div role="tablist" aria-label="Filtrar tipo de biblioteca" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {([
+            ['all', 'Todas'],
+            ['course', 'Cursos'],
+            ['movie', 'Filmes'],
+          ] as const).map(([type, label]) => (
+            <button
+              key={type}
+              type="button"
+              role="tab"
+              aria-selected={libraryTypeFilter === type}
+              onClick={() => setLibraryTypeFilter(type)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {visibleSources?.length === 0 ? (
+          <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '16px',
+            }}
+          >
+            {visibleSources?.map((source) => (
+              <LibrarySourceCard key={source.id} source={source} onOpen={setSelectedSourceId} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       {/* Header bar */}
@@ -84,6 +143,27 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         }}
       >
         <div>
+          {selectedSource && (
+            <button
+              type="button"
+              onClick={() => setSelectedSourceId(null)}
+              style={{
+                background: 'transparent',
+                border: 0,
+                color: '#94A3B8',
+                cursor: 'pointer',
+                padding: 0,
+                marginBottom: '12px',
+              }}
+            >
+              <ArrowLeft
+                size={15}
+                style={{ verticalAlign: 'middle', marginRight: '6px' }}
+                aria-hidden
+              />
+              Voltar às bibliotecas
+            </button>
+          )}
           <h1
             style={{
               fontSize: '28px',
@@ -93,7 +173,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               marginBottom: '6px',
             }}
           >
-            Biblioteca
+            {selectedSource ? selectedSource.name : 'Biblioteca'}
           </h1>
           <p style={{ color: '#94A3B8', fontSize: '14px' }}>
             Organize e acesse seus cursos, documentários cinematográficos e materiais de estudo.
@@ -225,7 +305,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               : movie
                 ? movie.progress
                 : doc
-                  ? Math.round((doc.lastReadPage / doc.totalPages) * 100)
+                  ? doc.totalPages > 0
+                    ? Math.round((doc.lastReadPage / doc.totalPages) * 100)
+                    : 0
                   : 0;
 
             return (
@@ -351,6 +433,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       <>
                         <Clock size={11} />
                         {formatSeconds(course!.totalDuration)}
+                        <FileText size={11} style={{ marginLeft: '4px' }} />
+                        {course!.pdfCount ?? 0} PDFs
                       </>
                     )}
                     {movie && (
@@ -362,7 +446,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     {doc && (
                       <>
                         <BookOpen size={11} />
-                        {doc.totalPages} págs
+                        {doc.totalPages > 0 ? `${doc.totalPages} págs` : 'Páginas não catalogadas'}
                       </>
                     )}
                   </div>
@@ -438,7 +522,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                         ? `${course!.modules.reduce((acc, m) => acc + m.lessons.length, 0)} aulas`
                         : movie
                           ? 'Filme Completo'
-                          : `Pág ${doc!.lastReadPage} de ${doc!.totalPages}`}
+                          : doc!.totalPages > 0
+                            ? `Pág ${doc!.lastReadPage} de ${doc!.totalPages}`
+                            : 'Páginas não catalogadas'}
                     </span>
                     <span style={{ color: progress > 0 ? '#A594FF' : '#64748B', fontWeight: 600 }}>
                       {progress > 0 ? `${progress}%` : 'Não iniciado'}

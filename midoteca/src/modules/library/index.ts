@@ -3,6 +3,7 @@ export * from './domain/read-models';
 export * from './domain/repositories';
 export * from './application/use-cases/add-source';
 export * from './application/use-cases/update-source-path';
+export * from './application/use-cases/update-source-name';
 export * from './application/use-cases/check-source-availability';
 export * from './application/use-cases/remove-source';
 export * from './application/services/library-source-service';

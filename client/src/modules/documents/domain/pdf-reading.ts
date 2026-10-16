@@ -42,6 +42,12 @@ export function toggleColorMode(mode: PdfColorMode): PdfColorMode {
   return mode === 'dark' ? 'original' : 'dark';
 }
 
+/** Fits the page at 100%; user zoom is then applied relative to that width. */
+export function fitPageScale(pageWidth: number, availableWidth: number, zoom: number): number {
+  if (pageWidth <= 0 || availableWidth <= 0) return zoom;
+  return Math.min(1, availableWidth / pageWidth) * zoom;
+}
+
 /** Janela de páginas pré-carregadas em torno da página atual. */
 export function pageRange(
   page: number,

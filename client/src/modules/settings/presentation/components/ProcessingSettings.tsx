@@ -8,11 +8,13 @@ import {
 export interface ProcessingSettingsProps {
   preferences: AppPreferences;
   onChange: <K extends keyof AppPreferences>(key: K, value: AppPreferences[K]) => void;
+  showDevelopmentNote?: boolean;
 }
 
 export const ProcessingSettings: React.FC<ProcessingSettingsProps> = ({
   preferences,
   onChange,
+  showDevelopmentNote = true,
 }) => (
   <section aria-labelledby="settings-processing" style={{ display: 'grid', gap: '18px' }}>
     <h2 id="settings-processing" style={{ color: '#F0F4FC', fontSize: '16px', margin: 0 }}>
@@ -42,9 +44,11 @@ export const ProcessingSettings: React.FC<ProcessingSettingsProps> = ({
         onChange={(value) => onChange('prioritizeLowResource', value)}
       />
     </SettingsRow>
-    <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
-      A reprodução sempre tem prioridade. Nenhuma tarefa real é iniciada nesta demonstração.
-    </p>
+    {showDevelopmentNote && (
+      <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
+        A reprodução sempre tem prioridade. Nenhuma tarefa real é iniciada nesta demonstração.
+      </p>
+    )}
   </section>
 );
 

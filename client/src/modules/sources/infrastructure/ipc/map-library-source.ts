@@ -30,6 +30,7 @@ export function mapCoreSource(source: CoreLibrarySource, itemCount: number): Lib
     id: source.id,
     path: source.rootPath,
     name: source.displayName ?? baseName(source.rootPath),
+    libraryType: source.libraryType,
     status: mapCoreStatus(source.status),
     itemCount,
     lastScannedAt: source.lastScanAt,

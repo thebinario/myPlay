@@ -5,6 +5,7 @@ import type {
   SourcesViewModel,
 } from '@/core/contracts/library-sources';
 import { addSource } from '@/modules/sources/application/use-cases/add-source';
+import { renameSource } from '@/modules/sources/application/use-cases/rename-source';
 import { removeSource } from '@/modules/sources/application/use-cases/remove-source';
 import {
   disconnectSource,
@@ -30,7 +31,10 @@ export function useLibrarySources(): SourcesViewModel {
     return {
       sources,
       addSource: (input: AddSourceInput): AddSourceResult => addSource(deps, input),
+      waitForPersistence: (sourceId) =>
+        repository.waitForPersistence?.(sourceId) ?? Promise.resolve(),
       removeSource: (id) => removeSource(deps, id),
+      renameSource: (id, name) => renameSource(deps, id, name),
       reconnectSource: (id) => reconnectSource(deps, id),
       disconnectSource: (id) => disconnectSource(deps, id),
       checkSource: (id) => {

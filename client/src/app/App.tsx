@@ -273,6 +273,7 @@ export const App: React.FC = () => {
         {currentTab === 'library' && (
           <LibraryView
             items={items}
+            sources={import.meta.env.PROD ? sourcesViewModel.sources : undefined}
             onSelectCourse={handleSelectCourse}
             onOpenDocument={handleOpenDocument}
           />
@@ -293,6 +294,7 @@ export const App: React.FC = () => {
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
             onPlayLesson={handlePlayLesson}
+            onOpenDocument={handleOpenDocument}
             onEditCourse={handleEditCourse}
           />
         )}
@@ -335,8 +337,13 @@ export const App: React.FC = () => {
 
         {currentTab === 'settings' && (
           <SettingsView
+            runtime={import.meta.env.DEV ? 'development' : 'desktop'}
             sourcesSection={
-              <LibrarySourcesPanel viewModel={sourcesViewModel} importFlow={importFlow} />
+              <LibrarySourcesPanel
+                viewModel={sourcesViewModel}
+                importFlow={importFlow}
+                runtime={import.meta.env.DEV ? 'development' : 'production'}
+              />
             }
             librarySummary={{
               courses: courses.length,

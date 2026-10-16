@@ -29,6 +29,8 @@ function media(overrides: Partial<MediaFile> & { id: string }): MediaFile {
 
 function courseTree(): CourseTree {
   return {
+    totalDurationSeconds: 999,
+    pdfCount: 3,
     course: {
       id: 'c1',
       title: 'Curso Real',
@@ -51,6 +53,15 @@ function courseTree(): CourseTree {
         relativePath: 'Modulo A',
         detectedTitle: 'Modulo A',
         titleSource: 'detected',
+        documents: [
+          {
+            id: 'd1',
+            mediaFileId: 'pdf1',
+            title: '02 - apostila.pdf',
+            pageCount: 12,
+            titleSource: 'detected',
+          },
+        ],
         lessons: [
           {
             id: 'l1',
@@ -77,6 +88,15 @@ function courseTree(): CourseTree {
         ],
       },
     ],
+    documents: [
+      {
+        id: 'd2',
+        mediaFileId: 'pdf2',
+        title: '01 - guia geral.pdf',
+        pageCount: 6,
+        titleSource: 'detected',
+      },
+    ],
   };
 }
 
@@ -98,6 +118,19 @@ describe('mapCourseTree', () => {
     const mediaById = new Map([
       ['mv1', media({ id: 'mv1', durationMs: 90_000, relativePath: 'Curso/aula-01.mp4' })],
       ['mv2', media({ id: 'mv2', durationMs: 30_000, relativePath: 'Curso/aula-02.mp4' })],
+      [
+        'pdf1',
+        media({
+          id: 'pdf1',
+          mediaType: 'pdf',
+          durationMs: null,
+          relativePath: 'Curso/apostila.pdf',
+        }),
+      ],
+      [
+        'pdf2',
+        media({ id: 'pdf2', mediaType: 'pdf', durationMs: null, relativePath: 'Curso/guia.pdf' }),
+      ],
     ]);
     const roots = new Map([['src-1', '/Volumes/HD']]);
 
@@ -109,13 +142,16 @@ describe('mapCourseTree', () => {
     expect(course.description).toBe('');
     expect(course.category).toBe('Engenharia');
     expect(course.tags).toEqual(['x', 'y']);
-    expect(course.totalDuration).toBe(120);
+    expect(course.totalDuration).toBe(999);
     expect(course.modules).toHaveLength(1);
     expect(course.modules[0].title).toBe('Módulo A');
     expect(course.modules[0].lessons.map((l) => l.duration)).toEqual([90, 30]);
     expect(course.modules[0].lessons[0].videoUrl).toBe('file:///Volumes/HD/Curso/aula-01.mp4');
     expect(course.modules[0].lessons[0].materials).toEqual([]);
     expect(course.modules[0].lessons[0].completed).toBe(false);
+    expect(course.modules[0].documents?.map((doc) => doc.title)).toEqual(['02 - apostila.pdf']);
+    expect(course.pdfCount).toBe(3);
+    expect(course.modules[0].documents?.[0].fileUrl).toBe('file:///Volumes/HD/Curso/apostila.pdf');
   });
 
   it('marca aula como indisponível quando o arquivo físico sumiu', () => {
@@ -138,7 +174,10 @@ describe('mapDocumentSummary', () => {
       pageCount: 42,
     };
     const mediaById = new Map([
-      ['mv9', media({ id: 'mv9', mediaType: 'pdf', durationMs: null, relativePath: 'docs/Manual.pdf' })],
+      [
+        'mv9',
+        media({ id: 'mv9', mediaType: 'pdf', durationMs: null, relativePath: 'docs/Manual.pdf' }),
+      ],
     ]);
 
     const doc = mapDocumentSummary(summary, mediaById, new Map([['src-1', '/HD']]));

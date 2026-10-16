@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { HardDrive, RefreshCw, Trash2, PlugZap, Unplug } from 'lucide-react';
+import React from 'react';
+import { HardDrive } from 'lucide-react';
 import type { LibrarySource, SourceStatus } from '@/core/domain/library-source';
-import { Button } from '@/shared/ui/components/Button';
 import { Spinner } from '@/shared/ui/components/Spinner';
+import { SourceNameEditor } from '@/modules/sources/presentation/components/SourceNameEditor';
+import { SourceActions } from '@/modules/sources/presentation/components/SourceActions';
 
 const STATUS_META: Record<SourceStatus, { label: string; color: string }> = {
   connected: { label: 'Conectada', color: '#10B981' },
@@ -17,6 +18,8 @@ export interface SourceCardProps {
   onReconnect: (id: string) => void;
   onDisconnect: (id: string) => void;
   onRemove: (id: string) => void;
+  onRename: (id: string, name: string) => Promise<void>;
+  showDisconnectSimulation?: boolean;
 }
 
 function formatLastScan(value: string | null): string {
@@ -32,8 +35,9 @@ export const SourceCard: React.FC<SourceCardProps> = ({
   onReconnect,
   onDisconnect,
   onRemove,
+  onRename,
+  showDisconnectSimulation = true,
 }) => {
-  const [confirming, setConfirming] = useState(false);
   const meta = STATUS_META[source.status];
   const isConnected = source.status === 'connected';
 
@@ -61,7 +65,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
               overflowWrap: 'anywhere',
             }}
           >
-            {source.name}
+            <SourceNameEditor name={source.name} onSave={(name) => onRename(source.id, name)} />
           </div>
           <div
             style={{
@@ -96,72 +100,14 @@ export const SourceCard: React.FC<SourceCardProps> = ({
         <span>Última análise: {formatLastScan(source.lastScannedAt)}</span>
       </div>
 
-      {confirming ? (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '8px',
-            padding: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}
-        >
-          <span style={{ color: '#F8FAFC', fontSize: '13px' }}>
-            Retirar “{source.name}” do catálogo? Nenhum arquivo físico será excluído.
-          </span>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button
-              variant="danger"
-              size="sm"
-              data-testid={`source-confirm-remove-${source.id}`}
-              onClick={() => {
-                onRemove(source.id);
-                setConfirming(false);
-              }}
-            >
-              Confirmar retirada
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onCheck(source.id)}
-            disabled={source.status === 'checking'}
-          >
-            <RefreshCw size={13} style={{ marginRight: '6px' }} aria-hidden />
-            Verificar
-          </Button>
-          {isConnected ? (
-            <Button variant="secondary" size="sm" onClick={() => onDisconnect(source.id)}>
-              <Unplug size={13} style={{ marginRight: '6px' }} aria-hidden />
-              Simular desconexão
-            </Button>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={() => onReconnect(source.id)}>
-              <PlugZap size={13} style={{ marginRight: '6px' }} aria-hidden />
-              Reconectar
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Retirar fonte ${source.name}`}
-            onClick={() => setConfirming(true)}
-          >
-            <Trash2 size={13} style={{ marginRight: '6px' }} aria-hidden />
-            Retirar
-          </Button>
-        </div>
-      )}
+      <SourceActions
+        source={source}
+        showDisconnectSimulation={showDisconnectSimulation}
+        onCheck={onCheck}
+        onReconnect={onReconnect}
+        onDisconnect={onDisconnect}
+        onRemove={onRemove}
+      />
     </article>
   );
 };

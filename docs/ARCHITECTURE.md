@@ -14,8 +14,10 @@
 
 ## 1. Por que um modelo único
 
-A Midoteca tem dois runtimes (domínio local-first em TypeScript e interface
-React), mas **uma só arquitetura**. Isso significa:
+A Midoteca tem dois runtimes (núcleo local-first em TypeScript e interface
+React), com **um vocabulário arquitetural** e uma fronteira explícita de
+autoridade. O backend é a fonte de verdade do negócio; o frontend é um cliente
+fino que apresenta e aciona o sistema. Isso significa:
 
 - o mesmo vocabulário de camadas (`domain`, `application`, `infrastructure`,
   `presentation`) nos dois lados, com o **mesmo significado**;
@@ -25,8 +27,13 @@ React), mas **uma só arquitetura**. Isso significa:
 - as mesmas práticas de DDD, Clean Architecture, Hexagonal (Ports & Adapters) e
   SOLID.
 
-O que **pode** variar por lado é apenas o idioma de nomes de arquivo (kebab-case
-no núcleo, `PascalCase` em componentes React — ver
+O vocabulário das camadas é compartilhado, mas isso **não** significa duplicar
+domínio nos dois runtimes: no frontend, `domain/` e `application/` só abrigam
+modelos e coordenação necessários à interface. Regras de negócio e decisões
+que afetam consistência pertencem ao backend.
+
+Além da diferença de autoridade do negócio descrita acima, variam o idioma de
+nomes de arquivo (kebab-case no núcleo, `PascalCase` em componentes React — ver
 [`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) §4) e a tecnologia dos adapters.
 
 > **Vocabulário.** Nesta arquitetura, o artefato que o hexagonal chama de *port*
@@ -42,7 +49,7 @@ Todo runtime da Midoteca se organiza nas **mesmas cinco áreas**:
 | --- | --- | --- |
 | `app/` | **Composition root** e shell: único lugar que conhece adapters concretos e monta o grafo de dependências | Não (só montagem/injeção) |
 | `core/` | **Kernel compartilhado** por todos os contextos: tipos/entidades canônicas, contratos de fronteira do runtime, erros, validação, ids, clock, config | Só o que é **compartilhado**; regra específica mora no contexto |
-| `modules/` | **Um diretório por bounded context** (fatia vertical com as quatro camadas) | Sim — é aqui que a regra vive |
+| `modules/` | **Um diretório por bounded context** (fatia vertical com as quatro camadas) | Backend: regras autoritativas. Frontend: não duplica regras; compõe a experiência |
 | `shared/` | Reutilizável entre contextos **sem regra de negócio**: `ui`, `providers` (seams de injeção), `testing`, utilitários neutros | Não |
 | `platform/` | **Adapters técnicos compartilhados por 2+ contextos**: persistência, filesystem, eventos, desktop/IPC, nuvem | Não (só tradução técnica) |
 
@@ -113,6 +120,33 @@ Fluxo permitido:
 presentation ──► application ──► domain ◄── infrastructure
        (fino)          (casos de uso)   (regras)     (adapters)
 ```
+
+### 4.3 Autoridade das regras entre backend e frontend
+
+- **Backend (`midoteca/`)**: fonte única de verdade para regras de negócio,
+  invariantes, validações necessárias à correção, autorização, consistência,
+  transações e persistência. Casos de uso de negócio vivem aqui; o adapter IPC
+  entrega seus contratos ao desktop.
+- **Frontend (`client/`)**: apresenta read models, coleta intenção do usuário,
+  envia comandos por contratos/adapters e representa estados de carregamento,
+  sucesso e erro. Não decide resultados de negócio nem mantém uma cópia das
+  regras do backend.
+- **Lógica permitida no frontend**: estado transitório da interface, navegação,
+  formatação, validação imediata para orientar o usuário, acessibilidade,
+  layout, reprodução/renderização de mídia e coordenação de interações. O
+  backend sempre valida novamente qualquer comando que possa afetar o negócio.
+- Rascunhos e operações locais de UX podem existir quando não alteram a fonte
+  de verdade antes de uma confirmação explícita. Decisões de produto que
+  mantenham estado de negócio apenas no cliente precisam de ADR e escopo local
+  claro.
+- Se uma tela precisar de uma nova decisão de negócio, implemente-a no backend
+  e exponha o contrato necessário; não a resolva com regra dentro de componente,
+  hook, mock de produção ou adapter do frontend.
+
+Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
+regras de negócio duplicadas para o backend sem reescrever módulos não
+relacionados. Os testes do backend cobrem as decisões de negócio; os do
+frontend cobrem apresentação, interação e tradução dos contratos.
 
 **Não existe** `dto.ts`, `inputs.ts` genérico nem um `queries.ts` com várias
 operações. Motivos e alternativas em [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) §4.

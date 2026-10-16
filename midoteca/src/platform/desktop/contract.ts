@@ -18,6 +18,7 @@ import type {
   SaveReadingProgress,
 } from '../../modules/progress';
 import type { AppSetting } from '../../modules/settings';
+import type { LibraryType } from '../../modules/library';
 
 /**
  * Transport-agnostic contract of the desktop RPC surface.
@@ -38,6 +39,7 @@ export const DESKTOP_METHODS = [
   'sources.remove',
   'sources.check',
   'sources.updatePath',
+  'sources.rename',
   'indexing.scan',
   'indexing.status',
   'catalog.listCourses',
@@ -47,6 +49,7 @@ export const DESKTOP_METHODS = [
   'courses.list',
   'courses.saveOrganization',
   'documents.list',
+  'documents.updatePageCount',
   'media.listBySource',
   'media.listTracks',
   'progress.getPlayback',
@@ -76,10 +79,11 @@ export interface SystemInfo {
 export interface DesktopParams {
   'system.info': undefined;
   'sources.list': undefined;
-  'sources.add': { rootPath: string; displayName?: string | null };
+  'sources.add': { rootPath: string; displayName?: string | null; libraryType?: LibraryType };
   'sources.remove': { sourceId: string };
   'sources.check': { sourceId: string };
   'sources.updatePath': { sourceId: string; rootPath: string };
+  'sources.rename': { sourceId: string; displayName: string };
   'indexing.scan': { sourceId: string };
   'indexing.status': { sourceId: string };
   'catalog.listCourses': PageParams & { sourceId?: string };
@@ -89,6 +93,7 @@ export interface DesktopParams {
   'courses.list': undefined;
   'courses.saveOrganization': SaveCourseOrganization;
   'documents.list': undefined;
+  'documents.updatePageCount': { documentId: string; pageCount: number };
   'media.listBySource': { sourceId: string };
   'media.listTracks': { mediaFileId: string };
   'progress.getPlayback': { lessonId: string };
@@ -108,6 +113,7 @@ export interface DesktopResults {
   'sources.remove': void;
   'sources.check': LibrarySource;
   'sources.updatePath': LibrarySource;
+  'sources.rename': LibrarySource;
   'indexing.scan': IndexSummary;
   'indexing.status': SourceIndexState | null;
   'catalog.listCourses': Paged<CourseSummary>;
@@ -117,6 +123,7 @@ export interface DesktopResults {
   'courses.list': Course[];
   'courses.saveOrganization': CourseTree;
   'documents.list': Document[];
+  'documents.updatePageCount': Document;
   'media.listBySource': MediaFile[];
   'media.listTracks': MediaTrack[];
   'progress.getPlayback': PlaybackProgress | null;

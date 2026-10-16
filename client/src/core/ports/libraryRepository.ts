@@ -47,6 +47,7 @@ export interface ReadingStateRepository {
   getDocumentReadingState(docId: string): PdfReadingState;
   saveDocumentReadingState(docId: string, state: PdfReadingState): void;
   setDocumentUnavailable(docId: string, unavailable: boolean): void;
+  saveDocumentPageCount(docId: string, pageCount: number): Promise<void>;
 }
 
 /**

@@ -11,6 +11,7 @@ import { ProcessingSettings } from '@/modules/settings/presentation/components/P
 import { AboutSettings } from '@/modules/settings/presentation/components/AboutSettings';
 
 export interface SettingsViewProps {
+  runtime?: 'development' | 'desktop';
   /** Conteúdo do gerenciamento de fontes, injetado pela composição em `app/`. */
   sourcesSection?: React.ReactNode;
   librarySummary?: { courses: number; movies: number; documents: number };
@@ -26,12 +27,14 @@ const cardStyle: React.CSSProperties = {
 };
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
+  runtime = 'development',
   sourcesSection,
   librarySummary = { courses: 0, movies: 0, documents: 0 },
   onResetLibrary,
   onOpenOnboarding,
 }) => {
   const { preferences, setPreference } = useSettings();
+  const showDevelopmentControls = runtime === 'development';
   const [section, setSection] = useState<SettingsSectionId>('libraries');
 
   return (
@@ -65,6 +68,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             sourcesSection={sourcesSection}
             onResetLibrary={onResetLibrary}
             onOpenOnboarding={onOpenOnboarding}
+            showDevelopmentControls={showDevelopmentControls}
           />
         )}
         {section === 'playback' && (
@@ -74,14 +78,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <AppearanceSettings preferences={preferences} onChange={setPreference} />
         )}
         {section === 'processing' && (
-          <ProcessingSettings preferences={preferences} onChange={setPreference} />
+          <ProcessingSettings
+            preferences={preferences}
+            onChange={setPreference}
+            showDevelopmentNote={showDevelopmentControls}
+          />
         )}
         {section === 'about' && <AboutSettings librarySummary={librarySummary} />}
       </div>
 
-      <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
-        Modo demonstração · as preferências permanecem neste dispositivo.
-      </p>
+      {showDevelopmentControls && (
+        <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
+          Modo demonstração · as preferências permanecem neste dispositivo.
+        </p>
+      )}
     </div>
   );
 };

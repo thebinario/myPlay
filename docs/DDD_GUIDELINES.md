@@ -93,6 +93,16 @@ Consequências práticas:
 - Controllers e componentes React são **finos** e delegam a casos de uso.
 - **Nada de regra de negócio em hook de apresentação** — hook apresenta, caso de
   uso decide.
+- O backend (`midoteca/`) é a **autoridade** das regras de negócio e dos
+  resultados persistidos. Casos de uso que aplicam invariantes, validam
+  consistência ou decidem o resultado de uma operação pertencem ao backend.
+- No frontend (`client/`), `application/` pode coordenar chamadas e estado da
+  experiência; `domain/` pode conter cálculos puramente visuais/de interação.
+  Essas camadas não duplicam decisões de negócio do backend.
+- Validação no frontend serve para feedback imediato. O backend repete e impõe
+  as validações necessárias para correção, segurança e consistência.
+- Estado transitório de formulário, navegação, layout, formatação e renderização
+  de mídia/documentos são responsabilidades legítimas do frontend.
 - Matriz completa e fences de verificação: [`ARCHITECTURE.md`](ARCHITECTURE.md) §5.
 
 ## 4. Padrões táticos

@@ -24,17 +24,20 @@ function makeSource(overrides: Partial<LibrarySource> = {}): LibrarySource {
   };
 }
 
-function Harness() {
+function Harness({ runtime = 'development' }: { runtime?: 'development' | 'production' }) {
   const viewModel = useLibrarySources();
   const importFlow = useImportFlow(false);
-  return <LibrarySourcesPanel viewModel={viewModel} importFlow={importFlow} />;
+  return <LibrarySourcesPanel viewModel={viewModel} importFlow={importFlow} runtime={runtime} />;
 }
 
-function renderPanel(seed: LibrarySource[] = []) {
+function renderPanel(
+  seed: LibrarySource[] = [],
+  runtime: 'development' | 'production' = 'development',
+) {
   const repository = createInMemorySourcesRepository(seed);
   render(
     <SourcesProvider repository={repository}>
-      <Harness />
+      <Harness runtime={runtime} />
     </SourcesProvider>,
   );
   return repository;
@@ -86,6 +89,26 @@ describe('LibrarySourcesPanel', () => {
     expect(screen.getByTestId('source-card-src-1')).toBeInTheDocument();
     expect(screen.getByText('4 conteúdos conhecidos')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Reconectar/ })).toBeInTheDocument();
+  });
+
+  it('esconde a simulação de desconexão no runtime de produção', () => {
+    renderPanel([makeSource()], 'production');
+
+    expect(screen.queryByRole('button', { name: /Simular desconexão/ })).not.toBeInTheDocument();
+  });
+
+  it('permite editar e salvar o nome de uma biblioteca', async () => {
+    const user = userEvent.setup();
+    renderPanel([makeSource()]);
+
+    await user.click(screen.getByRole('button', { name: 'Editar nome da biblioteca Cursos' }));
+    const input = screen.getByRole('textbox', { name: 'Nome da biblioteca' });
+    await user.clear(input);
+    await user.type(input, 'Cursos Avançados');
+    await user.click(screen.getByRole('button', { name: 'Salvar nome' }));
+
+    expect(screen.getByText('Cursos Avançados')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Nome da biblioteca' })).not.toBeInTheDocument();
   });
 
   it('conduz o fluxo de importação com pausa e retomada', async () => {

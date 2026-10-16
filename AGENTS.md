@@ -160,6 +160,21 @@ Não modifique arquivos físicos de mídia durante refatorações.
 
 Aplique a arquitetura também ao frontend React.
 
+**O frontend deve ser fino (“burro” em relação ao negócio):** o backend é a
+fonte de verdade das regras, validações que garantem consistência, decisões de
+domínio e persistência. No desktop local-first, considere backend o núcleo
+`midoteca/` acessado pelo adapter IPC. A interface apresenta os read models,
+envia comandos e mostra os resultados do backend; não replique regras para
+decidir se uma operação é válida ou qual resultado de negócio deve ocorrer.
+
+O frontend mantém apenas lógica necessária à experiência: estado transitório
+da tela, navegação, formatação, validação imediata para orientar o usuário,
+renderização de mídia/documentos e coordenação de interações. Essa validação é
+conveniente e nunca substitui a validação do backend. Rascunhos locais ou regras
+de UX mais específicas devem ter escopo explícito; não podem se tornar uma
+segunda fonte de verdade. Se uma funcionalidade exigir regra de negócio, crie ou
+estenda o caso de uso no backend e exponha o contrato necessário ao frontend.
+
 Separe:
 
 - Componentes visuais.

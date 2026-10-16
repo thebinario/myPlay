@@ -8,6 +8,7 @@ import {
 } from '../../../core/validation';
 import {
   LIBRARY_SOURCE_STATUSES,
+  type LibraryType,
   type LibrarySource,
   type LibrarySourceStatus,
 } from '../domain/entities';
@@ -15,6 +16,7 @@ import type {
   CreateLibrarySource,
   LibraryRepository,
   UpdateLibrarySourcePath,
+  UpdateLibrarySourceName,
   UpdateLibrarySourceStatus,
 } from '../domain/repositories';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
@@ -24,6 +26,7 @@ interface SourceRow {
   id: string;
   root_path: string;
   display_name: string | null;
+  library_type: string;
   volume_id: string | null;
   status: string;
   last_scan_at: string | null;
@@ -36,6 +39,7 @@ function mapRow(row: SourceRow): LibrarySource {
     id: row.id,
     rootPath: row.root_path,
     displayName: row.display_name,
+    libraryType: row.library_type as LibraryType,
     volumeId: row.volume_id,
     status: row.status as LibrarySourceStatus,
     lastScanAt: row.last_scan_at,
@@ -45,7 +49,7 @@ function mapRow(row: SourceRow): LibrarySource {
 }
 
 const SELECT = `
-  SELECT id, root_path, display_name, volume_id, status, last_scan_at, created_at, updated_at
+  SELECT id, root_path, display_name, library_type, volume_id, status, last_scan_at, created_at, updated_at
   FROM library_sources
 `;
 
@@ -60,6 +64,9 @@ export class SqliteLibraryRepository implements LibraryRepository {
       rootPath,
       displayName:
         normalizeOptionalString(input.displayName, 'displayName') ?? safeBasename(rootPath),
+      libraryType: input.libraryType
+        ? assertOneOf(input.libraryType, ['course', 'movie'] as const, 'libraryType')
+        : 'course',
       volumeId: normalizeOptionalString(input.volumeId, 'volumeId'),
       status: input.status
         ? assertOneOf(input.status, LIBRARY_SOURCE_STATUSES, 'status')
@@ -73,13 +80,14 @@ export class SqliteLibraryRepository implements LibraryRepository {
       this.db
         .prepare(
           `INSERT INTO library_sources
-             (id, root_path, display_name, volume_id, status, last_scan_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id, root_path, display_name, library_type, volume_id, status, last_scan_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           source.id,
           source.rootPath,
           source.displayName,
+          source.libraryType,
           source.volumeId,
           source.status,
           source.lastScanAt,
@@ -164,6 +172,20 @@ export class SqliteLibraryRepository implements LibraryRepository {
     } catch (error) {
       throw mapSqliteError(error, 'updateLibrarySourcePath');
     }
+    return this.findSourceById(id);
+  }
+
+  async updateSourceName(
+    id: string,
+    input: UpdateLibrarySourceName,
+  ): Promise<LibrarySource | null> {
+    const existing = await this.findSourceById(id);
+    if (!existing) return null;
+    const displayName = assertNonEmptyString(input.displayName, 'displayName').trim();
+
+    this.db
+      .prepare('UPDATE library_sources SET display_name = ?, updated_at = ? WHERE id = ?')
+      .run(displayName, nowIso(), id);
     return this.findSourceById(id);
   }
 

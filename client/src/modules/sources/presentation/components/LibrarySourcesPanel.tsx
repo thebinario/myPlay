@@ -10,6 +10,7 @@ import { ImportPanel } from '@/shared/ui/components/ImportPanel';
 export interface LibrarySourcesPanelProps {
   viewModel: SourcesViewModel;
   importFlow: ImportViewModel;
+  runtime?: 'development' | 'production';
 }
 
 /**
@@ -19,6 +20,7 @@ export interface LibrarySourcesPanelProps {
 export const LibrarySourcesPanel: React.FC<LibrarySourcesPanelProps> = ({
   viewModel,
   importFlow,
+  runtime = 'development',
 }) => {
   const [showImport, setShowImport] = useState(false);
   const { sources } = viewModel;
@@ -51,7 +53,15 @@ export const LibrarySourcesPanel: React.FC<LibrarySourcesPanelProps> = ({
         </Button>
       </div>
 
-      <AddSourceForm onAdd={viewModel.addSource} onPickDirectory={viewModel.pickDirectory} />
+      <AddSourceForm
+        onAdd={viewModel.addSource}
+        onAdded={async (source) => {
+          await viewModel.waitForPersistence?.(source.id);
+          setShowImport(true);
+          importFlow.start();
+        }}
+        onPickDirectory={viewModel.pickDirectory}
+      />
 
       {sources.length === 0 ? (
         <p
@@ -76,6 +86,8 @@ export const LibrarySourcesPanel: React.FC<LibrarySourcesPanelProps> = ({
               onReconnect={viewModel.reconnectSource}
               onDisconnect={viewModel.disconnectSource}
               onRemove={viewModel.removeSource}
+              onRename={viewModel.renameSource}
+              showDisconnectSimulation={runtime === 'development'}
             />
           ))}
         </div>

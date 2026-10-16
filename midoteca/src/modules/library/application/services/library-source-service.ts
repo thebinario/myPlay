@@ -10,6 +10,7 @@ import {
 } from '../use-cases/check-source-availability';
 import { RemoveSource } from '../use-cases/remove-source';
 import { UpdateSourcePath } from '../use-cases/update-source-path';
+import { UpdateSourceName } from '../use-cases/update-source-name';
 
 export interface LibrarySourceServiceDependencies {
   library: LibraryRepository;
@@ -25,12 +26,14 @@ export interface LibrarySourceServiceDependencies {
 export class LibrarySourceService {
   private readonly addSourceUseCase: AddSource;
   private readonly updateSourcePathUseCase: UpdateSourcePath;
+  private readonly updateSourceNameUseCase: UpdateSourceName;
   private readonly checkAvailabilityUseCase: CheckSourceAvailability;
   private readonly removeSourceUseCase: RemoveSource;
 
   constructor(private readonly deps: LibrarySourceServiceDependencies) {
     this.addSourceUseCase = new AddSource(deps);
     this.updateSourcePathUseCase = new UpdateSourcePath(deps);
+    this.updateSourceNameUseCase = new UpdateSourceName(deps);
     this.checkAvailabilityUseCase = new CheckSourceAvailability(deps);
     this.removeSourceUseCase = new RemoveSource({ library: deps.library });
   }
@@ -55,6 +58,10 @@ export class LibrarySourceService {
 
   updateSourcePath(id: string, rootPath: string): Promise<LibrarySource> {
     return this.updateSourcePathUseCase.execute({ sourceId: id, rootPath });
+  }
+
+  updateSourceName(id: string, displayName: string): Promise<LibrarySource> {
+    return this.updateSourceNameUseCase.execute({ sourceId: id, displayName });
   }
 
   removeSource(id: string): Promise<void> {

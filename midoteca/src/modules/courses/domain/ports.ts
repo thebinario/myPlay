@@ -1,4 +1,5 @@
 import type { Course, CourseModule, Lesson, LessonMedia } from './entities';
+import type { TitleSource } from '../../../core/title-source';
 import type {
   CreateCourse,
   CreateCourseModule,
@@ -14,7 +15,25 @@ import type {
 /** Fully materialized course tree, useful for the library/editor screens. */
 export interface CourseTree {
   course: Course;
-  modules: Array<CourseModule & { lessons: Array<Lesson & { media: LessonMedia[] }> }>;
+  /** Aggregates used by the catalog card, computed by the read-side backend. */
+  totalDurationSeconds: number;
+  pdfCount: number;
+  documents: CourseTreeDocument[];
+  modules: Array<
+    CourseModule & {
+      documents: CourseTreeDocument[];
+      lessons: Array<Lesson & { media: LessonMedia[] }>;
+    }
+  >;
+}
+
+/** Read-only document projection included in the course aggregate. */
+export interface CourseTreeDocument {
+  id: string;
+  mediaFileId: string;
+  title: string;
+  pageCount: number | null;
+  titleSource: TitleSource;
 }
 
 /** Result of a cross-module lesson move. */

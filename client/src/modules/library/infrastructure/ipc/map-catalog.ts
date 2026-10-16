@@ -1,5 +1,5 @@
 import type { CourseTree, DocumentSummary, MediaFile } from '@midoteca/core';
-import type { Course, CourseModule, Document, Lesson } from '@/core/domain/library';
+import type { Course, CourseModule, Document, Lesson, Movie } from '@/core/domain/library';
 
 /**
  * Pure projections from the kernel catalog (`CourseTree`, `DocumentSummary`,
@@ -7,10 +7,9 @@ import type { Course, CourseModule, Document, Lesson } from '@/core/domain/libra
  * mapping rules are unit-testable and the adapter stays thin.
  *
  * The kernel model is leaner than the UI model (no `movies`, no per-course
- * category/tags/duration). Missing fields are degraded explicitly: category and
- * tags come from the course `metadata`, duration is derived from the linked
- * media and `progress`/`completed` stay at their initial values (progress lives
- * in the `progress` context and is delegated, see `IpcLibraryRepository`).
+ * category/tags). Missing fields are degraded explicitly: category and tags
+ * come from course metadata; course metrics come from the backend read model;
+ * `progress`/`completed` remain initial values while progress migration is pending.
  */
 
 type Metadata = Record<string, unknown> | null;
@@ -23,7 +22,18 @@ export function buildMediaUrl(
   if (!rootPath || !relativePath) return '';
   const base = rootPath.replace(/[\\/]+$/, '');
   const relative = relativePath.replace(/^[\\/]+/, '');
-  return `file://${encodeURI(`${base}/${relative}`)}`;
+  return toFileUrl(`${base}/${relative}`);
+}
+
+function toFileUrl(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/');
+  const encoded = normalized
+    .split('/')
+    .map((segment) => (/^[A-Za-z]:$/.test(segment) ? segment : encodeURIComponent(segment)))
+    .join('/');
+  if (normalized.startsWith('//')) return `file://${encoded.slice(2)}`;
+  if (/^[A-Za-z]:\//.test(normalized)) return `file:///${encoded}`;
+  return `file://${encoded}`;
 }
 
 function stringField(metadata: Metadata, key: string): string | undefined {
@@ -33,7 +43,36 @@ function stringField(metadata: Metadata, key: string): string | undefined {
 
 function stringArrayField(metadata: Metadata, key: string): string[] {
   const value = metadata?.[key];
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+/** Projects an indexed video that is not already attached to a course lesson. */
+export function mapStandaloneVideo(
+  file: MediaFile,
+  sourceRootById: ReadonlyMap<string, string>,
+): Movie {
+  const fileName = file.relativePath.split(/[\\/]/).pop() ?? file.relativePath;
+  const title =
+    fileName
+      .replace(/\.[^.]+$/, '')
+      .replace(/[._-]+/g, ' ')
+      .trim() || fileName;
+  return {
+    id: file.id,
+    sourceId: file.sourceId,
+    type: 'movie',
+    title,
+    description: '',
+    category: '',
+    coverUrl: '',
+    duration: file.durationMs ? Math.round(file.durationMs / 1000) : 0,
+    progress: 0,
+    videoUrl: buildMediaUrl(sourceRootById.get(file.sourceId), file.relativePath),
+    tags: [],
+    createdAt: file.createdAt,
+  };
 }
 
 /** Projects a fully materialized kernel course tree onto the UI `Course`. */
@@ -49,6 +88,9 @@ export function mapCourseTree(
       courseId: module.courseId,
       title: module.title,
       order: module.sortOrder,
+      documents: module.documents.map((document) =>
+        mapTreeDocument(document, mediaById, sourceRootById),
+      ),
       lessons: [...module.lessons]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((lesson): Lesson => {
@@ -71,23 +113,43 @@ export function mapCourseTree(
         }),
     }));
 
-  const totalDuration = modules.reduce(
-    (total, module) => total + module.lessons.reduce((sum, lesson) => sum + lesson.duration, 0),
-    0,
-  );
-
   return {
     id: tree.course.id,
+    sourceId: tree.course.sourceId,
     type: 'course',
     title: tree.course.title,
     description: tree.course.description ?? '',
     category: stringField(tree.course.metadata, 'category') ?? '',
     coverUrl: stringField(tree.course.metadata, 'coverUrl') ?? '',
-    totalDuration,
+    totalDuration: tree.totalDurationSeconds,
+    pdfCount: tree.pdfCount,
     progress: 0,
     modules,
     tags: stringArrayField(tree.course.metadata, 'tags'),
     createdAt: tree.course.createdAt,
+  };
+}
+
+function mapTreeDocument(
+  summary: CourseTree['documents'][number],
+  mediaById: ReadonlyMap<string, MediaFile>,
+  sourceRootById: ReadonlyMap<string, string>,
+): Document {
+  const file = mediaById.get(summary.mediaFileId);
+  const root = file ? sourceRootById.get(file.sourceId) : undefined;
+  return {
+    id: summary.id,
+    sourceId: file?.sourceId ?? null,
+    type: 'document',
+    title: summary.title,
+    description: '',
+    category: '',
+    totalPages: summary.pageCount ?? 0,
+    lastReadPage: 1,
+    fileUrl: file ? buildMediaUrl(root, file.relativePath) : '',
+    tags: [],
+    createdAt: file?.createdAt ?? '',
+    isUnavailable: file ? file.availability === 'missing' : undefined,
   };
 }
 
@@ -101,6 +163,7 @@ export function mapDocumentSummary(
   const root = file ? sourceRootById.get(file.sourceId) : undefined;
   return {
     id: summary.id,
+    sourceId: file?.sourceId ?? null,
     type: 'document',
     title: summary.title,
     description: '',

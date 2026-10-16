@@ -20,12 +20,13 @@ export class ApplyOrganization {
 
   async execute(
     sourceId: string,
-    source: { id: string; rootPath: string },
+    source: { id: string; rootPath: string; libraryType: 'course' | 'movie' },
     discovered: DiscoveredFile[],
   ): Promise<void> {
     const { store, manifestLoader } = this.deps;
     const plan = organize(discovered, {
       rootLabel: source.rootPath.split('/').pop() || source.rootPath,
+      libraryType: source.libraryType,
     });
 
     const manifests = new Map<string, Awaited<ReturnType<ManifestLoader['load']>>>();

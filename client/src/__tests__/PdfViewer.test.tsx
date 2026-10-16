@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PdfViewer } from '@/modules/documents/presentation/PdfViewer';
+import { PdfPageViewport } from '@/modules/documents/presentation/PdfPageViewport';
 import { MOCK_DOCUMENTS, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import { Document } from '@/core/domain/library';
 
@@ -10,6 +11,29 @@ describe('MIDOTECA - Etapa 3A: Leitor de PDF Mockado (Tela 09)', () => {
   beforeEach(() => {
     sampleDoc = JSON.parse(JSON.stringify(MOCK_DOCUMENTS[0])); // Clean Architecture para Aplicações Frontend.pdf (120 páginas, lastReadPage: 34)
     mockLibraryService.resetDocument(sampleDoc.id);
+  });
+
+  it('mantém o PDF dentro do container com apenas 4px de margem interna', () => {
+    render(
+      <PdfPageViewport
+        title="Apostila.pdf"
+        currentPage={1}
+        totalPages={6}
+        zoom={1}
+        colorMode="dark"
+        isUnavailable={false}
+        isLoading={false}
+        hasRenderedPdf
+        currentChunk={undefined}
+        containerRef={{ current: null }}
+        canvasRef={{ current: null }}
+        onScroll={vi.fn()}
+        onReconnect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('pdf-canvas')).toHaveStyle({ maxWidth: '100%', height: 'auto' });
+    expect(screen.getByTestId('pdf-page-canvas')).toHaveStyle({ maxWidth: '100%', padding: '4px' });
   });
 
   it('deve abrir o documento restaurando automaticamente a última página lida', async () => {

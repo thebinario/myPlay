@@ -1,26 +1,16 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
 import type { LibrarySourcesRepository } from '@/core/contracts/library-sources';
 import type { LibrarySource, SourceStatus } from '@/core/domain/library-source';
-import {
-  mapCoreSource,
-  mapCoreStatus,
-} from '@/modules/sources/infrastructure/ipc/map-library-source';
+import { mapCoreSource, mapCoreStatus } from '@/modules/sources/infrastructure/ipc/map-library-source';
 
-/**
- * Real `LibrarySourcesRepository` backed by the desktop bridge (Electron IPC →
- * `@midoteca/core` + SQLite).
- *
- * The port is synchronous by design (`useSyncExternalStore` reads `list()`
- * during render), so this adapter keeps an in-memory snapshot that is hydrated
- * asynchronously from the kernel and invalidated by core events. Writes are
- * optimistic: the UI updates immediately, then a refresh reconciles the snapshot
- * with the authoritative kernel state.
- */
+/** Real repository via Electron IPC/SQLite with a synchronous UI snapshot. */
 export class IpcLibrarySourcesRepository implements LibrarySourcesRepository {
   private cache: LibrarySource[] = [];
   private readonly listeners = new Set<() => void>();
   private refreshing: Promise<void> | null = null;
   private detachEvents: (() => void) | null = null;
+  private readonly pendingWrites = new Map<string, Promise<void>>();
+  private readonly persistedIds = new Map<string, string>();
 
   constructor(private readonly bridge: MidotecaBridge) {}
 
@@ -77,13 +67,58 @@ export class IpcLibrarySourcesRepository implements LibrarySourcesRepository {
     }
     this.cache = [...this.cache, source];
     this.emit();
-    void this.bridge
-      .invoke('sources.add', { rootPath: source.path, displayName: source.name })
-      .then(() => this.refresh())
+    const pending = this.bridge
+      .invoke('sources.add', {
+        rootPath: source.path,
+        displayName: source.name,
+        libraryType: source.libraryType ?? 'course',
+      })
+      .then((created) => {
+        const persisted = mapCoreSource(created, source.itemCount);
+        this.persistedIds.set(source.id, persisted.id);
+        this.cache = [
+          ...this.cache.filter(
+            (item) => item.id !== source.id && item.id !== persisted.id,
+          ),
+          persisted,
+        ];
+        this.emit();
+      })
       .catch((cause: unknown) => {
         console.error('[sources] falha ao adicionar fonte no kernel', cause);
-        void this.refresh();
+        return this.refresh().then(() => {
+          throw cause;
+        });
       });
+    this.pendingWrites.set(source.id, pending);
+    void pending.finally(() => this.pendingWrites.delete(source.id)).catch(() => undefined);
+  }
+
+  async waitForPersistence(id: string): Promise<void> {
+    const pending = this.pendingWrites.get(id);
+    await pending;
+    const persistedId = this.persistedIds.get(id);
+    const found = persistedId !== undefined && this.cache.some(({ id: sourceId }) => sourceId === persistedId);
+    if (!found) throw new Error('A biblioteca não foi confirmada pelo núcleo.');
+  }
+
+  async rename(id: string, name: string): Promise<void> {
+    const existing = this.getById(id);
+    if (!existing) throw new Error('Biblioteca não encontrada.');
+    this.cache = this.cache.map((source) =>
+      source.id === id ? { ...source, name } : source,
+    );
+    this.emit();
+    try {
+      const updated = await this.bridge.invoke('sources.rename', { sourceId: id, displayName: name });
+      this.cache = this.cache.map((source) =>
+        source.id === id ? mapCoreSource(updated, existing.itemCount) : source,
+      );
+      this.emit();
+    } catch (cause) {
+      await this.refresh();
+      throw cause;
+    }
   }
 
   remove(id: string): void {

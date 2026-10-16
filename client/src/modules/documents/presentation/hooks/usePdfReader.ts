@@ -5,6 +5,7 @@ import type { Document, PdfColorMode, PdfPageChunk } from '@/core/domain/library
 import { useLibraryRepository } from '@/modules/library/presentation/LibraryProvider';
 import {
   normalizeReadingState,
+  fitPageScale,
   nextPage,
   pageRange,
   previousPage,
@@ -79,11 +80,13 @@ export function usePdfReader(document: Document): PdfReaderState {
         if (cancelled) return;
         setPdfDoc(loaded);
         setPageCount(loaded.numPages);
+        await repository.saveDocumentPageCount(document.id, loaded.numPages).catch(() => undefined);
         setCurrentPage((prev) => Math.min(prev, loaded.numPages));
       } catch {
         if (!cancelled) {
           setPdfDoc(null);
           setPageCount(null);
+          setIsUnavailable(true);
         }
       }
     })();
@@ -94,7 +97,7 @@ export function usePdfReader(document: Document): PdfReaderState {
       setPdfDoc(null);
       setPageCount(null);
     };
-  }, [document.fileUrl, isUnavailable]);
+  }, [document.fileUrl, document.id, isUnavailable, repository]);
 
   // Renderiza a página atual no canvas conforme página, zoom e modo de cor.
   useEffect(() => {
@@ -113,11 +116,12 @@ export function usePdfReader(document: Document): PdfReaderState {
         if (!ctx) return;
 
         const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-        const viewport = page.getViewport({ scale: zoom });
+        const pageWidth = page.getViewport({ scale: 1 }).width;
+        const viewport = page.getViewport({ scale: fitPageScale(pageWidth, 720, zoom) });
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        canvas.style.height = 'auto';
 
         renderTask = page.render({
           canvas,

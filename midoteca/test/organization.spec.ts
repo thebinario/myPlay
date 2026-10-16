@@ -97,7 +97,27 @@ describe('organize', () => {
     expect(titles).toContain('Sub');
   });
 
-  it('builds a synthetic course from root-level videos and loose root documents', () => {
+  it('places root PDFs beside course videos in the implicit module ordered by name', () => {
+    const plan = organize(
+      [
+        file('midoteca_test/video.mp4', 'video'),
+        file('midoteca_test/03 - terceiro.pdf', 'pdf'),
+        file('midoteca_test/01 - primeiro.pdf', 'pdf'),
+        file('midoteca_test/02 - segundo.pdf', 'pdf'),
+      ],
+      { rootLabel: 'HD' },
+    );
+
+    expect(plan.courses[0].modules).toHaveLength(1);
+    expect(plan.courses[0].modules[0].title).toBe('Aulas');
+    expect(plan.courses[0].modules[0].documents.map((document) => document.title)).toEqual([
+      'primeiro',
+      'segundo',
+      'terceiro',
+    ]);
+  });
+
+  it('puts root PDFs inside a synthetic course when root videos exist', () => {
     const plan = organize(
       [file('raiz.mp4', 'video'), file('manual.pdf', 'pdf'), file('SemVideo/nota.pdf', 'pdf')],
       { rootLabel: 'HD Cursos' },
@@ -106,7 +126,10 @@ describe('organize', () => {
     expect(plan.courses[0].title).toBe('HD Cursos');
     expect(plan.courses[0].relativePath).toBe('');
     expect(plan.courses[0].modules[0].lessons).toHaveLength(1);
-    expect(plan.looseDocuments.map((d) => d.title).sort()).toEqual(['manual', 'nota']);
+    expect(plan.courses[0].modules[0].documents.map((document) => document.title)).toEqual([
+      'manual',
+    ]);
+    expect(plan.looseDocuments.map((d) => d.title)).toEqual(['nota']);
   });
 
   it('matches subtitles to sibling videos as tracks', () => {

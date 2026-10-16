@@ -49,6 +49,47 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
     expect(screen.getByText('Apostila Arquitetura Tauri vs Electron.pdf')).toBeInTheDocument();
   });
 
+  it('deve abrir um PDF da grade do módulo pelo identificador do documento', () => {
+    const handleOpenDocument = vi.fn();
+    const courseWithModulePdf = {
+      ...sampleCourse,
+      modules: sampleCourse.modules.map((module, index) =>
+        index === 0
+          ? {
+              ...module,
+              documents: [
+                {
+                  id: 'doc-module-1',
+                  sourceId: 'source-1',
+                  type: 'document' as const,
+                  title: 'Apostila do módulo.pdf',
+                  description: '',
+                  category: '',
+                  totalPages: 12,
+                  lastReadPage: 1,
+                  fileUrl: 'file:///Apostila.pdf',
+                  tags: [],
+                  createdAt: '',
+                },
+              ],
+            }
+          : module,
+      ),
+    };
+
+    render(
+      <CourseDetailsView
+        course={courseWithModulePdf}
+        onBack={vi.fn()}
+        onToggleLesson={vi.fn()}
+        onOpenDocument={handleOpenDocument}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir PDF Apostila do módulo.pdf' }));
+    expect(handleOpenDocument).toHaveBeenCalledWith('doc-module-1');
+  });
+
   it('deve disparar onToggleLesson ao clicar no checkbox de conclusão da aula', () => {
     const handleBack = vi.fn();
     const handleToggleLesson = vi.fn();

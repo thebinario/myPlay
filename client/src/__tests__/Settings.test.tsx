@@ -30,4 +30,22 @@ describe('SettingsView', () => {
     render(<SettingsView sourcesSection={<div data-testid="sources-slot" />} />);
     expect(screen.getByTestId('sources-slot')).toBeInTheDocument();
   });
+
+  it('oculta controles e textos de demonstração no runtime desktop', async () => {
+    const user = userEvent.setup();
+    render(
+      <SettingsView
+        runtime="desktop"
+        onResetLibrary={vi.fn()}
+        onOpenOnboarding={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Restaurar dados de exemplo/ })).toBeNull();
+    expect(screen.queryByText(/Modo demonstração/)).toBeNull();
+    expect(screen.queryByText(/demonstração/i)).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Processamento' }));
+    expect(screen.queryByText(/Nenhuma tarefa real é iniciada/i)).toBeNull();
+  });
 });

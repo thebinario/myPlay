@@ -1,4 +1,4 @@
-import type { LibrarySource, LibrarySourceStatus } from './entities';
+import type { LibrarySource, LibrarySourceStatus, LibraryType } from './entities';
 import type {
   CourseSummary,
   DocumentSummary,
@@ -15,6 +15,7 @@ export interface CreateLibrarySource {
   rootPath: string;
   /** Friendly label; defaults to the basename of `rootPath` when omitted. */
   displayName?: string | null;
+  libraryType?: LibraryType;
   volumeId?: string | null;
   status?: LibrarySourceStatus;
 }
@@ -34,6 +35,11 @@ export interface UpdateLibrarySourcePath {
   volumeId?: string | null;
 }
 
+/** Command of `LibraryRepository.updateSourceName`. */
+export interface UpdateLibrarySourceName {
+  displayName: string;
+}
+
 /** Write-side repository of the `library` context. */
 export interface LibraryRepository {
   createSource(input: CreateLibrarySource): Promise<LibrarySource>;
@@ -43,6 +49,7 @@ export interface LibraryRepository {
   listSources(): Promise<LibrarySource[]>;
   updateSourceStatus(id: string, input: UpdateLibrarySourceStatus): Promise<LibrarySource | null>;
   updateSourcePath(id: string, input: UpdateLibrarySourcePath): Promise<LibrarySource | null>;
+  updateSourceName(id: string, input: UpdateLibrarySourceName): Promise<LibrarySource | null>;
   /**
    * Removes only the catalog row. Physical files on the volume are NEVER
    * touched here (and media rows cascade away from this source).

@@ -24,7 +24,10 @@ leitura/escrita passa pelo **contrato de fronteira** `LibraryRepository`
 `app/` + `core/{domain,contracts,config}` +
 `modules/<ctx>/{domain,application,infrastructure,presentation}` + `shared/ui`.
 Casos de uso em `application/use-cases/`, hooks em `presentation/hooks/` e
-regras puras em `domain/` (`courses`, `documents`, `player`). Pendências (mover
+cálculos de interação/apresentação em `domain/` (`courses`, `documents`,
+`player`). Regras de negócio autoritativas ficam no backend; essas áreas do
+frontend não devem decidir resultados nem duplicar invariantes do backend.
+Pendências (mover
 contratos para `core/contracts/`, testes para `test/`, adapter IPC/HTTP e remover
 `legacy/`) em
 [`../../docs/REFACTORING_ROADMAP.md`](../../docs/REFACTORING_ROADMAP.md).

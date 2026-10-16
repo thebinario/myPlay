@@ -12,6 +12,7 @@ function sourcesViewModel(sources: LibrarySource[]): SourcesViewModel {
     sources,
     addSource: () => ({ ok: false, error: 'invalid' }),
     removeSource: noop,
+    renameSource: async () => {},
     reconnectSource: noop,
     disconnectSource: noop,
     checkSource: noop,

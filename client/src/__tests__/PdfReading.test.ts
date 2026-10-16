@@ -3,6 +3,7 @@ import {
   ZOOM_MAX,
   ZOOM_MIN,
   clampPage,
+  fitPageScale,
   nextPage,
   normalizeReadingState,
   pageRange,
@@ -49,6 +50,12 @@ describe('pdf-reading — zoom e modo de cor', () => {
 });
 
 describe('pdf-reading — rolagem e janela de páginas', () => {
+  it('ajusta a escala base do PDF à largura disponível e mantém o zoom proporcional', () => {
+    expect(fitPageScale(1400, 720, 1)).toBeCloseTo(720 / 1400);
+    expect(fitPageScale(1400, 720, 1.25)).toBeCloseTo((720 / 1400) * 1.25);
+    expect(fitPageScale(600, 720, 1)).toBe(1);
+  });
+
   it('calcula a janela de páginas em torno da página atual', () => {
     expect(pageRange(34, 120)).toEqual({ startPage: 33, endPage: 35 });
   });

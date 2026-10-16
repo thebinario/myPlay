@@ -7,6 +7,7 @@
  */
 
 export type SourceStatus = 'connected' | 'disconnected' | 'unavailable' | 'checking';
+export type LibraryType = 'course' | 'movie';
 
 /** Fonte de conteúdo conhecida pela biblioteca (pasta local ou HD externo). */
 export interface LibrarySource {
@@ -15,6 +16,8 @@ export interface LibrarySource {
   path: string;
   /** Nome exibido (derivado do caminho quando não informado). */
   name: string;
+  /** Organização principal desta fonte: cursos (com materiais) ou filmes. */
+  libraryType?: LibraryType;
   status: SourceStatus;
   /** Quantidade de conteúdos já conhecidos nesta fonte. */
   itemCount: number;

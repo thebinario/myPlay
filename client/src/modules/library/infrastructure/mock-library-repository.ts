@@ -564,6 +564,11 @@ export class MockLibraryService implements LibraryRepository {
     }
   }
 
+  async saveDocumentPageCount(docId: string, pageCount: number): Promise<void> {
+    const document = this.getDocumentById(docId);
+    if (document) document.totalPages = pageCount;
+  }
+
   // Simula carregamento parcial de páginas (preparado para HTTP Range / range-based streaming)
   async fetchPageRange(docId: string, startPage: number, endPage: number): Promise<PdfPageChunk[]> {
     const doc = this.getDocumentById(docId);

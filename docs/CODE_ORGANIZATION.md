@@ -118,7 +118,7 @@ Convenções TypeScript (backend):
 | `presentation/hooks/useXxx.ts` | presentation | **hook de apresentação** | `presentation/hooks/useAutoHideControls.ts` |
 | `presentation/stories/<Nome>.stories.tsx` | presentation | story do Storybook | `presentation/stories/MiniPlayer.stories.tsx` |
 | `application/use-cases/<verbo>-<sub>.ts` | application | **caso de uso** (sem React) | `modules/courses/application/use-cases/save-course.ts` |
-| `domain/<nome>.ts` | domain | entidades/regras puras | `modules/player/domain/progress.ts` |
+| `domain/<nome>.ts` | domain | no frontend, modelos e cálculos de apresentação/interação; regra de negócio autoritativa fica no backend | `modules/player/domain/progress.ts` |
 | `infrastructure/<nome>.ts` | infrastructure | adapter (mock/persistência/IPC) | `modules/library/infrastructure/mock-library-repository.ts` |
 | `core/contracts/<nome>.ts` | core | contrato de fronteira do runtime | `core/contracts/library-repository.ts` |
 | `*.config.ts` | core | configuração | `core/config/app.config.ts` |
@@ -141,6 +141,12 @@ Convenções React:
   `modules/<ctx>/presentation/components/`.
 - **Hook não contém regra de negócio**: cálculo/invariante vai para `domain/`;
   passo de aplicação vai para `application/use-cases/`.
+- No frontend, casos de uso coordenam a interface com os contratos/adapters;
+  não implementam regras de negócio. Invariantes, validações de consistência e
+  decisões que afetam dados persistidos ficam nos casos de uso do backend.
+- Validações client-side são apenas feedback de UX e devem ser repetidas no
+  backend. Estado transitório, navegação, formatação e renderização permanecem
+  no frontend.
 - Indicadores de tamanho: componente ~150 linhas, hook ~120
   ([`ARCHITECTURE.md`](ARCHITECTURE.md) §11).
 

@@ -1,21 +1,9 @@
-import type { CourseTree, MediaFile } from '@midoteca/core';
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
 import type { ContentType, LibraryItem, SearchFilter, SearchResult } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
-import { mapCourseTree, mapDocumentSummary } from '@/modules/library/infrastructure/ipc/map-catalog';
+import { loadLibraryCatalog } from '@/modules/library/infrastructure/ipc/load-library-catalog';
 
-/**
- * Real `LibraryRepository`, catalog-only.
- *
- * The port is synchronous (`useSyncExternalStore` reads `getItems()` during
- * render) while the kernel is async, so the catalog is kept in an in-memory
- * snapshot hydrated from `catalog.listCourses` / `catalog.getCourseTree` /
- * `catalog.listDocuments` and invalidated by core events. Everything else the
- * aggregated contract requires (playback, reading, pages, search, maintenance)
- * is **delegated** to an injected repository (the in-memory mock for now), so
- * the player, PDF reader and search keep working while only the catalog turns
- * real. See `docs/REFACTORING_ROADMAP.md` (P3/P9).
- */
+/** Real SQLite-backed catalog snapshot; remaining repository operations are delegated (P9). */
 export class IpcLibraryRepository implements LibraryRepository {
   private items: LibraryItem[] = [];
   private readonly listeners = new Set<() => void>();
@@ -31,10 +19,16 @@ export class IpcLibraryRepository implements LibraryRepository {
   hydrate(): void {
     if (!this.detachEvents) {
       this.detachEvents = this.bridge.onEvent((event) => {
-        if (/^(course|media|index|source):/.test(event.name)) void this.refresh();
+        if (/^(course|media|index|source):/.test(event.name)) this.refreshSafely();
       });
     }
-    void this.refresh();
+    this.refreshSafely();
+  }
+
+  private refreshSafely(): void {
+    void this.refresh().catch((error: unknown) => {
+      console.error('[library] falha ao sincronizar catálogo com o núcleo', error);
+    });
   }
 
   private emit(): void {
@@ -44,34 +38,7 @@ export class IpcLibraryRepository implements LibraryRepository {
   private async refresh(): Promise<void> {
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
-      const sources = await this.bridge.invoke('sources.list');
-      const sourceRootById = new Map(sources.map((source) => [source.id, source.rootPath]));
-
-      const mediaById = new Map<string, MediaFile>();
-      for (const source of sources) {
-        const files = await this.bridge.invoke('media.listBySource', { sourceId: source.id });
-        for (const file of files) mediaById.set(file.id, file);
-      }
-
-      const coursePage = await this.bridge.invoke('catalog.listCourses', {});
-      const trees = await Promise.all(
-        coursePage.items.map((course) =>
-          this.bridge
-            .invoke('catalog.getCourseTree', { courseId: course.id })
-            .catch(() => null)
-            .then((tree): CourseTree | null => tree),
-        ),
-      );
-      const documentPage = await this.bridge.invoke('catalog.listDocuments', {});
-
-      this.items = [
-        ...trees
-          .filter((tree): tree is CourseTree => tree !== null)
-          .map((tree) => mapCourseTree(tree, mediaById, sourceRootById)),
-        ...documentPage.items.map((document) =>
-          mapDocumentSummary(document, mediaById, sourceRootById),
-        ),
-      ];
+      this.items = await loadLibraryCatalog(this.bridge);
       this.emit();
     })();
 
@@ -81,8 +48,6 @@ export class IpcLibraryRepository implements LibraryRepository {
       this.refreshing = null;
     }
   }
-
-  // ─── Catálogo (real, kernel) ───────────────────────────────────────────────
 
   getItems(type: ContentType = 'all'): LibraryItem[] {
     if (type === 'all') return this.items;
@@ -115,8 +80,6 @@ export class IpcLibraryRepository implements LibraryRepository {
     this.detachEvents?.();
     this.detachEvents = null;
   }
-
-  // ─── Delegados (playback, leitura, PDF, busca, manutenção) ─────────────────
 
   saveCourse(course: Parameters<LibraryRepository['saveCourse']>[0]) {
     return this.delegate.saveCourse(course);
@@ -165,8 +128,21 @@ export class IpcLibraryRepository implements LibraryRepository {
     this.delegate.setDocumentUnavailable(documentId, unavailable);
   }
 
+  async saveDocumentPageCount(documentId: string, pageCount: number): Promise<void> {
+    await this.bridge.invoke('documents.updatePageCount', { documentId, pageCount });
+    this.items = this.items.map((item) =>
+      item.type === 'document' && item.id === documentId ? { ...item, totalPages: pageCount } : item,
+    );
+    this.emit();
+  }
+
   fetchPageRange(documentId: string, startPage: number, endPage: number) {
-    return this.delegate.fetchPageRange(documentId, startPage, endPage);
+    // PDFs reais são carregados e paginados pelo PDF.js a partir do fileUrl.
+    // O delegate é exclusivamente mock e não conhece IDs do catálogo SQLite.
+    void documentId;
+    void startPage;
+    void endPage;
+    return Promise.resolve([]);
   }
 
   resetAll(): void {

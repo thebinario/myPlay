@@ -40,7 +40,7 @@ export const PdfPageViewport: React.FC<PdfPageViewportProps> = ({
     style={{
       flex: 1,
       overflowY: 'auto',
-      overflowX: 'auto',
+      overflowX: 'hidden',
       padding: '36px 20px',
       display: 'flex',
       justifyContent: 'center',
@@ -56,6 +56,8 @@ export const PdfPageViewport: React.FC<PdfPageViewportProps> = ({
         data-color-mode={colorMode}
         style={{
           width: `${Math.round(720 * zoom)}px`,
+          maxWidth: '100%',
+          boxSizing: 'border-box',
           minHeight: `${Math.round(1020 * zoom)}px`,
           backgroundColor: colorMode === 'dark' ? '#141A28' : '#FFFFFF',
           color: colorMode === 'dark' ? '#E2E8F0' : '#1E293B',
@@ -66,7 +68,7 @@ export const PdfPageViewport: React.FC<PdfPageViewportProps> = ({
           borderRadius: '10px',
           border:
             colorMode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #CBD5E1',
-          padding: `${Math.round(48 * zoom)}px`,
+          padding: '4px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -82,6 +84,8 @@ export const PdfPageViewport: React.FC<PdfPageViewportProps> = ({
               display: 'block',
               margin: '0 auto',
               borderRadius: '4px',
+              maxWidth: '100%',
+              height: 'auto',
               filter: colorMode === 'dark' ? 'invert(1) hue-rotate(180deg)' : 'none',
             }}
           />

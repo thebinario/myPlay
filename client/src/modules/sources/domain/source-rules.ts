@@ -1,4 +1,4 @@
-import type { LibrarySource } from '@/core/domain/library-source';
+import type { LibrarySource, LibraryType } from '@/core/domain/library-source';
 
 /**
  * Regras puras de fontes de biblioteca. Sem IO, sem React, sem framework.
@@ -29,6 +29,7 @@ export function isDuplicateSource(sources: LibrarySource[], path: string): boole
 export interface CreateSourceOptions {
   id?: string;
   name?: string;
+  libraryType?: LibraryType;
 }
 
 /** Cria uma fonte nova (status inicial `connected`, sem conteúdos conhecidos). */
@@ -41,6 +42,7 @@ export function createLibrarySource(
     id: options.id ?? `source-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     path: normalized,
     name: options.name?.trim() || sourceDisplayName(normalized),
+    libraryType: options.libraryType ?? 'course',
     status: 'connected',
     itemCount: 0,
     lastScannedAt: null,

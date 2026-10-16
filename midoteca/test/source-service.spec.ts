@@ -51,6 +51,15 @@ describe('LibrarySourceService', () => {
     await expect(app.sources.addSource({ rootPath: library.root })).rejects.toBeInstanceOf(
       ConflictError,
     );
+
+    const anotherLibrary = createTempLibrary();
+    try {
+      const source = await app.sources.addSource({ rootPath: anotherLibrary.root });
+      expect(source.rootPath).toBe(anotherLibrary.root);
+      expect(source.volumeId).toBeNull();
+    } finally {
+      anotherLibrary.cleanup();
+    }
   });
 
   it('reports availability and flips status when the path disappears', async () => {

@@ -56,4 +56,20 @@ describe('MIDOTECA - Tela da Biblioteca', () => {
     expect(handleSelectCourse).toHaveBeenCalledTimes(1);
     expect(handleSelectCourse).toHaveBeenCalledWith(MOCK_COURSES[0].id);
   });
+
+  it('deve mostrar duração e quantidade de PDFs no card do curso', () => {
+    const course = { ...MOCK_COURSES[0], totalDuration: 3720, pdfCount: 13 };
+    render(<LibraryView items={[course]} onSelectCourse={vi.fn()} />);
+
+    expect(screen.getByText(/1h\s*2m/)).toBeInTheDocument();
+    expect(screen.getByText(/13 PDFs/)).toBeInTheDocument();
+  });
+
+  it('não exibe progresso infinito quando a contagem do PDF ainda não foi catalogada', () => {
+    const document = { ...MOCK_LIBRARY.find((item) => item.type === 'document')!, totalPages: 0 };
+    render(<LibraryView items={[document]} onSelectCourse={vi.fn()} />);
+
+    expect(screen.queryByText('Infinity%')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Páginas não catalogadas')).toHaveLength(2);
+  });
 });
