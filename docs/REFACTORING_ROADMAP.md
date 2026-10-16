@@ -2,9 +2,10 @@
 
 > Recorte **de execução/refatoração** do plano mestre de produto
 > [`ROADMAP.md`](ROADMAP.md) (14 fases / 4 versões). Aqui está **o que migrar
-> primeiro** no código existente, de forma incremental. Não impõe reescrita
-> total. Regras em [`../AGENTS.md`](../AGENTS.md) e
-> [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md).
+> primeiro** no código existente, de forma incremental, para convergir ao
+> **modelo canônico** de [`ARCHITECTURE.md`](ARCHITECTURE.md) — o mesmo para
+> backend e frontend. Não impõe reescrita total. Regras em
+> [`../AGENTS.md`](../AGENTS.md) e [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md).
 
 ## 0. Relação com o roadmap mestre
 
@@ -15,98 +16,224 @@ Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
 | --- | --- | --- |
 | **P0** remover código morto | F00 · Auditoria/baseline | limpeza de sobras |
 | **P1** decompor telas grandes | F01 · Arquitetura e estado | DDD/Clean/Hexagonal |
-| **P2** quebrar `mockData.ts` | F01/F03 · fonte única de verdade | fronteira de repositório |
-| **P3** adapter IPC/HTTP | F03 · Desktop e catálogo | liga `client` ↔ `midoteca` |
-| **P4** `domain/`+`application/` no FE | F01/F02 · componentização | separação de camadas |
+| **P2** quebrar `mockLibraryRepository` | F01/F03 · fonte única de verdade | fronteira de repositório |
+| **P3** adapter do FE sobre o núcleo | F03 · Desktop e catálogo | liga `client` ↔ `midoteca` |
+| **P4** `domain/` + casos de uso no FE | F01/F02 · componentização | separação de camadas |
+| **P5** layout canônico do backend | F01/F03 | `modules/` + `platform/` + `app/` |
+| **P6** layout canônico do frontend | F01 | `features/` → `modules/`, testes em `test/` |
+| **P7** casos de uso × hooks no FE | F01/F02 | `application/` sem React |
 
 ## 1. Princípios
 
-- **Código novo já nasce correto**; código antigo migra quando tocado ou quando
-  representa risco relevante.
+- **Código novo já nasce no modelo canônico**; código antigo migra quando tocado
+  ou quando representa risco relevante.
 - **Não interromper a entrega de funcionalidades** para reescrever.
 - Passos pequenos, com testes verdes a cada passo (ver
   [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md)).
 - Não migrar módulos não relacionados à tarefa atual.
+- Migração de layout **não altera comportamento**: caracterizar → mover → ajustar
+  imports → rodar a suíte.
 
-## 2. Status atual (evidência)
+## 2. Alvo da convergência
+
+Estrutura única (backend e frontend) definida em
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §4:
+
+```text
+src/
+├── app/            # composition root + shell
+├── core/           # kernel: domain compartilhado + ports + erros/validação/config
+├── modules/<ctx>/{domain,application,infrastructure,presentation}
+├── shared/         # ui, testing (sem regra de negócio)
+└── platform/       # adapters técnicos compartilhados por 2+ contextos
+```
+
+## 3. Status atual (evidência verificada)
 
 | Área | Situação |
 | --- | --- |
-| `midoteca/` (backend) | Fases 1–2 concluídas, arquitetura correta, **92 testes** |
-| `client/` (frontend) | **Migrado para módulos por domínio**: `app/`, `core/{domain,ports,config}`, `features/*/{application,infrastructure,presentation}`, `shared/ui`; telas grandes decompostas; legado isolado em `legacy/`; **212 testes** |
-| `backend/` (legado myPlay) | Descartado como base de código |
+| `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **17 arquivos de spec** / 92 testes verdes em `test/`. Pendente: casos de uso explícitos e `presentation/` |
+| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `features/<ctx>/{application,infrastructure,presentation}`, `shared/ui`. **13 arquivos de teste** em `src/__tests__`, **22 stories**. Telas grandes decompostas; sem `domain/` por contexto; código morto isolado em `legacy/` e `stories/` |
+| `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
-## 3. Priorização
+> Contagens de testes: backend **confirmado em execução após o P5** (92 testes /
+> 17 arquivos, `vitest run`), além de `typecheck`, `lint`, `format:check` e
+> `build` em 0. O "212" do frontend continua **a reconferir** rodando `npm test`
+> em `client/` (dependências ainda não instaladas neste worktree).
+
+## 4. Priorização
 
 | Prioridade | Alvo | Impacto | Risco | Situação |
 | --- | --- | --- | --- | --- |
-| **P0** | Remover código morto do `client/` | Alto (ruído/confusão) | Baixo | ⏳ isolado em `src/legacy/` (excluído do build); remoção física pendente |
-| **P1** | Extrair lógica das telas grandes do `client/` | Alto (manutenção/testes) | Médio | ✅ telas principais decompostas |
-| **P2** | Quebrar `mockData.ts` e isolar fixtures | Médio | Baixo | ⏳ movido para `library/infrastructure`; separar fixtures pendente |
-| **P3** | Adapter IPC/HTTP ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ não iniciado |
-| **P4** | Frontend: `domain/` + `application/` por feature | Médio | Médio | ✅ estrutura `features/<domínio>/` criada |
-| — | `backend/` legado | — | **Não migrar** |
+| **P0** | Remover código morto (`legacy/`, `stories/` do CRA, sobras) | Alto (ruído/confusão) | Baixo | ⏳ isolado, fora do build; remoção física pendente |
+| **P5** | Layout canônico do backend (`app/`, `core/`, `modules/`, `platform/`) | Alto (vocabulário único) | Médio (paths/imports) | ✅ layout concluído; casos de uso/presentation pendentes |
+| **P6** | Layout canônico do frontend (`features/` → `modules/`, testes → `test/`) | Médio (vocabulário único) | Baixo (mecânico) | ⏳ não iniciado |
+| **P2** | Separar fixtures de adapter em `mockLibraryRepository.ts` (737 linhas) | Médio | Baixo | ⏳ pendente |
+| **P7** | Casos de uso × hooks de apresentação no FE | Médio (testabilidade) | Médio | ⏳ pendente |
+| **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ bloqueado por decisão de transporte (ADR) |
+| **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | ✅ concluído |
+| **P4** | `domain/` por contexto no FE | Médio | Médio | ⏳ estrutura pronta; `domain/` ausente |
+| — | `backend/` legado | — | **Não migrar** | — |
 
-## 4. P0 — Remover código morto do frontend
+Ordem recomendada: **P0** → **P6** (barato, alinha o vocabulário do frontend ao
+backend já migrado) → **P2/P7** → **P3** (depende do ADR de transporte). O layout
+do backend (**P5**) já está aplicado; restam seus refinamentos internos.
 
-Cinco componentes do myPlay **não têm nenhum importador** (verificado por busca
-de imports). Foram **isolados em `client/src/legacy/`** (fora do build;
-`tsconfig` exclui `src/legacy`). A remoção física é o passo final deste item:
+## 5. P0 — Remover código morto
 
-| Arquivo (agora em `src/legacy/`) | Linhas |
+Inventário verificado (nenhum importador em código ativo; `tsconfig` já os
+exclui):
+
+| Arquivo | Linhas | Origem |
+| --- | --- | --- |
+| `client/src/legacy/VideoPlayer.tsx` | 1.046 | myPlay |
+| `client/src/legacy/VideoList.tsx` | 836 | myPlay |
+| `client/src/legacy/EditVideoDialog.tsx` | 256 | myPlay |
+| `client/src/legacy/ScanDirectory.tsx` | 149 | myPlay |
+| `client/src/legacy/AddVideo.tsx` | 113 | myPlay |
+| `client/src/legacy/index.tsx` · `reportWebVitals.ts` · `setupTests.ts` | 17 · 15 · 5 | CRA |
+| `client/src/setupProxy.js` · `client/src/react-app-env.d.ts` | — | CRA |
+| `client/src/stories/**` (Button/Header/Page + assets) | — | CRA/Storybook boilerplate |
+
+Ação: remover os arquivos acima e limpar as exclusões correspondentes de
+`tsconfig.json`, `.prettierignore` e do lint. Ganho: **~3.174 linhas** menos, sem
+mudança de comportamento. Passo de menor risco.
+
+> As 22 stories dos componentes reais (`shared/ui` + `presentation/`) **permanecem**;
+> só o boilerplate do CRA sai.
+
+## 6. P1 — Telas grandes → componentes coesos + casos de uso
+
+**Concluído** para as telas principais (cada view agora é fina; lógica em hooks e
+subcomponentes):
+
+| Antes (myPlay) | Depois |
 | --- | --- |
-| `VideoPlayer.tsx` | 996 |
-| `VideoList.tsx` | 770 |
-| `EditVideoDialog.tsx` | 256 |
-| `ScanDirectory.tsx` | 144 |
-| `AddVideo.tsx` | 116 |
-
-Ação restante: remover o diretório `legacy/` quando conveniente.
-Ganho: ~2.280 linhas a menos, sem mudança de comportamento. Passo de menor risco.
-
-## 5. P1 — Telas grandes → componentes coesos + casos de uso
-
-**Concluído** para as telas principais. Resultado da decomposição (cada view agora
-é fina; lógica em hooks `application/` e subcomponentes `presentation/`):
-
-| Antes | Depois |
-| --- | --- |
-| `components/player/VideoPlayerView.tsx` (840) | `features/player/presentation/VideoPlayerView.tsx` (~145) + `application/useVideoPlayer.ts` + controles |
-| `components/editor/CourseEditorView.tsx` (591) | `features/courses/presentation/CourseEditorView.tsx` (~68) + `application/useCourseEditor.ts` |
-| `components/pdf/PdfViewer.tsx` (581) | `features/documents/presentation/PdfViewer.tsx` (~58) + `application/usePdfReader.ts` |
-| `components/search/SearchView.tsx` (529) | `features/search/presentation/SearchView.tsx` (~86) + `application/useUniversalSearch.ts` |
-| `components/course/CourseDetailsView.tsx` (531) | `features/courses/presentation/CourseDetailsView.tsx` |
-| `components/library/LibraryView.tsx` (446) | `features/library/presentation/LibraryView.tsx` |
-| `components/home/HomeView.tsx` (436) | `features/home/presentation/HomeView.tsx` + `Sidebar.tsx` |
-| `components/player/MoviePlayerView.tsx` (405) | `features/player/presentation/MoviePlayerView.tsx` |
-| `components/player/MiniPlayer.tsx` (308) | `features/player/presentation/MiniPlayer.tsx` |
+| `VideoPlayer.tsx` (1.046) | `features/player/presentation/VideoPlayerView.tsx` (~145) + `application/useVideoPlayer.ts` + controles |
+| `CourseEditorView.tsx` (591) | `features/courses/presentation/CourseEditorView.tsx` (~68) + `application/useCourseEditor.ts` |
+| `PdfViewer.tsx` (581) | `features/documents/presentation/PdfViewer.tsx` (~58) + `application/usePdfReader.ts` |
+| `SearchView.tsx` (529) | `features/search/presentation/SearchView.tsx` (~86) + `application/useUniversalSearch.ts` |
+| `CourseDetailsView.tsx` (531) | `features/courses/presentation/CourseDetailsView.tsx` |
+| `LibraryView.tsx` (446) | `features/library/presentation/LibraryView.tsx` |
+| `HomeView.tsx` (436) | `features/home/presentation/HomeView.tsx` + `Sidebar.tsx` |
+| `MoviePlayerView.tsx` (405) | `features/player/presentation/MoviePlayerView.tsx` |
+| `MiniPlayer.tsx` (308) | `features/player/presentation/MiniPlayer.tsx` |
 
 Estratégia aplicada: **caracterização → extrair hook/caso de uso → extrair
 componentes → validar**. Comportamento visual preservado.
 
-## 6. P2 — `mockData.ts`
+## 7. P2 — `mockLibraryRepository.ts`
 
-Movido para `features/library/infrastructure/mockLibraryRepository.ts` (fixtures +
-`MockLibraryService`). A separação em `fixtures/` + `adapters/mock-library.ts` +
-`adapters/mock-search.ts` **permanece pendente**, mas já sob o módulo `library` e
-atrás do port `LibraryRepository`.
+Hoje: **737 linhas** em `features/library/infrastructure/`, atrás do port
+`LibraryRepository`. Restante: separar **fixtures** (`fixtures/`) dos **adapters**
+(`mock-library.ts`, `mock-search.ts`) e extrair a persistência (`libraryStorage`)
+como port de infraestrutura (já existe) — sem mudar comportamento.
 
-## 7. P3 — Adapter IPC/HTTP (`client` ↔ `midoteca`)
+## 8. P3 — Adapter do frontend sobre o núcleo
 
-Criar `IpcLibraryRepository implements LibraryRepository` que chama o núcleo
-(`createMidoteca` via Tauri IPC / HTTP local / worker). Injetar em
-`<LibraryProvider repository={…}>`. **Nenhum componente muda** — é a prova do
-desenho Ports & Adapters.
+Criar `IpcLibraryRepository implements LibraryRepository` (ou HTTP local) que
+chama o núcleo (`createMidoteca`), injetado em `<LibraryProvider repository={…}>`.
+**Nenhum componente muda** — é a prova do desenho Ports & Adapters.
 
-## 8. P4 — `domain/` + `application/` no frontend
+**Bloqueios verificados (resolver antes de codificar):**
 
-**Estrutura criada**: `features/<domínio>/{domain,application,infrastructure,presentation}`,
-com `core/domain` (tipos) e `core/ports` (contratos) como kernel compartilhado.
-Restante: mover regras puras remanescentes (cálculo de progresso, próxima aula,
-validação de edição) para `domain/` conforme forem tocadas, mantendo
-`presentation/` apenas com apresentação.
+1. **Não existe transporte.** Não há `@tauri-apps/*` nem `src-tauri/` no
+   `client/`, e o ADR `midoteca/docs/adr/0001-backend-runtime.md` **adia** essa
+   decisão. → primeiro entregável: **ADR de transporte**.
+2. **O núcleo não roda no browser**: `"type": "commonjs"` + `better-sqlite3`
+   nativo. A fronteira precisa cruzar processo (HTTP local / IPC / worker).
+3. **A porta do FE é síncrona** (`getItems(): LibraryItem[]`) e o núcleo é
+   assíncrono → o adapter precisa de um **snapshot com cache estável** para
+   `useSyncExternalStore`, ou a porta muda de assinatura (mais churn).
+4. **Impedância de modelo**: o domínio do núcleo é *indexing-first* (plano,
+   `metadata`, `sourceId`, `relativePath`) e o do FE é *apresentação-first*
+   (aninhado, `coverUrl`, `tags`, `progress 0-100`); progresso em **ms** no núcleo
+   × **segundos** no FE; `LibraryQueryService.search` devolve só cursos e
+   documentos, mas `ISearchService` exige aulas e filmes. → **camada
+   anticorrupção** no adapter, com testes de contrato.
+5. **Empacotamento**: não há workspaces; `@midoteca/core` não é dependência do
+   `client/` (exige `build` de `dist` + link/alias).
 
-## 9. Backend legado (`backend/`)
+## 9. P4 — `domain/` + casos de uso no FE
+
+Estrutura de contexto já existe. Restante: extrair regras puras (cálculo de
+progresso, próxima aula, validação de edição) para `modules/<ctx>/domain/`
+conforme forem tocadas, mantendo `presentation/` só com apresentação. **Nenhum
+contexto tem `domain/` hoje** (verificado).
+
+## 10. P5 — Layout canônico do backend — ✅ **layout aplicado**
+
+**Problema:** o núcleo usava um vocabulário próprio (`core/<ctx>/` plano +
+`infra/`), diferente do modelo canônico compartilhado com o frontend.
+
+**Responsabilidade extraída:** separação estrita por contexto e camada —
+`core/` (kernel), `modules/<ctx>/{domain,application,infrastructure}`,
+`platform/` (adapters de 2+ contextos) e `app/` (composition root).
+
+| Passo | De | Para | Situação |
+| --- | --- | --- | --- |
+| 1 | `src/index.ts` (composition root + API) | `src/app/composition-root.ts` + `src/index.ts` (só API pública) | ✅ |
+| 2 | `src/core/shared/*` (10 arquivos) | `src/core/*` (kernel) | ✅ |
+| 3 | `src/core/<ctx>/{entities,inputs}.ts` | `src/modules/<ctx>/domain/` | ✅ |
+| 4 | `src/core/<ctx>/{repository,ports}.ts` | `src/modules/<ctx>/domain/ports.ts` | ✅ |
+| 5 | `src/core/<ctx>/{service,queries,indexer}.ts` | `src/modules/<ctx>/application/` | ✅ movido (parcial) |
+| 6 | `src/core/<ctx>/<regra pura>.ts` | `src/modules/<ctx>/domain/` | ✅ |
+| 7 | `src/infra/sqlite/repositories/<ctx>.*.sqlite.ts` | `src/modules/<ctx>/infrastructure/` | ✅ |
+| 8 | `src/infra/sqlite/{database,migrator,migrations}` | `src/platform/persistence/sqlite/` | ✅ |
+| 9 | `src/infra/fs/*`, `src/infra/events/*` | `src/platform/fs/`, `src/platform/events/` | ✅ |
+| 10 | — | `src/modules/<ctx>/presentation/` (transporte) | ⏳ Fase 3 |
+
+**Arquivos alterados:** 72 movidos + `src/index.ts` dividido +
+`core/domain/{media-type,lesson-media-role}.ts` promovidos + barrels ajustados.
+Nenhum arquivo de esquema/mídia tocado.
+
+**Testes:** nenhum teste novo (migração de layout); **os 17 specs / 92 testes
+existentes serviram de caracterização** e seguem verdes.
+
+**Validação:** `npm test` 92/92 · `typecheck` 0 · `lint` 0 · `format:check` 0 ·
+`build` 0 · `node scripts/migrate.cjs` aplica `1, 2` · E2E contra `dist`
+(`createMidoteca` → `addSource` → `listSources` → `runIndexScan` → `queries`)
+funcionando · varredura de imports entre áreas sem violações.
+
+**Dívidas restantes:**
+
+- `application/` ainda guarda serviços (`library-source-service`, `indexer`) em
+  vez de casos de uso explícitos em `application/use-cases/`;
+- `presentation/` (transporte) continua ausente — é a Fase 3 e o que destrava o
+  P3;
+- adapters acima do indicador: `course.repository.sqlite.ts` (430),
+  `indexing.store.sqlite.ts` (421).
+
+Ordem segura usada: **caracterizar** (suíte verde antes) → mover → ajustar
+imports → rodar a suíte. Sem mudança de comportamento e sem tocar no schema
+SQLite. Detalhes das decisões não previstas no mapa: `docs/ARCHITECTURE.md`
+§12.1.
+
+## 11. P6 — Layout canônico do frontend
+
+| Passo | De | Para |
+| --- | --- | --- |
+| 1 | `src/features/<ctx>/…` | `src/modules/<ctx>/…` (rename + alias `@/features/*` → `@/modules/*`) |
+| 2 | `src/__tests__/*.test.tsx` (13) | `test/**` espelhando a árvore |
+| 3 | `src/legacy/`, `src/stories/` | remover (P0) |
+
+Passo mecânico, sem mudança de comportamento. Verificar: `vitest.config`/`vite.config`
+(`setupFiles`, projetos), imports nos testes e stories, e o `tsconfig` (paths).
+
+## 12. P7 — Casos de uso × hooks de apresentação (FE)
+
+Hoje `features/<ctx>/application/` guarda **hooks React**
+(`useVideoPlayer`, `usePdfReader`, `useCourseEditor`, `useUniversalSearch`,
+`useMediaElementPlayback`, `useAutoHideControls`). Canonônico:
+
+- **regra/ passo de aplicação** → `modules/<ctx>/application/use-cases/*.ts`
+  (sem React, testável isolado);
+- **hook de apresentação** → `modules/<ctx>/presentation/hooks/useXxx.ts`
+  (estado de UI, efeitos, assinatura do repositório);
+- o hook chama o caso de uso; o componente chama o hook. Componente nunca contém
+  regra.
+
+## 13. Backend legado (`backend/`)
 
 **Não migrar.** Já auditado e classificado em
 [`../midoteca/docs/MYPLAY_AUDIT.md`](../midoteca/docs/MYPLAY_AUDIT.md):
@@ -115,7 +242,7 @@ arquivo↔registro e exclusão física. Reaproveitar apenas **conceitos** (forma
 parâmetros de transcodificação, ideias de streaming por range/LRU). Quando
 necessário, remover o diretório em PR isolado após confirmar ausência de uso.
 
-## 10. Formato de relato por mudança
+## 14. Formato de relato por mudança
 
 Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 
@@ -126,9 +253,10 @@ Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 - **Resultado da validação** (`npm test`, `typecheck`, `build`)
 - **Dívidas técnicas restantes**
 
-## 11. Não-objetivos
+## 15. Não-objetivos
 
-- Reescrever o frontend inteiro de uma vez.
+- Reescrever backend ou frontend inteiros de uma vez.
 - Migrar `backend/` legado.
 - Introduzir abstrações/camadas sem responsabilidade real.
 - Mudar navegação/comportamento visual sem necessidade da tarefa.
+- Alterar o schema SQLite durante migrações de layout.

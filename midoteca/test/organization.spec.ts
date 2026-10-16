@@ -4,8 +4,8 @@ import {
   naturalCompare,
   organize,
   parseSubtitle,
-} from '../src/core/indexing/organization';
-import type { DiscoveredFile, MediaKind } from '../src/core/indexing/types';
+} from '../src/modules/indexing/domain/organization';
+import type { DiscoveredFile, MediaKind } from '../src/modules/indexing/domain/types';
 
 function file(relativePath: string, kind: MediaKind): DiscoveredFile {
   const fileName = relativePath.split('/').pop()!;

@@ -76,25 +76,28 @@ const app = createMidoteca({ databaseFile: '/tmp/midoteca.db' });
 
 ## Estrutura
 
+Layout **canônico** (o mesmo do frontend; migração **P5** concluída sem mudança
+de comportamento — ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §3 e §10):
+
 ```text
 midoteca/
 ├── src/
-│   ├── core/                # domínio puro (sem dependência de infra)
-│   │   ├── library/         # LibrarySource
-│   │   ├── media/           # MediaFile, MediaTrack
-│   │   ├── courses/         # Course, CourseModule, Lesson, LessonMedia
-│   │   ├── documents/       # Document, DocumentLink
-│   │   ├── progress/        # PlaybackProgress, ReadingProgress
-│   │   ├── jobs/            # Job (fila persistida)
-│   │   ├── settings/        # AppSetting
-│   │   ├── indexing/        # fronteira + tipos de job (Fase 2)
-│   │   ├── search/          # fronteira + contrato (Fase 2)
-│   │   └── shared/          # ids, erros, validação, JSON, caminhos
-│   └── infra/sqlite/        # driver, migrações e repositórios SQLite
+│   ├── index.ts             # API pública (re-exporta core/, modules/, platform/)
+│   ├── app/                 # composition root: createMidoteca()
+│   ├── core/                # kernel: domain compartilhado + erros/validação/ids/clock/JSON
+│   ├── modules/<contexto>/  # library, media, courses, documents, progress, jobs,
+│   │                        #   settings, indexing, search
+│   │   ├── domain/          #   entidades, inputs, ports, regras puras
+│   │   ├── application/     #   casos de uso, queries, serviços de orquestração
+│   │   └── infrastructure/  #   adapters (ex.: *.repository.sqlite.ts)
+│   └── platform/            # persistence/sqlite, fs, events (2+ contextos)
 ├── test/                    # testes Vitest (bancos temporários)
 ├── docs/                    # ARCHITECTURE, DATABASE, DOMAIN_MODEL, adr/, MYPLAY_AUDIT
 └── scripts/migrate.cjs      # CLI de migração
 ```
+
+Modelo canônico completo (vale para backend e frontend):
+[`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 
 ## Documentação
 

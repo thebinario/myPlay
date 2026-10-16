@@ -133,7 +133,7 @@ Sinais cooperativos: `playbackActive`, `diskBusy`, `memoryPressure`, `onBattery`
 
 ## 10. Eventos
 
-Tipados em `core/indexing/events.ts`, emitidos **após o commit**:
+Tipados em `modules/indexing/domain/events.ts`, emitidos **após o commit**:
 
 `source:added`, `source:connected`, `source:disconnected`, `media:discovered`,
 `media:updated` (`reason: modified|moved`), `media:unavailable`,

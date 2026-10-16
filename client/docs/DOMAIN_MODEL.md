@@ -1,8 +1,9 @@
 # Modelo de Domínio — midoteca-desktop (frontend)
 
-> Os tipos do frontend vivem em `client/src/types/library.ts`. Este documento
+> Os tipos do frontend vivem em `client/src/core/domain/library.ts`. Este documento
 > descreve os conceitos, os view-models e a relação com o domínio canônico do
-> núcleo (`midoteca/src/core`).
+> núcleo (`midoteca/src/core` hoje; alvo `midoteca/src/modules/<contexto>/domain` —
+> ver [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §12).
 
 ## 1. Conceitos
 

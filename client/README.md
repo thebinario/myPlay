@@ -30,12 +30,18 @@ npm run build-storybook  # build estático do Storybook
 
 ```text
 src/
-├── App.tsx              # shell + navegação + sessão de reprodução
-├── types/library.ts     # domínio (tipos/view-models)
-├── services/            # contracts (ports) · mockData (adapter) · LibraryContext
-├── components/          # features + design system (ui/)
-├── features/*/stories/  # Storybook
-└── __tests__/           # testes de componente/contrato
+├── app/                     # composition root (main.tsx) + shell (App.tsx)
+├── core/                    # domain (view-models) · ports (contratos) · config
+├── features/<contexto>/     # application · infrastructure · presentation
+│                            #   (library, home, courses, player, documents, search, settings)
+├── shared/ui/               # design system (átomos + stories)
+├── __tests__/               # testes (alvo: test/ espelhando a árvore)
+└── legacy/ · stories/       # código morto do CRA/myPlay — fora do build
 ```
+
+Estrutura canônica de destino (idêntica à do backend): `app/`, `core/`,
+`modules/<contexto>/{domain,application,infrastructure,presentation}`, `shared/`,
+`platform/` — ver [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) §4 e o
+passo **P6** de [`../docs/REFACTORING_ROADMAP.md`](../docs/REFACTORING_ROADMAP.md).
 
 Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

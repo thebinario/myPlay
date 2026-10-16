@@ -4,7 +4,7 @@
 
 - **Local-first**: o banco é um arquivo SQLite no diretório de dados do usuário.
   O caminho é resolvido por `resolveDefaultDatabasePath()` (ver
-  `src/core/shared/app-paths.ts`) a partir de `MIDOTECA_DATA_DIR` ou do padrão da
+  `src/core/app-paths.ts`) a partir de `MIDOTECA_DATA_DIR` ou do padrão da
   plataforma. Nenhum caminho absoluto é fixado no código.
 - **Sem PostgreSQL**: a fundação não depende de nenhum servidor externo.
 - **Sem auto-schema**: `synchronize` não existe; o esquema evolui só por
@@ -14,7 +14,7 @@
 
 ## 2. Conexão e PRAGMAs
 
-`SqliteDatabase` (`src/infra/sqlite/database.ts`) aplica, por conexão:
+`SqliteDatabase` (`src/platform/persistence/sqlite/database.ts`) aplica, por conexão:
 
 | PRAGMA         | Valor     | Motivo                                                        |
 | -------------- | --------- | ------------------------------------------------------------- |
@@ -29,7 +29,7 @@ sucesso, rollback em qualquer erro).
 ## 3. Estratégia de migrações
 
 - Migrações são objetos `{ id, name, up, down }` em
-  `src/infra/sqlite/migrations/`, listados em ordem em `migrations/index.ts`.
+  `src/platform/persistence/sqlite/migrations/`, listados em ordem em `migrations/index.ts`.
 - `id` é monotônico e imutável; `name` espelha o arquivo.
 - `runMigrations()` cria `schema_migrations` na primeira execução e aplica
   somente as pendentes, **cada uma em sua própria transação**.

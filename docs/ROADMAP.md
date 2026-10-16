@@ -41,14 +41,14 @@ A última coluna reflete o **estado real do repositório hoje**.
 | Área | Estado conhecido (protótipo) | Próximo objetivo | Evidência no repo |
 | --- | --- | --- | --- |
 | Biblioteca | Interface e mocks | Catálogo persistente | `client/src/features/library/infrastructure/mockLibraryRepository.ts`; núcleo já indexa |
-| Cursos e aulas | Telas funcionais sobre mocks | Modelo de domínio consistente | domínio em `midoteca/src/core/courses` |
+| Cursos e aulas | Telas funcionais sobre mocks | Modelo de domínio consistente | domínio em `midoteca/src/modules/courses` |
 | Editor | Edição inline e drag-and-drop | Componentes menores e persistência | `features/courses/presentation/CourseEditorView.tsx` (extraído) |
 | Player | Interface presente | Reprodução local real e retomada | `features/player/presentation/MoviePlayerView`/`VideoPlayerView` |
 | Pesquisa | Implementação sobre mocks | Busca no catálogo real | `LibraryQueryService` (núcleo) |
 | Leitor PDF | Provedor e páginas simulados | PDF real com leitura parcial | `features/documents/presentation/PdfViewer.tsx` (extraído) |
 | Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `features/*/presentation/*.stories.tsx` |
 | Configurações | Placeholder | Tela real e preferências persistentes | `features/settings/presentation` |
-| HDs e indexação | Parcial | Integração desktop | `midoteca/src/core/indexing` (Fases 1–2) |
+| HDs e indexação | Parcial | Integração desktop | `midoteca/src/modules/indexing` (Fases 1–2) |
 | Nuvem | Planejada | Posterior ao MVP | — |
 | Documentação | Parcialmente desatualizada | Corrigir antes de automatizar | `docs/`, `midoteca/docs/`, `client/docs/` |
 
@@ -351,36 +351,27 @@ experiência validados** antes de ser incorporado ao produto.
 
 ## 5. Arquitetura-alvo
 
+> **Fonte única de verdade do alvo:** [`ARCHITECTURE.md`](ARCHITECTURE.md) — o
+> mesmo modelo vale para **backend e frontend** (camadas, pastas e regras de
+> dependência idênticas). O que segue é o resumo.
+
 Implementada por **contextos de domínio**, com as dependências voltadas para as
 regras do sistema.
 
 ```text
 MIDOTECA
 │
-├── app/
-│   ├── bootstrap
-│   ├── navigation
-│   └── dependency-container
-│
-├── modules/
-│   ├── catalog/
-│   ├── courses/
-│   ├── playback/
-│   ├── documents/
-│   ├── media-sources/
-│   ├── indexing/
-│   ├── search/
-│   └── preferences/
-│
-├── shared/
-│   ├── ui/
-│   ├── domain/
-│   └── testing/
-│
-└── platform/
-    ├── desktop/
-    ├── persistence/
-    └── cloud/
+├── app/                     # composition root + shell
+├── core/                    # kernel: domain compartilhado + ports + erros/validação/config
+├── modules/                 # um por bounded context (backend e frontend)
+│   ├── library/  courses/  documents/  media/  progress/
+│   ├── indexing/  search/  jobs/  settings/
+│   ├── home/  player/       # contextos de interface (frontend)
+│   └── <contexto>/{domain,application,infrastructure,presentation}
+├── shared/                  # ui/ · testing/ (sem regra de negócio)
+└── platform/                # adapters técnicos compartilhados por 2+ contextos
+    ├── persistence/ · fs/ · events/
+    └── desktop/ · cloud/
 ```
 
 Dentro de um módulo relevante:
@@ -402,7 +393,11 @@ courses/
     └── pages/
 ```
 
-> Referência, **não** obrigação de criar todos os diretórios antecipadamente.
+> Referência, **não** obrigação de criar todos os diretórios antecipadamente:
+> camada sem responsabilidade real não deve existir
+> ([`ARCHITECTURE.md`](ARCHITECTURE.md) §10). A convergência incremental do
+> código atual está em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md) —
+> backend **P5**, frontend **P6/P7**.
 
 ### Regras técnicas permanentes
 

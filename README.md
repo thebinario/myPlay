@@ -8,12 +8,16 @@ persistência local.
 ## Estrutura do repositório
 
 ```
-myPlay/
-├── client/     # Aplicação desktop (React 19 + TypeScript + Vite) — app real
-├── midoteca/   # Novo backend (NestJS + SQLite), arquitetura DDD/hexagonal
-├── backend/    # myPlay legado (NestJS + PostgreSQL) — descontinuado
-└── docs/       # Arquitetura, DDD, testes e roadmap de refatoração
+Midoteca/
+├── client/     # App desktop (React 19 + TypeScript + Vite) — app real
+├── midoteca/   # Núcleo/backend local-first (TypeScript + SQLite) — DDD/hexagonal
+├── backend/    # myPlay legado (NestJS + PostgreSQL) — descartado, NÃO migrar
+└── docs/       # modelo canônico de arquitetura, DDD, testes e roadmap
 ```
+
+**Um só modelo de arquitetura para os dois lados.** Camadas, pastas e regras de
+dependência são idênticas em `midoteca/` e `client/`; a fonte única de verdade é
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Frontend (`client/`)
 
@@ -30,36 +34,41 @@ de UI externa.
 - `pdfjs-dist` para leitura de PDF real
 - Vitest + Testing Library (jsdom) e Storybook (vitest addon + Playwright)
 
-**Arquitetura (Ports & Adapters)**
+**Arquitetura (modelo canônico, igual ao backend — `docs/ARCHITECTURE.md`)**
 
-- `src/services/contracts.ts` — contratos (`LibraryRepository`, catálogo,
-  reprodução, leitura, provedor de páginas, pesquisa).
-- `src/services/LibraryContext.tsx` — `LibraryProvider` e hooks
-  (`useLibrary`, `useLibraryRepository`); fonte única de verdade reativa via
-  `useSyncExternalStore`.
-- `src/services/libraryStorage.ts` — porta de persistência + adapter
-  `localStorage` (composição do repositório persistente).
-- Componentes visuais finos; lógica em hooks (`usePdfReader`,
-  `useUniversalSearch`, `useCourseEditor`, `useVideoPlayer`) e no repositório.
+- `src/app/` — composition root (`main.tsx`) e shell (`App.tsx`).
+- `src/core/ports/libraryRepository.ts` — contratos (`LibraryRepository` e ports
+  menores de catálogo, reprodução, leitura, páginas e pesquisa).
+- `src/core/domain/library.ts` — domínio/view-models do app.
+- `src/features/<contexto>/{application,infrastructure,presentation}` — contextos
+  (`library`, `home`, `courses`, `player`, `documents`, `search`, `settings`).
+- `src/shared/ui/` — design system (átomos + stories).
+- Componentes visuais finos; lógica em hooks e no repositório.
 - Mídia real em `client/public/media/{videos,docs}`.
+- ⏳ Convergência pendente: `features/` → `modules/` e testes
+  `src/__tests__/` → `test/` (`docs/REFACTORING_ROADMAP.md` P6).
 
-**Scripts** (Yarn)
+**Scripts** (npm — o mesmo da CI)
 
 ```bash
-yarn dev               # servidor de desenvolvimento (porta 3333)
-yarn build             # tsc + vite build
-yarn test              # Vitest (unidade + stories)
-yarn test:storybook    # apenas testes de stories (chromium)
-yarn test:coverage     # cobertura
-yarn storybook         # Storybook em http://localhost:6006
-yarn build-storybook   # build estático do Storybook
+npm run dev              # servidor de desenvolvimento (porta 3333)
+npm run build            # tsc + vite build
+npm test                 # Vitest (unidade + stories)
+npm run test:coverage    # cobertura
+npm run typecheck        # tsc --noEmit
+npm run lint             # ESLint
+npm run storybook        # Storybook em http://localhost:6006
+npm run build-storybook  # build estático do Storybook
 ```
 
 ## Backend (`midoteca/`)
 
-Novo núcleo em NestJS + SQLite, organizado por domínios (Library, Courses,
-Media, Documents, Progress, Indexing, Search, Jobs, Settings) com Clean
-Architecture. Consulte `midoteca/README.md` e `midoteca/docs/`.
+Núcleo local-first em **TypeScript + SQLite** (`better-sqlite3`), **sem framework
+HTTP** (não usa NestJS nem PostgreSQL): domínio/aplicação em `core/`, adapters em
+`infra/` e composition root em `createMidoteca()`. Organizado pelos contextos
+Library, Media, Courses, Documents, Progress, Indexing, Search, Jobs e Settings,
+seguindo o modelo canônico de [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Consulte `midoteca/README.md` e `midoteca/docs/`.
 
 ## Backend legado (`backend/`)
 

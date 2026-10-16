@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { RecursiveFileScanner, classifyExtension } from '../src/infra/fs/recursive-scanner';
-import type { DiscoveredFile } from '../src/core/indexing/types';
+import { RecursiveFileScanner, classifyExtension } from '../src/platform/fs/recursive-scanner';
+import type { DiscoveredFile } from '../src/modules/indexing/domain/types';
 import { createTempLibrary, type TempLibrary } from './helpers/temp-library';
 
 async function collect(
