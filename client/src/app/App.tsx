@@ -9,9 +9,14 @@ import { MiniPlayer } from '@/modules/player/presentation/views/MiniPlayer';
 import { PdfViewer } from '@/modules/documents/presentation/PdfViewer';
 import { HomeView } from '@/modules/home/presentation/HomeView';
 import { SearchView } from '@/modules/search/presentation/SearchView';
-import { SettingsView } from '@/modules/settings/presentation/SettingsView';
+import { SettingsView } from '@/modules/settings/presentation/views/SettingsView';
 import { NavigationTab, Course } from '@/core/domain/library';
 import { useLibrary } from '@/modules/library/presentation/LibraryProvider';
+import { LibrarySourcesPanel } from '@/modules/sources/presentation/components/LibrarySourcesPanel';
+import { OnboardingView } from '@/modules/onboarding/presentation/views/OnboardingView';
+import { useLibrarySources } from '@/modules/sources/presentation/hooks/useLibrarySources';
+import { useImportFlow } from '@/modules/sources/presentation/hooks/useImportFlow';
+import { useOnboarding } from '@/modules/onboarding/presentation/hooks/useOnboarding';
 
 type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
 
@@ -34,6 +39,12 @@ export const App: React.FC = () => {
   // Catálogo: fonte única de verdade (repositório + assinatura de mudanças)
   const { repository, items, courses, movies, documents } = useLibrary();
   const docs = documents;
+
+  // Fontes + importação (contexto `sources`) e primeiro acesso (contexto `onboarding`).
+  const sourcesViewModel = useLibrarySources();
+  const importFlow = useImportFlow();
+  const onboarding = useOnboarding();
+  const [showOnboarding, setShowOnboarding] = useState(() => !onboarding.isCompleted());
 
   // Sessão de reprodução ativa (tela cheia) e seu estado minimizado (mini player)
   const [session, setSession] = useState<PlaybackSession | null>(null);
@@ -211,6 +222,33 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  const handleFinishOnboarding = () => {
+    onboarding.complete();
+    setShowOnboarding(false);
+    setSelectedCourseId(null);
+    setSelectedLessonId(null);
+    setSelectedDocId(null);
+    setSelectedMovieId(null);
+    setCurrentTab('library');
+  };
+
+  const handleResetLibrary = () => {
+    repository.resetAll();
+  };
+
+  // Primeiro acesso (ou reaberto em Configurações) toma a tela inteira, sem
+  // bloquear: pode ser pulado a qualquer momento.
+  if (showOnboarding) {
+    return (
+      <OnboardingView
+        sources={sourcesViewModel}
+        importFlow={importFlow}
+        onFinish={handleFinishOnboarding}
+        onSkip={handleFinishOnboarding}
+      />
+    );
+  }
+
   return (
     <div
       className="app-container"
@@ -295,7 +333,20 @@ export const App: React.FC = () => {
           <PdfViewer document={selectedDoc} onBack={handleBackToHome} />
         )}
 
-        {currentTab === 'settings' && <SettingsView />}
+        {currentTab === 'settings' && (
+          <SettingsView
+            sourcesSection={
+              <LibrarySourcesPanel viewModel={sourcesViewModel} importFlow={importFlow} />
+            }
+            librarySummary={{
+              courses: courses.length,
+              movies: movies.length,
+              documents: docs.length,
+            }}
+            onResetLibrary={handleResetLibrary}
+            onOpenOnboarding={() => setShowOnboarding(true)}
+          />
+        )}
       </main>
 
       {showMiniPlayer && miniLesson && (

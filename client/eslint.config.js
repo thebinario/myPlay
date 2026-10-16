@@ -14,6 +14,7 @@ export default tseslint.config(
       'coverage/**',
       // Código legado do myPlay, já excluído do tsconfig (não faz parte do build).
       // Ver docs/REFACTORING_ROADMAP.md (P0 — remover).
+      'src/legacy/**',
       'src/components/AddVideo.tsx',
       'src/components/EditVideoDialog.tsx',
       'src/components/ScanDirectory.tsx',

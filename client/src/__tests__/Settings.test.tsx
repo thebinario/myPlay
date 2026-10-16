@@ -1,43 +1,33 @@
 /**
- * MIDOTECA — Fase 5: tela de Configurações (versão mínima).
+ * MIDOTECA — Configurações: a view é de apresentação e recebe seus dados por
+ * props (composição feita em `app/`). O comportamento do catálogo é coberto
+ * pelos testes de navegação do shell.
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SettingsView } from '@/modules/settings/presentation/SettingsView';
-import { MOCK_LIBRARY, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
-import type { LibraryRepository } from '@/core/ports/libraryRepository';
-import { LibraryProvider } from '@/modules/library/presentation/LibraryProvider';
-import { MockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
-
-function renderSettings(repository?: LibraryRepository) {
-  return render(
-    <LibraryProvider repository={repository}>
-      <SettingsView />
-    </LibraryProvider>,
-  );
-}
+import { describe, it, expect, vi } from 'vitest';
+import { SettingsView } from '@/modules/settings/presentation/views/SettingsView';
 
 describe('SettingsView', () => {
-  beforeEach(() => mockLibraryService.resetAll());
-
-  it('exibe contagem de itens catalogados', () => {
-    const courses = MOCK_LIBRARY.filter((i) => i.type === 'course').length;
-    renderSettings();
+  it('exibe o resumo do catálogo injetado', () => {
+    render(<SettingsView librarySummary={{ courses: 3, movies: 1, documents: 2 }} />);
     expect(screen.getByTestId('settings-view')).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`${courses} cursos`))).toBeInTheDocument();
+    expect(screen.getByText(/3 cursos/)).toBeInTheDocument();
   });
 
-  it('restaura os dados de exemplo ao clicar em restaurar', async () => {
+  it('delega a restauração ao callback e exibe feedback', async () => {
     const user = userEvent.setup();
-    const repository = new MockLibraryService();
-    const course = repository.getItems('course')[0];
-    repository.saveCourse({ ...repository.getCourseById(course.id)!, title: 'Alterado' });
+    const onResetLibrary = vi.fn();
+    render(<SettingsView onResetLibrary={onResetLibrary} />);
 
-    renderSettings(repository);
     await user.click(screen.getByTestId('settings-reset-library'));
 
+    expect(onResetLibrary).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('settings-reset-feedback')).toBeInTheDocument();
-    expect(repository.getCourseById(course.id)?.title).toBe(course.title);
+  });
+
+  it('renderiza o conteúdo de fontes injetado na seção de bibliotecas', () => {
+    render(<SettingsView sourcesSection={<div data-testid="sources-slot" />} />);
+    expect(screen.getByTestId('sources-slot')).toBeInTheDocument();
   });
 });
