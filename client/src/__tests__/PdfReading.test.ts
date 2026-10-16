@@ -40,6 +40,7 @@ describe('pdf-reading — zoom e modo de cor', () => {
 
   it('respeita os limites de zoom', () => {
     expect(zoomIn(ZOOM_MAX)).toBe(ZOOM_MAX);
+    expect(zoomOut(0.75)).toBe(0.6);
     expect(zoomOut(ZOOM_MIN)).toBe(ZOOM_MIN);
   });
 
@@ -53,7 +54,8 @@ describe('pdf-reading — rolagem e janela de páginas', () => {
   it('ajusta a escala base do PDF à largura disponível e mantém o zoom proporcional', () => {
     expect(fitPageScale(1400, 720, 1)).toBeCloseTo(720 / 1400);
     expect(fitPageScale(1400, 720, 1.25)).toBeCloseTo((720 / 1400) * 1.25);
-    expect(fitPageScale(600, 720, 1)).toBe(1);
+    expect(fitPageScale(600, 720, 1)).toBeCloseTo(720 / 600);
+    expect(fitPageScale(600, 720, 0.75)).toBeCloseTo((720 / 600) * 0.75);
   });
 
   it('calcula a janela de páginas em torno da página atual', () => {

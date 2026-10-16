@@ -17,7 +17,16 @@ const PICK_DIRECTORY_CHANNEL = 'midoteca:pickDirectory';
 const MEDIA_SCHEME = 'midoteca-media';
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: MEDIA_SCHEME, privileges: { standard: true, secure: true, stream: true } },
+  {
+    scheme: MEDIA_SCHEME,
+    privileges: {
+      standard: true,
+      secure: true,
+      stream: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
 ]);
 
 /** @type {import('electron').BrowserWindow | null} */

@@ -69,7 +69,15 @@ export const App: React.FC = () => {
     ? (items.find((i) => i.id === selectedCourseId && i.type === 'course') as Course | undefined)
     : undefined;
 
-  const selectedDoc = selectedDocId ? docs.find((d) => d.id === selectedDocId) : undefined;
+  const selectedDoc = selectedDocId
+    ? (docs.find((document) => document.id === selectedDocId) ??
+      courses
+        .flatMap((course) => [
+          ...(course.documents ?? []),
+          ...course.modules.flatMap((module) => module.documents ?? []),
+        ])
+        .find((document) => document.id === selectedDocId))
+    : undefined;
 
   const selectedMovie = selectedMovieId ? movies.find((m) => m.id === selectedMovieId) : undefined;
 

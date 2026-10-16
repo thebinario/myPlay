@@ -1,7 +1,7 @@
 import type { PdfColorMode, PdfReadingState } from '@/core/domain/library';
 
 /** Limites e passo de zoom do leitor de PDF. */
-export const ZOOM_MIN = 0.75;
+export const ZOOM_MIN = 0.6;
 export const ZOOM_MAX = 2;
 export const ZOOM_STEP = 0.25;
 
@@ -42,10 +42,10 @@ export function toggleColorMode(mode: PdfColorMode): PdfColorMode {
   return mode === 'dark' ? 'original' : 'dark';
 }
 
-/** Fits the page at 100%; user zoom is then applied relative to that width. */
+/** Fits the page to the available width at 100%; user zoom is applied afterward. */
 export function fitPageScale(pageWidth: number, availableWidth: number, zoom: number): number {
   if (pageWidth <= 0 || availableWidth <= 0) return zoom;
-  return Math.min(1, availableWidth / pageWidth) * zoom;
+  return (availableWidth / pageWidth) * zoom;
 }
 
 /** Janela de páginas pré-carregadas em torno da página atual. */
