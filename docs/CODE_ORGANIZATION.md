@@ -84,13 +84,12 @@
 | `<ctx>/domain/entities.ts` | domain | entidades + value objects | `modules/courses/domain/entities.ts` |
 | `<ctx>/domain/types.ts` | domain | tipos/enums de domínio (não-entidade) | `modules/indexing/domain/types.ts` |
 | `<ctx>/domain/errors.ts` · `events.ts` | domain | erros e eventos do contexto | `modules/indexing/domain/events.ts` |
-| `<ctx>/domain/repositories.ts` | domain | **contrato de repositório + seus comandos** (`CreateX`/`UpdateX`) | `modules/library/domain/repositories.ts` |
+| `<ctx>/domain/repositories.ts` | domain | **contrato de repositório + seus comandos** (`CreateX`/`UpdateX`) **+ contrato de leitura (store)** | `modules/library/domain/repositories.ts` |
 | `<ctx>/domain/contracts.ts` | domain | demais **contratos** externos (scanner, probe, bus) | `modules/indexing/domain/contracts.ts` |
+| `<ctx>/domain/read-models.ts` | domain | **read models** (projeções) referenciados por um contrato de leitura | `modules/library/domain/read-models.ts` |
 | `<ctx>/domain/<regra>.ts` | domain | regra pura / domain service | `modules/indexing/domain/organization.ts` |
 | `<ctx>/application/use-cases/<verbo>-<sub>.ts` | application | caso de uso de **escrita** + input/output | `modules/library/application/use-cases/add-source.ts` |
-| `<ctx>/application/queries/<verbo>-<sub>.ts` | application | **consulta** + read model | `modules/library/application/queries/list-courses.ts` |
-| `<ctx>/application/queries/read-models.ts` | application | read models usados por 2+ consultas | `modules/library/application/queries/read-models.ts` |
-| `<ctx>/application/queries/store.ts` | application | contrato do store de leitura (projeções) | `modules/library/application/queries/store.ts` |
+| `<ctx>/application/queries/<verbo>-<sub>.ts` | application | **consulta** (operação de leitura) — delega ao store do `domain/` | `modules/library/application/queries/list-courses.ts` |
 | `<ctx>/application/dependencies.ts` | application | deps compartilhadas por 2+ operações | `modules/courses/application/dependencies.ts` |
 | `<ctx>/application/services/<nome>.ts` | application | orquestração/fachada de casos de uso | `modules/indexing/application/services/indexer.ts` |
 | `<ctx>/infrastructure/<ctx>.repository.sqlite.ts` | infrastructure | adapter de repositório | `modules/media/infrastructure/media.repository.sqlite.ts` |
@@ -170,9 +169,9 @@ Convenções React:
 | Outro contrato externo (scanner, probe, bus) | `modules/<ctx>/domain/contracts.ts` | `modules/<ctx>/domain/contracts.ts` |
 | Contrato de fronteira do runtime | `core/contracts/*` | `core/contracts/*` |
 | Caso de uso (**escrita**) + seu input/output | `modules/<ctx>/application/use-cases/<verbo>-<sub>.ts` | `modules/<ctx>/application/use-cases/<verbo>-<sub>.ts` |
-| Consulta (**leitura**) + read model | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` |
-| Read model compartilhado por 2+ consultas | `modules/<ctx>/application/queries/read-models.ts` | `modules/<ctx>/application/queries/read-models.ts` |
-| Contrato do store de leitura | `modules/<ctx>/application/queries/store.ts` | — |
+| Consulta (**leitura**) — operação que delega ao store | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` | `modules/<ctx>/application/queries/<verbo>-<sub>.ts` |
+| Read model (projeção) de um contrato de leitura | `modules/<ctx>/domain/read-models.ts` | `modules/<ctx>/domain/read-models.ts` |
+| Contrato do store de leitura | `modules/<ctx>/domain/repositories.ts` | — |
 | Dependências comuns a 2+ operações | `modules/<ctx>/application/dependencies.ts` | `modules/<ctx>/application/dependencies.ts` |
 | Orquestração de casos de uso | `modules/<ctx>/application/services/*` | `modules/<ctx>/application/services/*` |
 | Regra pura | `modules/<ctx>/domain/*` | `modules/<ctx>/domain/*` |

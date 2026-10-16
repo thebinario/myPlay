@@ -2,9 +2,14 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../../core/
 import type { EventBus } from '../../../indexing/domain/events';
 import type { SourceProbe } from '../../../indexing/domain/ports';
 import type { LibrarySource } from '../../domain/entities';
-import type { LibraryRepository } from '../../domain/ports';
-import type { AddSourceInput } from '../dto';
+import type { LibraryRepository } from '../../domain/repositories';
 import { normalizeRootPath } from '../normalize-root-path';
+
+/** Input of `AddSource`. */
+export interface AddSourceInput {
+  rootPath: string;
+  displayName?: string | null;
+}
 
 export interface AddSourceDependencies {
   library: LibraryRepository;

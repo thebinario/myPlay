@@ -18,6 +18,7 @@ export * from './modules/indexing';
 export * from './modules/search';
 export { createMidoteca } from './app/composition-root';
 export type { Midoteca, MidotecaOptions } from './app/composition-root';
+export * from './platform/desktop';
 export { SqliteDatabase } from './platform/persistence/sqlite/database';
 export {
   runMigrations,

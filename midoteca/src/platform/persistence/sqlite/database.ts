@@ -20,11 +20,14 @@ export interface SqliteDatabaseOptions {
  * No schema synchronization happens implicitly here; migrations are explicit.
  */
 export class SqliteDatabase {
+  /** Absolute path of the database file (`:memory:` for ephemeral DBs). */
+  readonly file: string;
   private readonly connection: Database.Database;
   private closed = false;
 
   constructor(options: SqliteDatabaseOptions) {
     const file = options.file;
+    this.file = file;
     if (file !== ':memory:') {
       mkdirSync(dirname(file), { recursive: true });
     }

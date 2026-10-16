@@ -13,10 +13,10 @@ import {
 } from '../domain/entities';
 import type {
   CreateLibrarySource,
+  LibraryRepository,
   UpdateLibrarySourcePath,
   UpdateLibrarySourceStatus,
-} from '../domain/inputs';
-import type { LibraryRepository } from '../domain/ports';
+} from '../domain/repositories';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
 import { mapSqliteError } from '../../../platform/persistence/sqlite/errors';
 

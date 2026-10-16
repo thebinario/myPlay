@@ -2,8 +2,18 @@ import { NotFoundError } from '../../../../core/errors';
 import type { EventBus } from '../../../indexing/domain/events';
 import type { SourceProbe } from '../../../indexing/domain/ports';
 import type { LibrarySourceStatus } from '../../domain/entities';
-import type { LibraryRepository } from '../../domain/ports';
-import type { SourceAvailability } from '../dto';
+import type { LibraryRepository } from '../../domain/repositories';
+
+/** Output of `CheckSourceAvailability`. */
+export interface SourceAvailability {
+  sourceId: string;
+  rootPath: string;
+  status: LibrarySourceStatus;
+  exists: boolean;
+  isDirectory: boolean;
+  readable: boolean;
+  volumeId: string | null;
+}
 
 export interface CheckSourceAvailabilityDependencies {
   library: LibraryRepository;

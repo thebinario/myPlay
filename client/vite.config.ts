@@ -26,10 +26,27 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: 'unit',
           globals: true,
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
           css: true,
+          include: ['src/**/*.{test,spec}.{ts,tsx}'],
+          exclude: ['src/**/*.integration.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          globals: true,
+          environment: 'node',
+          include: ['src/**/*.integration.test.ts'],
+          server: {
+            deps: {
+              external: ['@midoteca/core', 'better-sqlite3'],
+            },
+          },
         },
       },
       {

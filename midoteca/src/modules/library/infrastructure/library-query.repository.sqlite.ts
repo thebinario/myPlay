@@ -1,11 +1,11 @@
 import type {
   CourseSummary,
   DocumentSummary,
-  LibraryQueryStore,
   Paged,
   SearchResult,
   SourceIndexState,
-} from '../domain/queries';
+} from '../domain/read-models';
+import type { LibraryQueryStore } from '../domain/repositories';
 import type { LibrarySourceStatus } from '../domain/entities';
 import type { TitleSource } from '../../../core/title-source';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
