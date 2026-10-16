@@ -23,7 +23,8 @@
     "desktop:start": "npm run desktop:rebuild && electron electron/main.cjs",
     "desktop:start:fast": "electron electron/main.cjs",
     "desktop:smoke": "npm run desktop:rebuild && MIDOTECA_SMOKE=1 electron electron/main.cjs",
-    "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start"
+    "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start",
+    "desktop:stg": "node scripts/desktop-stg.cjs"
   },
   "dependencies": {
     "@midoteca/core": "file:../midoteca",

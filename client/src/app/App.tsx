@@ -35,6 +35,7 @@ export const App: React.FC = () => {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
+  const documentReturnTab = useRef<NavigationTab>('library');
 
   // Catálogo: fonte única de verdade (repositório + assinatura de mudanças)
   const { repository, items, courses, movies, documents } = useLibrary();
@@ -119,14 +120,6 @@ export const App: React.FC = () => {
     setCurrentTab('library');
   };
 
-  const handleBackToHome = () => {
-    setSelectedCourseId(null);
-    setSelectedLessonId(null);
-    setSelectedDocId(null);
-    setSelectedMovieId(null);
-    setCurrentTab('home');
-  };
-
   const handlePlayLesson = (courseId: string, lessonId: string) => {
     const course = items.find((i) => i.id === courseId && i.type === 'course') as
       Course | undefined;
@@ -198,8 +191,14 @@ export const App: React.FC = () => {
   };
 
   const handleOpenDocument = (docId: string) => {
+    documentReturnTab.current = currentTab === 'pdf-viewer' ? 'library' : currentTab;
     setSelectedDocId(docId);
     setCurrentTab('pdf-viewer');
+  };
+
+  const handleBackFromDocument = () => {
+    setSelectedDocId(null);
+    setCurrentTab(documentReturnTab.current);
   };
 
   const handleSaveEditedCourse = (_updatedCourse: Course) => {
@@ -291,6 +290,7 @@ export const App: React.FC = () => {
         {currentTab === 'course-details' && selectedCourse && (
           <CourseDetailsView
             course={selectedCourse}
+            libraryDocuments={docs.filter((document) => document.sourceId === selectedCourse.sourceId)}
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
             onPlayLesson={handlePlayLesson}
@@ -332,7 +332,7 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === 'pdf-viewer' && selectedDoc && (
-          <PdfViewer document={selectedDoc} onBack={handleBackToHome} />
+          <PdfViewer document={selectedDoc} onBack={handleBackFromDocument} />
         )}
 
         {currentTab === 'settings' && (

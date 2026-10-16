@@ -10,6 +10,7 @@ function coreSource(overrides: Partial<CoreLibrarySource> = {}): CoreLibrarySour
     id: 'src-1',
     rootPath: '/Volumes/HD/Series',
     displayName: null,
+    libraryType: 'course',
     volumeId: null,
     status: 'active',
     lastScanAt: null,

@@ -123,6 +123,9 @@ export function mapCourseTree(
     coverUrl: stringField(tree.course.metadata, 'coverUrl') ?? '',
     totalDuration: tree.totalDurationSeconds,
     pdfCount: tree.pdfCount,
+    documents: tree.documents.map((document) =>
+      mapTreeDocument(document, mediaById, sourceRootById),
+    ),
     progress: 0,
     modules,
     tags: stringArrayField(tree.course.metadata, 'tags'),

@@ -51,6 +51,7 @@ export interface Course {
   coverUrl: string;
   totalDuration: number; // segundos
   pdfCount?: number;
+  documents?: Document[];
   progress: number; // 0-100
   modules: CourseModule[];
   tags: string[];

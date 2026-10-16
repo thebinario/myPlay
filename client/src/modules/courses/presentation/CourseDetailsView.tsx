@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course, Lesson, Material } from '@/core/domain/library';
+import { Course, Document, Lesson, Material } from '@/core/domain/library';
 import {
   ArrowLeft,
   Play,
@@ -17,6 +17,7 @@ import {
 
 interface CourseDetailsViewProps {
   course: Course;
+  libraryDocuments?: Document[];
   onBack: () => void;
   onToggleLesson: (courseId: string, lessonId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
@@ -27,6 +28,7 @@ interface CourseDetailsViewProps {
 
 export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   course,
+  libraryDocuments = [],
   onBack,
   onToggleLesson,
   onPlayLesson,
@@ -81,6 +83,16 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
     (acc, m) => acc + m.lessons.filter((l) => l.completed).length,
     0,
   );
+  const moduleDocumentIds = new Set(
+    course.modules.flatMap((module) => module.documents?.map((document) => document.id) ?? []),
+  );
+  const courseDocuments = [
+    ...new Map(
+      [...(course.documents ?? []), ...libraryDocuments]
+        .filter((document) => !moduleDocumentIds.has(document.id))
+        .map((document) => [document.id, document]),
+    ).values(),
+  ];
 
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
@@ -338,6 +350,10 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
           {course.modules.map((mod) => {
             const isExpanded = !!expandedModules[mod.id];
             const modCompletedLessons = mod.lessons.filter((l) => l.completed).length;
+            const moduleDocuments = [
+              ...(mod.documents ?? []),
+              ...(mod === course.modules[0] ? courseDocuments : []),
+            ];
 
             return (
               <div
@@ -376,7 +392,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                         borderRadius: '4px',
                       }}
                     >
-                      {modCompletedLessons}/{mod.lessons.length} aulas · {mod.documents?.length ?? 0} PDFs
+                      {modCompletedLessons}/{mod.lessons.length} aulas · {moduleDocuments.length} PDFs
                     </span>
                   </div>
 
@@ -550,7 +566,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                         )}
                       </div>
                     ))}
-                    {mod.documents?.map((document) => (
+                    {moduleDocuments.map((document) => (
                       <button
                         key={document.id}
                         type="button"

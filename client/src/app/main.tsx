@@ -19,9 +19,10 @@ import '@/index.css';
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
 const mockRepository = new MockLibraryService(localStorageLibraryStorage);
 
-// O modo de desenvolvimento preserva os adapters mockados; produção usa SQLite via IPC.
+// STG e produção usam o núcleo SQLite via IPC; browser/Storybook preservam mocks.
 const bridge = getMidotecaBridge();
-const runtimeBridge = import.meta.env.PROD ? requireMidotecaBridge() : null;
+const useDesktopAdapters = import.meta.env.PROD || import.meta.env.MODE === 'stg';
+const runtimeBridge = useDesktopAdapters ? requireMidotecaBridge() : null;
 const sourcesRepository = runtimeBridge
   ? new IpcLibrarySourcesRepository(runtimeBridge)
   : undefined;

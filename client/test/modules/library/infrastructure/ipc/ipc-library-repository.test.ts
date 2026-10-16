@@ -19,6 +19,7 @@ function coreSource(id: string, rootPath: string): CoreLibrarySource {
     id,
     rootPath,
     displayName: null,
+    libraryType: 'course',
     volumeId: null,
     status: 'active',
     lastScanAt: null,
