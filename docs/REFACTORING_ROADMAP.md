@@ -23,6 +23,8 @@ Este documento é a **parte prática** das fases **F00–F02 (v0.1)** do
 | **P6** layout canônico do frontend | F01 | `features/` → `modules/`, testes em `test/` |
 | **P7** casos de uso × hooks no FE | F01/F02 | `application/` sem React |
 | **P8** nomenclatura canônica de contratos/inputs/DTOs | F01 | `repositories.ts`/`contracts.ts`; `use-cases/` + `queries/`; sem `dto.ts`/`inputs.ts` |
+| **P9** seam de DI compartilhado + contratos por papel (ISP) | F01 | `shared/providers/`; `core/contracts/` um por papel |
+| **P10** refino do backend | F01/F03 | dividir adapters/domain services grandes; `core/contracts/` para contrato de 2+ contextos |
 
 ## 1. Princípios
 
@@ -54,7 +56,7 @@ src/
 | Área | Situação |
 | --- | --- |
 | `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **116 testes verdes** em `test/`. **Casos de uso explícitos** em `library`, `indexing`, `courses` e `documents` (`application/use-cases/`); `services/*` viraram fachadas. Pendente: `presentation/` (transporte) |
-| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **17 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/` |
+| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **17 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/`. **Resíduos verificados:** 5 contextos importam `library/presentation/LibraryProvider` (que importa `infrastructure/`) e `core/ports/libraryRepository.ts` é contrato "god" (6 contratos somados) → **P9**; views acima do indicador → **P1**; `player`/`documents` sem `application/` → **P7/P4** |
 | `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
 > Contagens de testes: backend **116 testes** (`vitest run`) e frontend
@@ -72,15 +74,20 @@ src/
 | **P2** | Separar fixtures de adapter em `mock-library-repository.ts` (737 linhas) | Médio | Baixo | ⏳ pendente |
 | **P7** | Casos de uso × hooks de apresentação no FE | Médio (testabilidade) | Médio | ✅ concluído |
 | **P8** | Nomenclatura canônica de contratos/inputs/DTOs (`repositories.ts`/`contracts.ts`, `use-cases/`+`queries/`) | Alto (clareza) | Médio (renames/imports) | ⏳ docs alinhadas; migração de código pendente |
+| **P9** | Seam de DI compartilhado (`shared/providers/`) + contratos por papel em `core/contracts/` | Alto (desacopla 5 contextos; ISP) | Médio (mover Context + split de contrato) | ⏳ docs alinhadas; migração pendente |
+| **P10** | Refino do backend: adapters/domain services acima do indicador + contrato compartilhado por 2+ contextos | Médio/Alto (coesão backend) | Médio (dividir arquivos) | ⏳ docs alinhadas; migração pendente |
 | **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ bloqueado por decisão de transporte (ADR) |
-| **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | ✅ concluído |
+| **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | 🟡 parcial: hooks/regra extraídos; views ainda 349–560 linhas |
 | **P4** | `domain/` por contexto no FE | Médio | Médio | ✅ `courses`/`documents`/`player` com regra pura; outros contextos sem regra |
 | — | `backend/` legado | — | **Não migrar** | — |
 
 Ordem recomendada: **P0** → **P8** (padroniza a nomenclatura e destrava a
-clareza dos contratos) → **P6** (barato, alinha o vocabulário do frontend ao
-backend já migrado) → **P2/P7** → **P3** (depende do ADR de transporte). O layout
-do backend (**P5**) já está aplicado; restam seus refinamentos internos.
+clareza dos contratos) → **P9** (destrava o acoplamento entre contextos do FE) →
+**P6** (barato, alinha o vocabulário do frontend ao backend já migrado) →
+**P2/P7/P4** → **P10** (refino backend) → **P1** (telas grandes; extração residual)
+→ **P3** (depende do ADR
+de transporte). O layout do backend (**P5**) já está aplicado; restam seus
+refinamentos internos.
 
 ## 5. P0 — Remover código morto
 
@@ -124,6 +131,12 @@ subcomponentes):
 
 Estratégia aplicada: **caracterização → extrair hook/caso de uso → extrair
 componentes → validar**. Comportamento visual preservado.
+
+**Dívida residual (verificada):** a lógica saiu, mas as views continuam grandes
+e ainda misturam subcomponentes — `CourseDetailsView` 560, `HomeView` 474,
+`MoviePlayerView` 461, `LibraryView` 455, `MiniPlayer` 349, `App.tsx` 336.
+Próximo passo: extrair `presentation/components/` seguindo o piloto `player`
+(já aplicado em `player/presentation/` e `shared/ui/`).
 
 ## 7. P2 — `mockLibraryRepository.ts`
 
@@ -283,7 +296,73 @@ demais contextos quando tocados ou quando o risco justificar.
 
 **Status:** ⏳ documentação alinhada; migração de código pendente.
 
-## 14. Backend legado (`backend/`)
+## 14. P9 — Seam de DI compartilhado + contratos por papel (ISP)
+
+**Problema (verificado no `client/`):** o repositório da biblioteca é consumido
+por `library`, `courses`, `player`, `documents`, `search` e `settings`, mas o
+Context/hook de consumo mora na `presentation/` de `library`
+(`modules/library/presentation/LibraryProvider.tsx`), que ainda importa
+`infrastructure/` diretamente. Isso faz 5 contextos importarem a `presentation/`
+de outro e quebra a matriz de dependência
+([`ARCHITECTURE.md`](ARCHITECTURE.md) §5). Somado a isso,
+`core/ports/libraryRepository.ts` estende **6** contratos agregados
+(`catalog`, `playback`, `reading`, `page-provider`, `maintenance`, `search`) —
+violação de ISP: quem só lê catálogo passa a depender de tudo.
+
+**Alvo:**
+
+1. Contexto + hooks de consumo (`useLibraryRepository`, `useLibraryItems`,
+   `useLibrary`) → `shared/providers/library-repository.tsx` (seam de DI, sem
+   regra de negócio). A injeção do adapter concreto continua só em
+   `app/main.tsx`.
+2. Contratos de fronteira do runtime divididos **por papel** em `core/contracts/`
+   (`library-catalog.ts`, `playback-state.ts`, `reading-state.ts`,
+   `page-provider.ts`, `maintenance.ts`, `search.ts`); o contrato agregado vira
+   conveniência de composição, não a dependência de cada consumidor.
+3. `core/ports/` → `core/contracts/` e `ISearchService` sai de `core/domain/`.
+
+**Passos:** caracterizar (suíte verde) → mover Context/hooks para
+`shared/providers/` → split dos contratos em `core/contracts/` → ajustar imports
+dos 6 consumidores + `app/` → rodar `npm test`. Sem mudança de comportamento.
+
+**Arquivos-alvo:** `modules/library/presentation/LibraryProvider.tsx` (sai),
+`shared/providers/library-repository.tsx` (entra), `core/ports/*` →
+`core/contracts/*`, ajustes em `app/{App,main}.tsx`, `settings/SettingsView.tsx`,
+`courses/hooks/useCourseEditor.ts`, `documents/hooks/usePdfReader.ts`,
+`player/hooks/useVideoPlayer.ts`, `search/hooks/useUniversalSearch.ts`.
+
+**Status:** ⏳ documentação alinhada ([`ARCHITECTURE.md`](ARCHITECTURE.md)
+§4.1/§12.2); migração de código pendente.
+
+## 15. P10 — Refino do backend (adapters, domain services, contrato compartilhado)
+
+**Problema (verificado):** o layout canônico do backend (P5) está aplicado, mas
+sobraram arquivos acima dos indicadores de revisão e uma peça fora de lugar:
+
+| Achado | Linhas | Ação |
+| --- | --- | --- |
+| `modules/courses/infrastructure/course.repository.sqlite.ts` | **668** | dividir por agregado (`course.repository.sqlite.ts` + `course.organization.sqlite.ts`) |
+| `modules/indexing/infrastructure/indexing.store.sqlite.ts` | **447** | dividir (`indexing.store.sqlite.ts` + `indexing.titles.sqlite.ts`) |
+| `modules/media/infrastructure/media.repository.sqlite.ts` | **304** | avaliar divisão por agregado |
+| `modules/indexing/domain/organization.ts` | **329** | `domain/organization/` por responsabilidade (funções puras) |
+| `modules/indexing/application/resource-governor.ts` | 97 | mover para `application/services/` |
+| `platform/fs/{recursive-scanner,source-probe,manifest-loader}` | — | implementa contratos de `indexing/domain` que servem 2 contextos (`library` + `indexing`) |
+
+**Alvo:** dividir os arquivos grandes **sem** mudar contratos nem consumidores
+(a suíte é a caracterização) e realocar o que não é caso de uso.
+
+**Decisão pendente (ADR):** promover `FileScanner`/`SourceProbe`/`ManifestLoader`
+para `core/contracts/` — coerente com "contrato usado por 2+ contextos → kernel"
+— eliminando `platform → modules/*/domain`. Alternativa: manter em
+`indexing/domain` (com `application → outro domain`, hoje permitido).
+
+**Passos:** caracterizar → dividir/realocar → `npm test`/`typecheck`/`lint`.
+Sem mudança de comportamento. Não faz parte do P8 (que é só nomenclatura).
+
+**Status:** ⏳ docs alinhadas ([`ARCHITECTURE.md`](ARCHITECTURE.md) §4.1/§12.1);
+migração pendente.
+
+## 16. Backend legado (`backend/`)
 
 **Não migrar.** Já auditado e classificado em
 [`../midoteca/docs/MYPLAY_AUDIT.md`](../midoteca/docs/MYPLAY_AUDIT.md):
@@ -292,7 +371,7 @@ arquivo↔registro e exclusão física. Reaproveitar apenas **conceitos** (forma
 parâmetros de transcodificação, ideias de streaming por range/LRU). Quando
 necessário, remover o diretório em PR isolado após confirmar ausência de uso.
 
-## 15. Formato de relato por mudança
+## 17. Formato de relato por mudança
 
 Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 
@@ -303,7 +382,7 @@ Ao concluir cada item, registrar (conforme `AGENTS.md` §11):
 - **Resultado da validação** (`npm test`, `typecheck`, `build`)
 - **Dívidas técnicas restantes**
 
-## 16. Não-objetivos
+## 18. Não-objetivos
 
 - Reescrever backend ou frontend inteiros de uma vez.
 - Migrar `backend/` legado.

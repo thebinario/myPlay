@@ -43,7 +43,7 @@ Todo runtime da Midoteca se organiza nas **mesmas cinco áreas**:
 | `app/` | **Composition root** e shell: único lugar que conhece adapters concretos e monta o grafo de dependências | Não (só montagem/injeção) |
 | `core/` | **Kernel compartilhado** por todos os contextos: tipos/entidades canônicas, contratos de fronteira do runtime, erros, validação, ids, clock, config | Só o que é **compartilhado**; regra específica mora no contexto |
 | `modules/` | **Um diretório por bounded context** (fatia vertical com as quatro camadas) | Sim — é aqui que a regra vive |
-| `shared/` | Reutilizável entre contextos **sem regra de negócio**: `ui`, `testing`, utilitários neutros | Não |
+| `shared/` | Reutilizável entre contextos **sem regra de negócio**: `ui`, `providers` (seams de injeção), `testing`, utilitários neutros | Não |
 | `platform/` | **Adapters técnicos compartilhados por 2+ contextos**: persistência, filesystem, eventos, desktop/IPC, nuvem | Não (só tradução técnica) |
 
 Regra de alocação de adapter (§6) é o que decide entre `modules/<ctx>/infrastructure`
@@ -80,12 +80,21 @@ E o que cada subpasta de `presentation/` contém (frontend; no backend só
 | --- | --- | --- |
 | `presentation/views/` | Telas (uma por rota/aba), finas | `views/LibraryView.tsx` |
 | `presentation/components/` | Subcomponentes/átomos **do contexto** | `components/PlayerSurface.tsx` |
-| `presentation/providers/` | React Context/Provider (só onde existe) | `providers/LibraryProvider.tsx` |
+| `presentation/providers/` | React Context/Provider **local ao contexto** (seam consumido por 2+ contextos → `shared/providers/`; ver nota abaixo) | `providers/XProvider.tsx` |
 | `presentation/hooks/` | Hooks de apresentação | `hooks/useVideoPlayer.ts` |
 | `presentation/stories/` | Stories do Storybook | `stories/MiniPlayer.stories.tsx` |
 
 > **Só crie a subpasta que tiver conteúdo** (`AGENTS.md` §2). Design system fica
 > em `shared/ui/{components,stories}/`.
+>
+> **Onde vive um Provider/Context (frontend).** Provider **local** a um contexto
+> (só ele consome) → `modules/<ctx>/presentation/providers/`. Seam de **injeção
+> de dependência consumido por 2+ contextos** (ex.: o repositório da biblioteca,
+> usado por `library`, `courses`, `player`, `documents`, `search` e `settings`)
+> → `shared/providers/`, que **não** contém regra de negócio: define o Context,
+> os hooks de consumo e delega ao contrato de `core/contracts/`. A injeção do
+> adapter concreto continua exclusivamente em `app/` (§13). Isso é o que impede
+> um contexto de importar a `presentation/` de outro.
 
 > **Regra de ouro dos contratos:** persistência de agregado → `repositories.ts`;
 > **qualquer outra** dependência externa → `contracts.ts`. Comandos usados por um
@@ -134,14 +143,16 @@ operações. Motivos e alternativas em [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) 
 │           ├── controllers/      # BE: <nome>.controller.ts (transporte; quando existir)
 │           ├── views/            # FE: <Nome>View.tsx (telas)
 │           ├── components/       # FE: subcomponentes/átomos locais
-│           ├── providers/        # FE: <Nome>Provider.tsx (Context)
+│           ├── providers/        # FE: <Nome>Provider.tsx (Context LOCAL ao contexto)
+│           │                     #     seam usado por 2+ contextos → shared/providers/
 │           ├── hooks/            # FE: useXxx.ts
 │           └── stories/          # FE: <Nome>.stories.tsx
 ├── shared/                       # reutilizável, SEM regra de negócio
+│   ├── providers/                # FE: seams de DI (Context) usados por 2+ contextos
 │   ├── ui/                       # design system (átomos)
 │   │   ├── components/           #   Button, Badge, Spinner, …
 │   │   └── stories/              #   <Atom>.stories.tsx
-│   └── testing/                  # helpers de teste compartilhados
+│   └── testing/                  # helpers/setup de teste compartilhados
 └── platform/                     # adapters técnicos compartilhados por 2+ contextos
     ├── persistence/              # conexão + migrações (SQLite)
     ├── fs/                       # filesystem
@@ -159,6 +170,206 @@ Contextos reais hoje:
 Um contexto do frontend pode **compor** contextos do backend para fins de tela
 (ex.: `player` consome `progress` + `media`); a composição acontece em
 `application/` ou no adapter, nunca nos componentes.
+
+### 4.1 A mesma árvore, preenchida — backend (`midoteca/`)
+
+A árvore do §4 é genérica; esta é a **materialização no backend**, com os
+arquivos que existem hoje e os que a migração cria
+([`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md), P8/P10). Referência para
+onde cada arquivo novo vai:
+
+```text
+midoteca/src/
+├── app/composition-root.ts                # composition root (`createMidoteca`)
+│
+├── core/                                  # KERNEL (sem Nest/TypeORM/SQLite/Express)
+│   ├── domain/                            # media-type.ts · lesson-media-role.ts
+│   ├── contracts/                         # (decisão P10) FileScanner · SourceProbe · ManifestLoader
+│   ├── errors.ts · ids.ts · clock.ts · validation.ts
+│   └── json.ts · json-codec.ts · title-source.ts · sort-source.ts · app-paths.ts
+│
+├── modules/
+│   ├── library/
+│   │   ├── domain/                        # entities.ts · repositories.ts
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   ├── queries/                   # list-courses · list-documents · search ·
+│   │   │   │                              #   get-source-index-state · read-models.ts · store.ts
+│   │   │   ├── use-cases/                 # add-source · remove-source ·
+│   │   │   │                              #   update-source-path · check-source-availability
+│   │   │   └── services/library-source-service.ts
+│   │   └── infrastructure/                # library.repository.sqlite.ts ·
+│   │                                      #   library.query.sqlite.ts
+│   │
+│   ├── indexing/
+│   │   ├── domain/
+│   │   │   ├── repositories.ts            # IndexingStore + comandos (Upsert*/Media*/Link*)
+│   │   │   ├── contracts.ts               # SourceProbe · ManifestLoader · FileScanner · ScanOptions
+│   │   │   ├── types.ts                   # DiscoveredFile · MediaKind · INDEXING_JOB_TYPES
+│   │   │   ├── events.ts · manifest.ts
+│   │   │   └── organization/              # regra pura (hoje organization.ts, 329 linhas)
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   ├── use-cases/                 # run-scan · reconcile-batch ·
+│   │   │   │                              #   apply-organization · apply-tracks
+│   │   │   └── services/                  # indexer.ts · resource-governor.ts
+│   │   └── infrastructure/                # indexing.store.sqlite.ts ·
+│   │                                      #   indexing.titles.sqlite.ts
+│   │
+│   ├── courses/
+│   │   ├── domain/                        # entities.ts · repositories.ts · organization/
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   ├── queries/get-course-tree.ts
+│   │   │   ├── use-cases/                 # create/delete/rename/reorder/move/save-organization
+│   │   │   └── services/course-organization-service.ts
+│   │   └── infrastructure/                # course.repository.sqlite.ts ·
+│   │                                      #   course.organization.sqlite.ts
+│   │
+│   ├── documents/
+│   │   ├── domain/                        # entities.ts · repositories.ts
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   ├── queries/                   # list-documents.ts · …
+│   │   │   ├── use-cases/                 # attach · detach · detach-all
+│   │   │   └── services/document-association-service.ts
+│   │   └── infrastructure/document.repository.sqlite.ts
+│   │
+│   ├── media/      domain/{entities,repositories}.ts · infrastructure/media.repository.sqlite.ts
+│   ├── progress/   domain/{entities,repositories}.ts · infrastructure/progress.repository.sqlite.ts
+│   ├── jobs/       domain/{entities,repositories,types}.ts · infrastructure/job.repository.sqlite.ts
+│   ├── settings/   domain/{entities,repositories}.ts · infrastructure/settings.repository.sqlite.ts
+│   └── search/     domain/contracts.ts     # SearchRepository (reservado, Fase 2)
+│
+└── platform/                              # adapters de 2+ contextos
+    ├── persistence/sqlite/                # database.ts · migrator.ts · migrations/ · errors.ts
+    ├── fs/                                # recursive-scanner · source-probe · manifest-loader
+    └── events/typed-event-bus.ts
+```
+
+O que essa árvore materializa (P8/P10):
+
+1. **Nomenclatura canônica.** `domain/ports.ts` (repositório) e
+   `domain/inputs.ts` (comandos `CreateX`/`UpdateX`) viram **um** `domain/repositories.ts`;
+   contratos não-repositório vão para `domain/contracts.ts`. `application/dto.ts`
+   some (I/O colocalizado no caso de uso); `application/queries.ts` vira
+   `application/queries/<op>.ts`; read models + `LibraryQueryStore` saem de
+   `domain/queries.ts` para `application/queries/`.
+2. **Arquivos grandes.** Adapters acima do indicador
+   (`course.repository.sqlite.ts` 668, `indexing.store.sqlite.ts` 447,
+   `media.repository.sqlite.ts` 304) e `indexing/domain/organization.ts` 329
+   dividem por agregado/responsabilidade, **sem** mudar contratos nem consumidores.
+
+### 4.2 A mesma árvore, preenchida — frontend (`client/`)
+
+A árvore acima é genérica; esta é a **materialização no frontend**, com os
+arquivos reais que existem hoje e os que a migração cria
+([`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md)). É a referência para saber
+onde cada arquivo novo vai:
+
+```text
+client/src/
+├── app/                                   # COMPOSITION ROOT + shell
+│   ├── main.tsx                           # único ponto que injeta o adapter concreto
+│   ├── App.tsx                            # shell fino (só escolhe a view ativa)
+│   └── shell/                             # useAppNavigation.ts · usePlaybackSession.ts
+│
+├── core/                                  # KERNEL (sem React/Axios/Tauri/localStorage)
+│   ├── domain/                            # library-item.ts (vocabulário compartilhado)
+│   ├── contracts/                         # contratos de fronteira do runtime, um por papel:
+│   │                                      #   library-catalog.ts · playback-state.ts ·
+│   │                                      #   reading-state.ts · page-provider.ts ·
+│   │                                      #   maintenance.ts · search.ts
+│   └── config/app.config.ts
+│
+├── modules/
+│   ├── library/                           # contexto de referência (fatia vertical completa)
+│   │   ├── domain/                        # entities.ts · types.ts
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   ├── queries/                   # list-library-items.ts · read-models.ts
+│   │   │   └── use-cases/                 # save-course.ts · toggle-lesson-completion.ts
+│   │   ├── infrastructure/
+│   │   │   ├── mock/                      # catalog-store · playback-store · reading-store ·
+│   │   │   │                              #   page-provider · search-index · mock-library-service
+│   │   │   ├── storage/local-storage.ts
+│   │   │   └── seed/library-seed.ts
+│   │   └── presentation/
+│   │       ├── views/LibraryView.tsx
+│   │       ├── components/                # LibraryCard.tsx · LibraryEmptyState.tsx
+│   │       └── stories/LibraryView.stories.tsx
+│   │
+│   ├── courses/
+│   │   ├── domain/                        # course-editing.ts · course-metrics.ts
+│   │   ├── application/{dependencies.ts, use-cases/save-course.ts}
+│   │   └── presentation/
+│   │       ├── views/                     # CourseDetailsView.tsx · CourseEditorView.tsx
+│   │       ├── components/                # CourseHeader · ModuleAccordion · LessonRow ·
+│   │       │                              #   DraggableModule · EditableLessonRow ·
+│   │       │                              #   CourseTitleEditor · EditorActions
+│   │       ├── hooks/useCourseEditor.ts
+│   │       └── stories/*.stories.tsx
+│   │
+│   ├── player/
+│   │   ├── domain/                        # progress.ts · playlist.ts
+│   │   ├── application/
+│   │   │   ├── dependencies.ts
+│   │   │   └── use-cases/                 # save-playback-position.ts · complete-lesson.ts
+│   │   └── presentation/
+│   │       ├── views/                     # VideoPlayerView · MoviePlayerView · MiniPlayer
+│   │       ├── components/                # PlayerSurface · MoviePlayerSurface · PlayerTimeline ·
+│   │       │                              #   PlaybackControls · SpeedMenu · SubtitleMenu ·
+│   │       │                              #   Player{Ended,Loading,Unavailable}State
+│   │       ├── hooks/                     # useVideoPlayer · useMediaElementPlayback ·
+│   │       │                              #   useAutoHideControls
+│   │       └── stories/*.stories.tsx
+│   │
+│   ├── documents/
+│   │   ├── domain/pdf-reading.ts
+│   │   ├── application/{dependencies.ts, use-cases/}   # load-page-range · persist-reading-state
+│   │   └── presentation/
+│   │       ├── views/PdfViewer.tsx
+│   │       ├── components/                # PdfToolbar · PdfPageViewport · PdfTextPage ·
+│   │       │                              #   PdfUnavailableState
+│   │       ├── hooks/usePdfReader.ts
+│   │       └── stories/*.stories.tsx
+│   │
+│   ├── search/
+│   │   ├── application/{dependencies.ts, use-cases/}   # group-search-results · resolve-search-target
+│   │   └── presentation/
+│   │       ├── views/SearchView.tsx
+│   │       ├── components/                # SearchInput · SearchFilterTabs · SearchResults ·
+│   │       │                              #   SearchResultCard · search-kinds
+│   │       ├── hooks/useUniversalSearch.ts
+│   │       └── stories/*.stories.tsx
+│   │
+│   ├── home/presentation/
+│   │   ├── views/                         # HomeView.tsx · Sidebar.tsx
+│   │   ├── components/                    # (extraídos de HomeView)
+│   │   └── stories/*.stories.tsx
+│   │
+│   └── settings/presentation/views/SettingsView.tsx
+│
+├── shared/                                # reutilizável, SEM regra de negócio
+│   ├── providers/library-repository.tsx   # seam de DI: Context + hooks de consumo
+│   ├── ui/
+│   │   ├── components/                    # Badge · Button · IconButton · ProgressBar ·
+│   │   │                                  #   SearchField · SectionHeader · Spinner · Tooltip
+│   │   └── stories/*.stories.tsx
+│   └── testing/setup.ts
+│
+└── react-app-env.d.ts
+```
+
+Dois pontos que essa árvore materializa e valem para os dois runtimes:
+
+1. **Nenhum contexto importa a `presentation/` de outro.** O que era acoplamento
+   por `library/presentation/LibraryProvider` passa a ser `shared/providers/`
+   (o seam) + `core/contracts/` (o contrato), com o adapter injetado em `app/`.
+2. **Contrato por papel (ISP).** Em vez de um `LibraryRepository` que estende
+   tudo, cada operação declara só o contrato de que precisa
+   (`library-catalog`, `playback-state`, `reading-state`, `page-provider`,
+   `maintenance`, `search`).
 
 ## 5. Regras de dependência (executáveis)
 
@@ -186,6 +397,11 @@ grep -rn "modules/.*/presentation" src/modules/*/domain src/modules/*/applicatio
 grep -rnE "Sqlite|Ipc|Http|Mock" src/modules/*/application src/modules/*/domain src/core
 # 4. cruzamento entre contextos passa SÓ por domain/ (nunca application/ ou infrastructure/ de outro ctx)
 grep -rnE "modules/[a-z]+/(application|infrastructure)" src/modules/*/domain src/modules/*/application
+# 5. presentation não importa infrastructure, nem a presentation de OUTRO contexto (FE)
+#    (a presentation do próprio contexto é permitida; filtrar manualmente)
+grep -rnE "@/modules/[a-z]+/(infrastructure|presentation)" src/modules/*/presentation
+# 6. DI entre contextos passa por shared/providers, não por um módulo (FE)
+grep -rn "@/modules/[a-z]+/presentation/providers" src/app src/modules/*/presentation
 ```
 
 **Proibido em `domain/` e `application/` dos dois lados:**
@@ -199,6 +415,10 @@ grep -rnE "modules/[a-z]+/(application|infrastructure)" src/modules/*/domain src
   **contrato** definido na camada interna; o adapter concreto fica na
   infraestrutura.
 - Nada depende de `app/`; `app/` depende de tudo.
+- No frontend, a `presentation/` de um contexto depende do **próprio**
+  `application/`/`domain/` + `core/contracts/` + `shared/ui/` +
+  `shared/providers/` (DI). Ela **não** importa a `presentation/` de outro
+  contexto nem `infrastructure/`.
 - Nenhuma escrita em arquivo físico fora de adapters de `platform/fs`
   (regra de ouro: catálogo nunca apaga arquivo — ver §8).
 
@@ -315,8 +535,9 @@ justificar**, nunca por reescrita total. Mapa por runtime:
 
 ### 12.1 Backend (`midoteca/`) — ✅ migrado (P5); nomenclatura canônica pendente (P8)
 
-P5 executado sem mudança de comportamento: **72 arquivos movidos**, 92/92 testes
-verdes, `typecheck`/`lint`/`format:check`/`build` em 0 e API pública preservada.
+P5 executado sem mudança de comportamento: **72 arquivos movidos**; a suíte
+(hoje **19 specs / 116 testes**) segue verde, `typecheck`/`lint`/`format:check`/`build`
+em 0 e API pública preservada.
 
 | Era | É agora | Observação |
 | --- | --- | --- |
@@ -352,24 +573,44 @@ Decisões tomadas durante a migração (não estavam no mapa acima):
 Casos de uso extraídos em `modules/{library,indexing,courses,documents}/application/use-cases/`,
 com os antigos `services/*` reduzidos a fachadas de orquestração.
 
-Pendências: `presentation/` (transporte), **padronização de contratos/inputs/DTOs
-(P8 — `docs/REFACTORING_ROADMAP.md` §13)** e adapters acima do indicador
-(`course.repository.sqlite.ts` 430 linhas, `indexing.store.sqlite.ts` 421 linhas).
+Pendências verificadas (→ árvore-alvo do §4.1; prioridades em
+[`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md)):
 
-### 12.2 Frontend (`client/`) — verificado
-
-| Atual | Canonônico | Observação |
+| Achado | Alvo | Prio |
 | --- | --- | --- |
-| `src/app/{App.tsx,main.tsx}` | igual ✅ | só falta isolar navegação em `app/navigation/` |
-| `src/core/{domain,contracts,config}` | igual ✅ | já é o kernel (`ports/` → `contracts/` no P8) |
-| `src/shared/ui/*` | igual ✅ | design system |
-| `src/modules/<ctx>/presentation/` | igual ✅ | `features/` → `modules/` concluído |
-| `src/modules/<ctx>/application/use-cases/*` | separado ✅ | casos de uso puros (`courses/search`) |
-| `src/modules/<ctx>/domain/*` | criado ✅ | `courses/`, `documents/`, `player/` |
-| `src/modules/<ctx>/presentation/hooks/*` | separado ✅ | hooks de apresentação fora de `application/` |
-| `src/modules/library/infrastructure/*` | igual ✅ | único contexto com infraestrutura hoje (kebab-case) |
-| `src/__tests__/*.test.tsx` | `test/**` espelhando a árvore | mover (cheap) |
-| `src/legacy/`, `src/stories/` | **remover** | código morto (fora do build) |
+| **8** `domain/ports.ts` + **6** `domain/inputs.ts` (P8) | `domain/repositories.ts` (+ comandos) e `domain/contracts.ts` | **P8** |
+| `application/dto.ts` (4 contextos); `application/queries.ts` (2); `library/domain/queries.ts` | I/O colocalizado; `application/queries/<op>.ts` + `read-models.ts` + `store.ts` | **P8** |
+| `indexing/domain/contracts.ts` guarda `INDEXING_JOB_TYPES` (constantes) | `domain/types.ts` | **P8** |
+| Adapters acima do indicador: `course.repository.sqlite.ts` **668** · `indexing.store.sqlite.ts` **447** · `media.repository.sqlite.ts` **304** | dividir por agregado/consulta | **P10** |
+| `indexing/domain/organization.ts` **329** linhas | `domain/organization/` por responsabilidade | **P10** |
+| `indexing/application/resource-governor.ts` na raiz de `application/` | `application/services/resource-governor.ts` | **P10** |
+| `platform/fs/*` implementa contratos de `indexing/domain` mas serve 2 contextos | decidir `core/contracts/` (ADR) | **P10** |
+| `search/domain/contracts.ts` (`SearchRepository`) sem adapter/consumidor | manter reservado (Fase 2) | — |
+| `presentation/` (transporte) ausente nos 9 contextos | Fase 3 (destrava P3) | — |
+
+### 12.2 Frontend (`client/`) — parcialmente migrado
+
+**Alinhado ✅:** `features/` → `modules/`; kernel em `core/{domain,config}`;
+`shared/ui/{components,stories}`; subdivisão de `presentation/` em
+`views/`/`components/`/`hooks/`/`stories/` (piloto `player` + `shared/ui`);
+casos de uso puros em `modules/{courses,search}/application/use-cases/`; regra
+pura em `modules/{courses,documents,player}/domain/`; hooks de apresentação
+fora de `application/`; `library/infrastructure/` em kebab-case.
+
+**Pendente** (→ árvore-alvo do §4.1; prioridades em
+[`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md)):
+
+| Achado verificado | Alvo | Prio |
+| --- | --- | --- |
+| 5 contextos importam `library/presentation/LibraryProvider`; o provider importa `infrastructure/` | seam em `shared/providers/` + contrato em `core/contracts/`; adapter injetado só em `app/main.tsx` | **P9** |
+| `core/ports/libraryRepository.ts` = contrato "god" (6 contratos somados); `ISearchService` em `core/domain` | um contrato por papel em `core/contracts/` | **P9** |
+| `player`/`documents` sem `application/` (orquestração dentro dos hooks) | `application/use-cases/` + hooks finos | **P7/P4** |
+| `library/infrastructure/mock-library-repository.ts` (737 linhas, 6 responsabilidades) | `infrastructure/mock/*` por contrato + `seed/` | **P2** |
+| Views acima do indicador: `CourseDetailsView` 560 · `HomeView` 474 · `MoviePlayerView` 461 · `LibraryView` 455 · `MiniPlayer` 349 · `App.tsx` 336 | extrair `components/`; navegação/sessão → `app/shell/` | **P1/P6** |
+| `core/domain/library.ts` concentra entidades de todos os contextos | entidades no `domain/` do contexto; `core/domain` só o compartilhado | **P4** |
+| `core/ports/` → `core/contracts/`; títulos de story e local das stories inconsistentes | convenções do §3 e [`CODE_ORGANIZATION.md`](CODE_ORGANIZATION.md) §4.4 | **P6/P8** |
+| `src/test/setup.ts` · `src/__tests__/*` | `shared/testing/setup.ts` · `test/**` espelhando a árvore | **P6** |
+| `src/legacy/`, `src/stories/` | **remover** (código morto, fora do build) | **P0** |
 
 Prioridades e passos em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md).
 
@@ -378,7 +619,7 @@ Prioridades e passos em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md).
 | Runtime | Ponto de entrada | Papel |
 | --- | --- | --- |
 | Backend | `midoteca/src/app/composition-root.ts` → `createMidoteca(options)` (reexportado por `src/index.ts`) | abre SQLite, aplica migrações, injeta adapters, publica a API |
-| Frontend | `client/src/app/main.tsx` → `<LibraryProvider repository={…}>` | injeta o `LibraryRepository` (mock hoje, IPC depois) |
+| Frontend | `client/src/app/main.tsx` → `<LibraryProvider repository={…}>` (`shared/providers/library-repository.tsx`) | injeta o `LibraryRepository` (mock hoje, IPC depois); o Context/hook de consumo fica em `shared/providers/`, a injeção do concreto só aqui |
 
 Regra: **nenhum outro arquivo monta dependências concretas.** Isso é o que
 permite trocar a origem dos dados (mock → IPC/HTTP) sem alterar consumidores.
@@ -416,6 +657,9 @@ client/ (presentation + application)          midoteca/ (application + domain)
 - [ ] Nomes seguem a tabela canônica do §3 (sem `dto.ts`, `inputs.ts`, `ports.ts`).
 - [ ] `domain`/`application` não importam framework nem infraestrutura (§5).
 - [ ] Novo acesso externo entrou por um contrato + adapter (§7).
+- [ ] Contrato de fronteira do runtime em `core/contracts/`, **um por papel** (§9, ISP).
+- [ ] Provider/Context: local ao contexto → `presentation/providers/`; consumido por 2+ contextos → `shared/providers/` (§3).
+- [ ] `presentation/` não importa `infrastructure/` nem a `presentation/` de outro contexto (§5).
 - [ ] Adapter alocado pela regra do §6 (contexto único × compartilhado).
 - [ ] Nenhuma camada vazia foi criada "para seguir o padrão" (§10).
 - [ ] Contratos permanecem pequenos; nenhum contrato inchou (§9, ISP).

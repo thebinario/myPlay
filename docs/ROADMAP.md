@@ -368,7 +368,7 @@ MIDOTECA
 │   ├── indexing/  search/  jobs/  settings/
 │   ├── home/  player/       # contextos de interface (frontend)
 │   └── <contexto>/{domain,application,infrastructure,presentation}
-├── shared/                  # ui/ · testing/ (sem regra de negócio)
+├── shared/                  # ui/ · providers/ (seams de DI) · testing/ (sem regra de negócio)
 └── platform/                # adapters técnicos compartilhados por 2+ contextos
     ├── persistence/ · fs/ · events/
     └── desktop/ · cloud/
@@ -388,14 +388,14 @@ courses/
 │   ├── dependencies.ts      # deps compartilhadas por 2+ operações
 │   └── services/            # orquestração/fachada (opcional)
 ├── infrastructure/          # adapters do contexto
-└── presentation/            # BE: controllers/ · FE: views/ · components/ · providers/ · hooks/ · stories/
+└── presentation/            # BE: controllers/ · FE: views/ · components/ · providers/ (local) · hooks/ · stories/
 ```
 
 > Referência, **não** obrigação de criar todos os diretórios antecipadamente:
 > camada sem responsabilidade real não deve existir
 > ([`ARCHITECTURE.md`](ARCHITECTURE.md) §10). A convergência incremental do
 > código atual está em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md) —
-> backend **P5/P8**, frontend **P6/P7**.
+> backend **P5/P8/P10**, frontend **P6/P7/P9**.
 
 ### Regras técnicas permanentes
 

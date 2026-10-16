@@ -35,7 +35,9 @@
 │   ├── infrastructure/           # adapters do contexto
 │   └── presentation/             # BE: controllers/ · FE: views/ · components/ · providers/ · hooks/ · stories/
 ├── shared/                       # reutilizável, sem regra de negócio
-│   └── ui/{components,stories}/  # design system + testing/
+│   ├── ui/{components,stories}/  # design system
+│   ├── providers/                # seams de DI (Context) usados por 2+ contextos
+│   └── testing/                  # helpers/setup de teste
 └── platform/                     # adapters técnicos compartilhados por 2+ contextos
     ├── persistence/ · fs/ · events/ · desktop/ · cloud/
 ```
@@ -49,7 +51,10 @@
   contexto** (só contratos/tipos) — **nunca** `application/`, `infrastructure/`
   ou `presentation/` de outro contexto.
 - **`presentation/` é fino** e só conversa com o `application/` do próprio
-  contexto.
+  contexto, `core/contracts/`, `shared/ui/` e `shared/providers/` — **nunca** a
+  `presentation/` de outro contexto nem `infrastructure/`.
+- **DI entre contextos** vive em `shared/providers/` (o Context + os hooks de
+  consumo, sem regra de negócio); a injeção do adapter concreto fica em `app/`.
 - **Adapters**: um contexto só → `modules/<ctx>/infrastructure/`; 2+ contextos →
   `platform/<tecnologia>/` ([`ARCHITECTURE.md`](ARCHITECTURE.md) §6).
 - **Sem pastas de um arquivo** só para "completar" um padrão.
@@ -109,7 +114,8 @@ Convenções TypeScript (backend):
 | --- | --- | --- | --- |
 | `presentation/views/<Nome>View.tsx` | presentation | tela (fina) | `modules/library/presentation/views/LibraryView.tsx` |
 | `presentation/components/<Nome>.tsx` | presentation | subcomponente/átomo local | `modules/player/presentation/components/PlayerSurface.tsx` |
-| `presentation/providers/<Nome>Provider.tsx` | presentation | React Context/Provider | `modules/library/presentation/providers/LibraryProvider.tsx` |
+| `presentation/providers/<Nome>Provider.tsx` | presentation | React Context/Provider **local ao contexto** | `modules/<ctx>/presentation/providers/XProvider.tsx` |
+| `shared/providers/<nome>.tsx` | shared | seam de DI (Context + hooks de consumo) usado por 2+ contextos | `shared/providers/library-repository.tsx` |
 | `presentation/hooks/useXxx.ts` | presentation | **hook de apresentação** | `presentation/hooks/useAutoHideControls.ts` |
 | `presentation/stories/<Nome>.stories.tsx` | presentation | story do Storybook | `presentation/stories/MiniPlayer.stories.tsx` |
 | `application/use-cases/<verbo>-<sub>.ts` | application | **caso de uso** (sem React) | `modules/courses/application/use-cases/save-course.ts` |
@@ -126,8 +132,9 @@ Convenções React:
 - **Um componente por arquivo**, `PascalCase`, exportado nomeado.
 - Views terminam com `View`; átomos do design system **não** (`Button`, `Badge`).
 - Subdivisão de `presentation/`: `views/` (telas), `components/` (peças do
-  contexto), `providers/` (Context), `hooks/`, `stories/` — **só as que tiverem
-  conteúdo**.
+  contexto), `providers/` (Context **local** ao contexto), `hooks/`, `stories/`
+  — **só as que tiverem conteúdo**. Provider/Context consumido por **2+**
+  contextos vai para `shared/providers/` (ver §3).
 - Props tipadas com `interface <Nome>Props`.
 - Componentes **não** acessam repositório, HTTP/IPC ou `localStorage`: usam
   `useLibrary()` / `useLibraryRepository()`.
@@ -176,7 +183,8 @@ Convenções React:
 | Componente visual (tela) | — | `modules/<ctx>/presentation/views/<Nome>View.tsx` |
 | Subcomponente/átomo do contexto | — | `modules/<ctx>/presentation/components/<Nome>.tsx` |
 | Átomo do design system | — | `shared/ui/components/<Atom>.tsx` |
-| Provider/Context | — | `modules/<ctx>/presentation/providers/<Nome>Provider.tsx` |
+| Provider/Context local | — | `modules/<ctx>/presentation/providers/<Nome>Provider.tsx` |
+| Seam de DI (Provider consumido por 2+ contextos) | — | `shared/providers/<nome>.tsx` |
 | Hook de apresentação | — | `modules/<ctx>/presentation/hooks/useXxx.ts` |
 | Story | — | `modules/<ctx>/presentation/stories/<Nome>.stories.tsx` ou `shared/ui/stories/<Atom>.stories.tsx` |
 | Composição/injeção | `app/composition-root.ts` | `app/main.tsx` |
