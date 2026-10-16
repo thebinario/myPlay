@@ -272,13 +272,26 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     overflow: 'hidden',
                     flexShrink: 0,
                     backgroundColor: '#0B0F19',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#A594FF',
                   }}
                 >
-                  <img
-                    src={course.coverUrl}
-                    alt={course.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  <BookOpen size={26} aria-label="Capa do curso indisponível" />
+                  {course.coverUrl.trim() && (
+                    <img
+                      src={course.coverUrl}
+                      alt=""
+                      aria-hidden="true"
+                      onError={(event) => event.currentTarget.remove()}
+                      style={{
+                        gridArea: '1 / 1',
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span
