@@ -65,6 +65,7 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
               detail="Vídeo"
               icon={<Film size={16} color="#A594FF" />}
               onClick={onOpenMovie ? () => onOpenMovie(movie.id) : undefined}
+              actionLabel="Reproduzir"
             />
           ))}
           {standaloneDocuments.map((document) => (

@@ -1,7 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { LibraryView } from '@/modules/library/presentation/LibraryView';
-import { MOCK_LIBRARY, MOCK_COURSES } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_LIBRARY,
+  MOCK_COURSES,
+} from '@/modules/library/infrastructure/mock-library-repository';
+import type { LibrarySource } from '@/core/domain/library-source';
 
 describe('MIDOTECA - Tela da Biblioteca', () => {
   it('deve listar os itens da biblioteca com título, categoria e progresso', () => {
@@ -18,32 +22,50 @@ describe('MIDOTECA - Tela da Biblioteca', () => {
 
   it('deve filtrar itens ao clicar na aba Cursos', () => {
     const handleSelectCourse = vi.fn();
-    render(<LibraryView items={MOCK_LIBRARY} onSelectCourse={handleSelectCourse} />);
+    const sources = makeFilterSources();
+    render(
+      <LibraryView
+        items={itemsForFilterSources()}
+        sources={sources}
+        onSelectCourse={handleSelectCourse}
+      />,
+    );
 
     // Clica na aba "Cursos"
     const coursesTab = screen.getByRole('tab', { name: /cursos/i });
     fireEvent.click(coursesTab);
 
     // Deve exibir cursos
-    expect(screen.getByText('Arquitetura Desktop Moderna com Tauri & React')).toBeInTheDocument();
-    // Não deve mais exibir filmes ou documentos
-    expect(screen.queryByText('The Code: A História do Software Livre')).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Clean Architecture para Aplicações Frontend.pdf'),
+      screen.getByRole('button', { name: /abrir biblioteca biblioteca de cursos/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /abrir biblioteca biblioteca de filmes/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /abrir biblioteca biblioteca de documentos/i }),
     ).not.toBeInTheDocument();
   });
 
   it('deve filtrar itens pelo campo de busca', () => {
     const handleSelectCourse = vi.fn();
-    render(<LibraryView items={MOCK_LIBRARY} onSelectCourse={handleSelectCourse} />);
+    render(
+      <LibraryView
+        items={itemsForFilterSources()}
+        sources={makeFilterSources()}
+        onSelectCourse={handleSelectCourse}
+      />,
+    );
 
     const searchInput = screen.getByPlaceholderText(/buscar em cursos, filmes e documentos/i);
     fireEvent.change(searchInput, { target: { value: 'Vitest' } });
 
-    // Curso correspondente deve aparecer
-    expect(screen.getByText(/Testes Automatizados com Vitest/i)).toBeInTheDocument();
-    // Outros itens não devem aparecer
-    expect(screen.queryByText('The Code: A História do Software Livre')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /abrir biblioteca biblioteca de cursos/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /abrir biblioteca biblioteca de filmes/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('deve chamar onSelectCourse ao clicar em um card de curso', () => {
@@ -73,3 +95,31 @@ describe('MIDOTECA - Tela da Biblioteca', () => {
     expect(screen.getAllByText('Páginas não catalogadas')).toHaveLength(2);
   });
 });
+
+const makeFilterSources = (): LibrarySource[] => [
+  sourceFixture('courses', 'Biblioteca de Cursos'),
+  sourceFixture('movies', 'Biblioteca de Filmes'),
+  sourceFixture('documents', 'Biblioteca de Documentos'),
+];
+
+const sourceFixture = (id: string, name: string): LibrarySource => ({
+  id,
+  name,
+  path: `/${id}`,
+  libraryType: 'course',
+  status: 'connected',
+  itemCount: 1,
+  lastScannedAt: null,
+});
+
+const itemsForFilterSources = () => [
+  ...MOCK_COURSES.map((item) => ({ ...item, sourceId: 'courses' })),
+  ...MOCK_LIBRARY.filter((item) => item.type === 'movie').map((item) => ({
+    ...item,
+    sourceId: 'movies',
+  })),
+  ...MOCK_LIBRARY.filter((item) => item.type === 'document').map((item) => ({
+    ...item,
+    sourceId: 'documents',
+  })),
+];

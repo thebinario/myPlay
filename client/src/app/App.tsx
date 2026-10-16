@@ -130,7 +130,7 @@ export const App: React.FC = () => {
     setSelectedCourseId(courseId);
     setSelectedLessonId(lessonId);
     setSelectedMovieId(null);
-    setSession({ kind: 'lesson', courseId, lessonId, time, isPlaying: false });
+    setSession({ kind: 'lesson', courseId, lessonId, time, isPlaying: true });
     setResumeTime(undefined);
     setIsMinimized(false);
     setCurrentTab('player');
@@ -143,7 +143,7 @@ export const App: React.FC = () => {
     setSelectedMovieId(movieId);
     setSelectedCourseId(null);
     setSelectedLessonId(null);
-    setSession({ kind: 'movie', movieId, time, isPlaying: false });
+    setSession({ kind: 'movie', movieId, time, isPlaying: true });
     setResumeTime(undefined);
     setIsMinimized(false);
     setCurrentTab('player');

@@ -6,6 +6,17 @@ import {
   MOCK_MOVIES,
   MOCK_DOCUMENTS,
 } from '@/modules/library/infrastructure/mock-library-repository';
+import type { LibrarySource } from '@/core/domain/library-source';
+
+const storySource: LibrarySource = {
+  id: 'storybook-library',
+  path: '/biblioteca/demo',
+  name: 'Biblioteca de demonstração',
+  libraryType: 'course',
+  status: 'connected',
+  itemCount: MOCK_LIBRARY.length,
+  lastScannedAt: null,
+};
 
 const meta: Meta<typeof LibraryView> = {
   title: 'Library/LibraryView',
@@ -17,7 +28,9 @@ const meta: Meta<typeof LibraryView> = {
   },
   argTypes: {
     items: { control: false },
+    sources: { control: false },
     onSelectCourse: { action: 'select-course' },
+    onPlayLesson: { action: 'play-lesson' },
     onOpenMovie: { action: 'open-movie' },
     onOpenDocument: { action: 'open-document' },
   },
@@ -76,6 +89,14 @@ export const WithDocuments: Story = {
   args: {
     ...defaultArgs,
     items: MOCK_DOCUMENTS,
+  },
+};
+
+export const WithSources: Story = {
+  args: {
+    ...defaultArgs,
+    sources: [storySource],
+    items: MOCK_LIBRARY.map((item) => ({ ...item, sourceId: storySource.id })),
   },
 };
 

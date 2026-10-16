@@ -2,7 +2,7 @@
  * MIDOTECA — Fase 1: integração App ↔ repositório (fonte única de verdade).
  * Garante que mutações no repositório se refletem na UI sem estado duplicado.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import App from '@/app/App';
@@ -32,5 +32,17 @@ describe('App — fonte única de verdade do catálogo', () => {
     const updated = mockLibraryService.getCourseById(inProgressCourse.id)!;
     expect(updated.progress).not.toBe(inProgressCourse.progress);
     expect(screen.getByText(`${updated.progress}% concluído`)).toBeInTheDocument();
+  });
+
+  it('inicia o player do projeto ao escolher uma aula para reproduzir', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByTestId(`home-course-${inProgressCourse.id}`));
+    const lesson = inProgressCourse.modules.flatMap((module) => module.lessons)[0];
+    await user.click(screen.getByLabelText(`Assistir aula ${lesson.title}`));
+
+    expect(await screen.findByText(lesson.title)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('player-status')).toHaveTextContent('Reproduzindo'));
   });
 });
