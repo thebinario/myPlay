@@ -1,4 +1,6 @@
 export const APP_CONFIG = {
+  name: 'Midoteca',
+  version: '0.1.0-demo',
   API_BASE_URL: 'http://localhost:3000/api',
   VIDEO: {
     STREAM_URL: (id: string) => `${APP_CONFIG.API_BASE_URL}/videos/${id}/stream`,
