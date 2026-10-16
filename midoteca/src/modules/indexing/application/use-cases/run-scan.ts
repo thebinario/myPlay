@@ -1,14 +1,9 @@
 import { nowIso } from '../../../../core/clock';
 import { NotFoundError } from '../../../../core/errors';
 import { newId } from '../../../../core/ids';
-import type { LibraryRepository } from '../../../library/domain/ports';
+import type { LibraryRepository } from '../../../library/domain/repositories';
 import type { EventBus } from '../../domain/events';
-import type {
-  FileScanner,
-  IndexingStore,
-  ManifestLoader,
-  SourceProbe,
-} from '../../domain/ports';
+import type { FileScanner, IndexingStore, ManifestLoader, SourceProbe } from '../../domain/ports';
 import type { DiscoveredFile, IndexSummary } from '../../domain/types';
 import type { ResourceGovernor } from '../resource-governor';
 import { ApplyOrganization } from './apply-organization';

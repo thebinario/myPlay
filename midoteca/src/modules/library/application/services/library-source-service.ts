@@ -2,10 +2,12 @@ import { NotFoundError } from '../../../../core/errors';
 import type { EventBus } from '../../../indexing/domain/events';
 import type { SourceProbe } from '../../../indexing/domain/ports';
 import type { LibrarySource } from '../../domain/entities';
-import type { LibraryRepository } from '../../domain/ports';
-import type { AddSourceInput, SourceAvailability } from '../dto';
-import { AddSource } from '../use-cases/add-source';
-import { CheckSourceAvailability } from '../use-cases/check-source-availability';
+import type { LibraryRepository } from '../../domain/repositories';
+import { AddSource, type AddSourceInput } from '../use-cases/add-source';
+import {
+  CheckSourceAvailability,
+  type SourceAvailability,
+} from '../use-cases/check-source-availability';
 import { RemoveSource } from '../use-cases/remove-source';
 import { UpdateSourcePath } from '../use-cases/update-source-path';
 

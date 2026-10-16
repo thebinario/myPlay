@@ -1,5 +1,5 @@
 import { NotFoundError } from '../../../../core/errors';
-import type { LibraryRepository } from '../../domain/ports';
+import type { LibraryRepository } from '../../domain/repositories';
 
 export interface RemoveSourceDependencies {
   library: LibraryRepository;

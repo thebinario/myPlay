@@ -10,16 +10,23 @@ import { SettingsProvider } from '@/modules/settings/presentation/providers/Sett
 import { mockPreferencesRepository } from '@/modules/settings/infrastructure/mock-preferences.repository';
 import { OnboardingProvider } from '@/modules/onboarding/presentation/providers/OnboardingProvider';
 import { mockOnboardingRepository } from '@/modules/onboarding/infrastructure/mock-onboarding.repository';
+import { getMidotecaBridge } from '@/platform/desktop';
+import { IpcLibrarySourcesRepository } from '@/modules/sources/infrastructure/ipc/ipc-library-sources.repository';
 import '@/index.css';
 
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
 const repository = new MockLibraryService(localStorageLibraryStorage);
 
+// Fontes reais via kernel SQLite quando rodando dentro do Electron; mock no browser.
+const bridge = getMidotecaBridge();
+const sourcesRepository = bridge ? new IpcLibrarySourcesRepository(bridge) : undefined;
+if (sourcesRepository) void sourcesRepository.hydrate();
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <LibraryProvider repository={repository}>
       <SettingsProvider repository={mockPreferencesRepository}>
-        <SourcesProvider repository={mockLibrarySourcesRepository}>
+        <SourcesProvider repository={sourcesRepository ?? mockLibrarySourcesRepository}>
           <OnboardingProvider repository={mockOnboardingRepository}>
             <App />
           </OnboardingProvider>

@@ -287,14 +287,16 @@ dois lugares e nomes que não comunicam o papel.
 | `application/dto.ts` (input/output de caso de uso) | colocalizado em `application/use-cases/<op>.ts` |
 | `application/dto.ts` (bundle de deps) | `application/dependencies.ts` |
 | `application/queries.ts` (N operações) | `application/queries/<op>.ts` (1 por consulta) |
-| read models + `LibraryQueryStore` (`domain/queries.ts`) | `application/queries/read-models.ts` + `application/queries/store.ts` |
+| read models + contrato de leitura (`domain/queries.ts`) | `domain/read-models.ts` + store em `domain/repositories.ts` |
 | `client/src/core/ports/` | `client/src/core/contracts/` |
 
 **Passos:** por contexto (começar por `library`), caracterizar → renomear/mover →
 ajustar imports → rodar `npm test`. Sem mudança de comportamento. Migrar os
 demais contextos quando tocados ou quando o risco justificar.
 
-**Status:** ⏳ documentação alinhada; migração de código pendente.
+**Status:** 🟡 `library` migrado (✅ `domain/read-models.ts` + `domain/repositories.ts`,
+`application/queries/<op>.ts`, `application/services/library-query-service.ts`;
+19 specs / 116 testes verdes). Demais contextos pendentes.
 
 ## 14. P9 — Seam de DI compartilhado + contratos por papel (ISP)
 

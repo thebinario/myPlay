@@ -54,5 +54,15 @@ export default tseslint.config(
     files: ['**/*.config.{js,ts}', 'vite.config.ts', 'setupProxy.js'],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    // Electron main/preload run in Node's CommonJS context, outside the Vite bundle.
+    files: ['electron/**/*.cjs', '**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   prettier,
 );

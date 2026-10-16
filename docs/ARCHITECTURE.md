@@ -57,7 +57,7 @@ runtimes — e **cada tipo de arquivo tem um lugar e um nome fixos**:
 | Camada | Responsabilidade | Arquivos canônicos |
 | --- | --- | --- |
 | `domain/` | Entidades, value objects, regras puras, **contratos do contexto**. Zero IO, zero framework | `entities.ts` · `types.ts` · `errors.ts` · `events.ts` · `repositories.ts` · `contracts.ts` · `<regra>.ts` |
-| `application/` | **Casos de uso** explícitos: escrita (`use-cases/`) e leitura (`queries/`), com entrada/saída **colocalizadas** | `use-cases/<verbo>-<sub>.ts` · `queries/<verbo>-<sub>.ts` · `queries/read-models.ts` · `queries/store.ts` · `dependencies.ts` · `services/<nome>.ts` |
+| `application/` | **Casos de uso** explícitos: escrita (`use-cases/`) e leitura (`queries/`), com entrada/saída **colocalizadas** | `use-cases/<verbo>-<sub>.ts` · `queries/<verbo>-<sub>.ts` · `dependencies.ts` · `services/<nome>.ts` |
 | `infrastructure/` | **Adapters** que implementam os contratos do contexto | `<ctx>.repository.sqlite.ts` · `<ctx>.query.sqlite.ts` · (mock/IPC/HTTP) |
 | `presentation/` | Superfície do runtime, **fina**: entrega e recebe, nunca decide | BE: `controllers/<nome>.controller.ts` · FE: `views/` · `components/` · `providers/` · `hooks/` · `stories/` |
 
@@ -69,8 +69,9 @@ O que cada arquivo de `domain/` contém:
 | `domain/types.ts` | Tipos/enums de domínio que **não** são entidade | `MediaKind`, `IndexStatus` |
 | `domain/errors.ts` | Erros do contexto | `ManifestParseError` |
 | `domain/events.ts` | Eventos de domínio e seus payloads | `LibraryEvent`, `LibraryEventPayloads` |
-| `domain/repositories.ts` | **Interfaces de repositório + seus comandos de entrada** (`CreateX`/`UpdateX`/`MoveX`) | `LibraryRepository`, `CreateLibrarySource`, `IndexingStore` |
+| `domain/repositories.ts` | **Interfaces de repositório + seus comandos de entrada** (`CreateX`/`UpdateX`/`MoveX`) **+ contratos de leitura (store)** | `LibraryRepository`, `CreateLibrarySource`, `IndexingStore`, `LibraryQueryStore` |
 | `domain/contracts.ts` | Demais **contratos** de dependência externa (não-repositório) | `FileScanner`, `SourceProbe`, `ManifestLoader`, `EventBus` |
+| `domain/read-models.ts` | **Read models** (projeções) referenciados por um contrato de leitura | `CourseSummary`, `DocumentSummary`, `SourceIndexState` |
 | `domain/<regra>.ts` | Regra pura / domain service | `organization.ts`, `manifest.ts` |
 
 E o que cada subpasta de `presentation/` contém (frontend; no backend só
@@ -99,6 +100,12 @@ E o que cada subpasta de `presentation/` contém (frontend; no backend só
 > **Regra de ouro dos contratos:** persistência de agregado → `repositories.ts`;
 > **qualquer outra** dependência externa → `contracts.ts`. Comandos usados por um
 > repositório moram junto do repositório, **nunca** em um `inputs.ts` à parte.
+>
+> **Contrato de leitura (store).** O contrato do store de leitura **e** os read
+> models que ele referencia ficam no `domain/` (`repositories.ts` +
+> `read-models.ts`), porque quem o implementa é a `infrastructure` — e a matriz
+> (§5) proíbe `infrastructure → application`. `application/queries/` contém
+> **apenas as operações** de leitura, que delegam ao store.
 
 Fluxo permitido:
 
@@ -128,14 +135,13 @@ operações. Motivos e alternativas em [`DDD_GUIDELINES.md`](DDD_GUIDELINES.md) 
 │       │   ├── entities.ts       # entidades + value objects
 │       │   ├── types.ts          # tipos/enums de domínio (não-entidade)
 │       │   ├── errors.ts · events.ts
-│       │   ├── repositories.ts   # contratos de repositório + comandos (CreateX/UpdateX)
+│       │   ├── repositories.ts   # contratos de repositório + comandos (CreateX/UpdateX) + store de leitura
 │       │   ├── contracts.ts      # demais contratos externos (scanner, probe, bus)
+│       │   ├── read-models.ts    # read models referenciados por contratos de leitura
 │       │   └── <regra>.ts        # domain service / regra pura
 │       ├── application/
 │       │   ├── use-cases/<verbo>-<sub>.ts   # ESCRITA + input/output colocalizados
-│       │   ├── queries/<verbo>-<sub>.ts     # LEITURA + read model colocalizado
-│       │   ├── queries/read-models.ts       # read models compartilhados por 2+ consultas
-│       │   ├── queries/store.ts             # contrato do store de leitura (projeções)
+│       │   ├── queries/<verbo>-<sub>.ts     # LEITURA (operação) — delega ao store do domain
 │       │   ├── dependencies.ts              # deps compartilhadas por 2+ operações
 │       │   └── services/<nome>.ts           # orquestração/fachada de casos de uso
 │       ├── infrastructure/       # adapters do contexto
@@ -190,11 +196,10 @@ midoteca/src/
 │
 ├── modules/
 │   ├── library/
-│   │   ├── domain/                        # entities.ts · repositories.ts
+│   │   ├── domain/                        # entities.ts · repositories.ts · read-models.ts
 │   │   ├── application/
 │   │   │   ├── dependencies.ts
-│   │   │   ├── queries/                   # list-courses · list-documents · search ·
-│   │   │   │                              #   get-source-index-state · read-models.ts · store.ts
+│   │   │   ├── queries/                   # list-courses · list-documents · search · get-source-index-state
 │   │   │   ├── use-cases/                 # add-source · remove-source ·
 │   │   │   │                              #   update-source-path · check-source-availability
 │   │   │   └── services/library-source-service.ts
@@ -253,8 +258,9 @@ O que essa árvore materializa (P8/P10):
    `domain/inputs.ts` (comandos `CreateX`/`UpdateX`) viram **um** `domain/repositories.ts`;
    contratos não-repositório vão para `domain/contracts.ts`. `application/dto.ts`
    some (I/O colocalizado no caso de uso); `application/queries.ts` vira
-   `application/queries/<op>.ts`; read models + `LibraryQueryStore` saem de
-   `domain/queries.ts` para `application/queries/`.
+   `application/queries/<op>.ts`; read models e o contrato de leitura
+   (`LibraryQueryStore`) permanecem no `domain/` (`read-models.ts` +
+   `repositories.ts`).
 2. **Arquivos grandes.** Adapters acima do indicador
    (`course.repository.sqlite.ts` 668, `indexing.store.sqlite.ts` 447,
    `media.repository.sqlite.ts` 304) e `indexing/domain/organization.ts` 329
@@ -284,10 +290,10 @@ client/src/
 │
 ├── modules/
 │   ├── library/                           # contexto de referência (fatia vertical completa)
-│   │   ├── domain/                        # entities.ts · types.ts
+│   │   ├── domain/                        # entities.ts · types.ts · read-models.ts
 │   │   ├── application/
 │   │   │   ├── dependencies.ts
-│   │   │   ├── queries/                   # list-library-items.ts · read-models.ts
+│   │   │   ├── queries/                   # list-library-items.ts
 │   │   │   └── use-cases/                 # save-course.ts · toggle-lesson-completion.ts
 │   │   ├── infrastructure/
 │   │   │   ├── mock/                      # catalog-store · playback-store · reading-store ·
@@ -555,11 +561,13 @@ em 0 e API pública preservada.
 
 Decisões tomadas durante a migração (não estavam no mapa acima):
 
-- `library/queries.ts` foi **dividido**: read models + contrato `LibraryQueryStore`
-  → `modules/library/domain/queries.ts`; `LibraryQueryService` →
-  `modules/library/application/queries.ts`. O adapter implementa o contrato do
-  **domínio**, sem depender de `application/`. **Alvo P8:** read models + store
-  passam para `application/queries/` (`read-models.ts` + `store.ts`).
+- `library/queries.ts` foi **dividido** e o **P8-library está concluído**:
+  read models (`read-models.ts`) + contratos (`LibraryRepository` + comandos +
+  `LibraryQueryStore`) ficam em `modules/library/domain/`; as **operações** de
+  leitura passaram a `modules/library/application/queries/<op>.ts` e a fachada
+  `LibraryQueryService` para `application/services/library-query-service.ts`. O
+  adapter implementa o contrato do **domínio**, sem depender de `application/`
+  (matriz §5 exige isso).
 - `indexing/scanner.ts` foi **fundido** em `modules/indexing/domain/ports.ts`
   (um único `ports.ts` por contexto). **Alvo P8:** repositórios →
   `domain/repositories.ts`; scanner/probe/loader/bus → `domain/contracts.ts`.
@@ -579,7 +587,7 @@ Pendências verificadas (→ árvore-alvo do §4.1; prioridades em
 | Achado | Alvo | Prio |
 | --- | --- | --- |
 | **8** `domain/ports.ts` + **6** `domain/inputs.ts` (P8) | `domain/repositories.ts` (+ comandos) e `domain/contracts.ts` | **P8** |
-| `application/dto.ts` (4 contextos); `application/queries.ts` (2); `library/domain/queries.ts` | I/O colocalizado; `application/queries/<op>.ts` + `read-models.ts` + `store.ts` | **P8** |
+| `application/dto.ts` (4 contextos); `application/queries.ts` (2); `domain/queries.ts`/`inputs.ts`/`ports.ts` | I/O colocalizado; `application/queries/<op>.ts`; read models + contrato de leitura no `domain/` (`read-models.ts` + `repositories.ts`) | **P8** (library ✅) |
 | `indexing/domain/contracts.ts` guarda `INDEXING_JOB_TYPES` (constantes) | `domain/types.ts` | **P8** |
 | Adapters acima do indicador: `course.repository.sqlite.ts` **668** · `indexing.store.sqlite.ts` **447** · `media.repository.sqlite.ts` **304** | dividir por agregado/consulta | **P10** |
 | `indexing/domain/organization.ts` **329** linhas | `domain/organization/` por responsabilidade | **P10** |

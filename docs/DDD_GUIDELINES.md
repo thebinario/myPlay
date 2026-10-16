@@ -129,12 +129,17 @@ Consequências práticas:
 
 ### 4.2 Órgão de leitura (read side)
 
-- Read models (projeções) moram na **application**: `queries/read-models.ts`
-  (se compartilhados) ou no próprio arquivo da consulta.
+- Read models (projeções) referenciados por um **contrato de leitura** moram no
+  `domain`: `domain/read-models.ts`. Um read model usado por uma única consulta,
+  sem contrato próprio, pode ficar no próprio arquivo da consulta.
 - Quando a consulta vai direto à projeção (SQL otimizado), o contrato do store
-  fica em `application/queries/store.ts` e o adapter em
-  `infrastructure/<ctx>.query.sqlite.ts`.
-- O domínio **não** conhece read models nem store de leitura.
+  fica em `domain/repositories.ts` — **não** em `application/queries/`, pois quem
+  o implementa é a `infrastructure` e a matriz proíbe `infrastructure →
+  application`. As **operações** de leitura ficam em `application/queries/<op>.ts`
+  e o adapter em `infrastructure/<ctx>.query.sqlite.ts`.
+- O domínio **não** conhece persistência/SQL. O contrato do store e os read models
+  são *shapes* puros (sem comportamento), declarados no `domain/`; a
+  `infrastructure` os implementa.
 
 ### 4.3 Quando extrair (e quando não)
 
