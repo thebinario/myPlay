@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ResourceGovernor } from '../src/core/indexing/resource-governor';
+import { ResourceGovernor } from '../src/modules/indexing/application/resource-governor';
 
 describe('ResourceGovernor', () => {
   it('holds indexing while paused and resumes cleanly', async () => {

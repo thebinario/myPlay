@@ -1,7 +1,10 @@
 # Arquitetura — Midoteca (Fases 1–2)
 
 > Organização de pastas e nomes de arquivo: [`../../docs/CODE_ORGANIZATION.md`](../../docs/CODE_ORGANIZATION.md).
-> Visão unificada (backend + frontend): [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+> **Modelo canônico (fonte única de verdade, vale também para o frontend):
+> [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)** — este documento
+> descreve a **implementação atual do núcleo** e como ela converge para o modelo
+> canônico (§10).
 
 ## 1. Visão geral
 
@@ -20,53 +23,75 @@ domínio.
 
 ```text
 ┌───────────────────────────────────────────────┐
-│ Transporte (Fase 2+)                           │  HTTP / IPC / Tauri commands
-│   NestJS controller · Tauri command · worker   │  (ainda não existe)
+│ Presentation (Fase 3+)                         │  HTTP / IPC / Tauri commands
+│   controller · Tauri command · worker          │  (ainda não existe)
 ├───────────────────────────────────────────────┤
-│ Aplicação / composição                         │
-│   createMidoteca()  → Midoteca                 │  src/index.ts
+│ Aplicação (modules/<ctx>/application/)         │  casos de uso, queries, serviços
+│   LibrarySourceService · Indexer · queries     │  orquestra domínio + ports
 ├───────────────────────────────────────────────┤
-│ Domínio (core/)                                │
-│   entidades · tipos de entrada · contratos     │  sem dependências de infra
+│ Domínio (modules/<ctx>/domain/ + core/)        │  entidades, regras puras, ports
+│   sem dependência de infraestrutura            │
 ├───────────────────────────────────────────────┤
-│ Infraestrutura (infra/sqlite/)                 │
-│   driver · migrações · repositórios SQLite     │  implementa os contratos
+│ Infraestrutura (modules/<ctx>/infrastructure/) │  implementa os ports
+│   Sqlite*Repository · platform/*               │  driver, migrações, fs, eventos
 └───────────────────────────────────────────────┘
 ```
 
-Regra de dependência: `core/` **nunca** importa `infra/`. Os contratos de
-repositório são interfaces em `core/*/repository.ts`; as classes
-`Sqlite*Repository` em `infra/sqlite/repositories/` os implementam. Trocar SQLite
-por outro mecanismo (ex.: D1) significa escrever novos adaptadores, sem tocar no
-domínio.
+Regra de dependência: `domain/` e `application/` **nunca** importam
+`infrastructure/` nem framework. Os contratos são interfaces em
+`modules/<ctx>/domain/ports.ts`; as classes `Sqlite*Repository` em
+`modules/<ctx>/infrastructure/` os implementam. Trocar SQLite por outro
+mecanismo (ex.: D1) significa escrever novos adaptadores, sem tocar no domínio.
+Adapters técnicos usados por 2+ contextos (conexão/migrações, filesystem, bus)
+vivem em `platform/` ([`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)
+§6).
 
 ## 3. Estrutura de diretórios
 
+O layout abaixo já é o **modelo canônico**
+([`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §4), o mesmo do
+frontend, aplicado na migração **P5** sem mudança de comportamento:
+
 ```text
 src/
-├── index.ts                       # composition root + API pública
-├── core/
-│   ├── shared/                    # kernel: ids, erros, validação, JSON, clock, caminhos, título
-│   ├── library/                   # LibrarySource, repository (port), service, queries
-│   ├── media/                     # MediaFile, MediaTrack + MediaRepository
-│   ├── courses/                   # Course, CourseModule, Lesson, LessonMedia + CourseRepository
-│   ├── documents/                 # Document, DocumentLink + DocumentRepository
-│   ├── progress/                  # PlaybackProgress, ReadingProgress + ProgressRepository
-│   ├── jobs/                      # Job + JobRepository
-│   ├── settings/                  # AppSetting + SettingsRepository
-│   ├── indexing/                  # Fase 2: types, organization (puro), ports, scanner,
-│   │                              #   manifest, events, resource-governor, indexer
-│   └── search/                    # fronteira: contrato de busca
-└── infra/
-    ├── sqlite/
-    │   ├── database.ts            # SqliteDatabase (WAL, FK, busy_timeout, transações)
-    │   ├── errors.ts              # mapeamento de erros do driver → domínio
-    │   ├── migrator.ts            # runner de migrações versionadas
-    │   ├── migrations/            # 0001-initial-schema, 0002-indexing, índice, tipos
-    │   └── repositories/          # adaptadores SQLite (inclui indexing.store e library-query)
-    ├── fs/                        # RecursiveFileScanner, FsSourceProbe, FsManifestLoader
-    └── events/                    # TypedEventBus (in-process)
+├── index.ts                          # API pública (re-exporta core/, modules/, platform/)
+├── app/
+│   └── composition-root.ts           # createMidoteca(): abre SQLite, migra, injeta adapters
+├── core/                             # kernel compartilhado (não é um contexto)
+│   ├── domain/                       # vocabulário usado por 2+ contextos (MediaType, LessonMediaRole)
+│   └── errors.ts · ids.ts · validation.ts · clock.ts · json.ts · json-codec.ts
+│       · title-source.ts · sort-source.ts · app-paths.ts · index.ts
+├── modules/
+│   ├── library/
+│   │   ├── domain/                   # entities, inputs, ports, queries (read models + port)
+│   │   ├── application/              # services/library-source-service, queries
+│   │   └── infrastructure/           # library.repository.sqlite, library-query.repository.sqlite
+│   ├── media/ · courses/ · documents/ · progress/ · jobs/ · settings/
+│   │   └── domain/ · infrastructure/ (media/course/document/progress/job/settings repository.sqlite)
+│   ├── indexing/
+│   │   ├── domain/                   # types, contracts, events, manifest, organization, ports
+│   │   ├── application/              # services/indexer, resource-governor
+│   │   └── infrastructure/           # indexing.store.sqlite
+│   └── search/domain/contracts.ts    # fronteira: contrato de busca
+└── platform/
+    ├── persistence/sqlite/           # SqliteDatabase (WAL, FK, busy_timeout), errors, migrator, migrations/
+    ├── fs/                           # RecursiveFileScanner, FsSourceProbe, FsManifestLoader
+    └── events/                       # TypedEventBus (in-process)
 ```
+
+### 3.1 Pendências de convergência
+
+O layout está no destino; restam refinamentos **dentro** das camadas, sem
+mudança de comportamento prevista (§10):
+
+- dividir `application/services/*` em **casos de uso explícitos**
+  (`use-cases/<verbo>-<substantivo>.ts`) conforme forem tocados;
+- camada `presentation/` (transporte IPC/HTTP), prevista para a Fase 3;
+- dividir os adapters acima do indicador de tamanho (~250 linhas).
+
+Regra de alocação de adapter: serve **um** contexto →
+`modules/<ctx>/infrastructure/`; serve **2+** contextos → `platform/<tech>/`
+([`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §6).
 
 ## 4. Responsabilidades dos módulos
 
@@ -113,13 +138,17 @@ src/
 
 ## 7. Evolução (Fase 3+)
 
+> O transporte (item abaixo) é a camada `presentation/` do modelo canônico e o
+> que destrava o adapter IPC/HTTP do frontend (P3 do
+> [`../../docs/REFACTORING_ROADMAP.md`](../../docs/REFACTORING_ROADMAP.md)).
+
 - A indexação incremental (scanner + reconciliação) já está implementada
   (ver §9). A Fase 3 acrescenta hashing/probe de conteúdo e FTS5/embeddings
   **sem** mudar contratos.
 - A fila `jobs` permite enfileirar hasher/transcodificador por um worker
   dedicado.
 - O composition root pode ser exposto por um controller NestJS local, comandos
-  Tauri ou um worker, sem alterar o domínio.
+  Tauri ou um worker, sem alterar o domínio (camada `presentation/`).
 
 ## 8. Auditoria do backend myPlay
 
@@ -136,14 +165,14 @@ ouro (nunca tocar arquivos físicos) e sem reescrever a Fase 1.
 
 ### 9.1 Novos módulos
 
-| Módulo                      | Responsabilidade                                                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `core/indexing`             | Tipos de descoberta, organização pura, portas (store/scanner/probe/manifest), event bus, resource governor e o `Indexer` |
-| `core/library/service.ts`   | `LibrarySourceService`: adicionar/validar/remover fontes e checar disponibilidade                                        |
-| `core/library/queries.ts`   | `LibraryQueryService`: consultas paginadas e busca                                                                       |
-| `infra/fs`                  | `RecursiveFileScanner`, `FsSourceProbe`, `FsManifestLoader`                                                              |
-| `infra/events`              | `TypedEventBus` (in-process, sem transporte)                                                                             |
-| `infra/sqlite/repositories` | `indexing.store.sqlite.ts`, `library-query.repository.sqlite.ts`                                                         |
+| Módulo                                      | Responsabilidade                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `modules/indexing`                          | Tipos de descoberta, organização pura, portas (store/scanner/probe/manifest), event bus, resource governor e o `Indexer` |
+| `modules/library/application/services`      | `LibrarySourceService`: adicionar/validar/remover fontes e checar disponibilidade                                        |
+| `modules/library/application/queries.ts`    | `LibraryQueryService`: consultas paginadas e busca (port/read models em `domain/queries.ts`)                             |
+| `platform/fs`                               | `RecursiveFileScanner`, `FsSourceProbe`, `FsManifestLoader`                                                              |
+| `platform/events`                           | `TypedEventBus` (in-process, sem transporte)                                                                             |
+| `modules/<ctx>/infrastructure`              | `indexing.store.sqlite.ts`, `library-query.repository.sqlite.ts`                                                         |
 
 ### 9.2 Fluxo de indexação
 
@@ -167,7 +196,7 @@ Indexer.runScan({ sourceId })
         └─ emit 'index:completed'
 ```
 
-- **Organização é pura** (`core/indexing/organization.ts`): recebe a lista plana
+- **Organização é pura** (`modules/indexing/domain/organization.ts`): recebe a lista plana
   de arquivos descobertos e devolve um plano, sem IO. Testável isoladamente.
 - **Escrita em lote**: o `IndexingStore` é síncrono (better-sqlite3) e roda
   dentro de `store.transaction(...)`; repositórios assíncronos não são usados em
@@ -194,3 +223,27 @@ fornece títulos de curso/módulo/aula. Ver
 `ResourceGovernor` pausa/retoma/cancela cooperativamente e faz `throttle()` sob
 sinais (playback ativo, disco ocupado, pressão de memória, bateria). O indexador
 `await`a o governor entre lotes, mantendo a UI responsiva.
+
+## 10. Conformidade com o modelo canônico
+
+Verificado **depois** da migração **P5**: `npm test` (92/92), `npm run typecheck`,
+`npm run lint`, `npm run format:check`, `npm run build` e uma varredura de imports
+de todas as arestas entre áreas. Nenhuma migração de layout alterou
+comportamento: caracterizar (testes) → mover → ajustar imports → rodar a suíte.
+
+| Regra canônica | Situação no núcleo |
+| --- | --- |
+| `domain/` e `application/` não importam `infrastructure/` | ✅ 0 ocorrências |
+| Domínio/aplicação sem framework ou driver | ✅ 0 ocorrências de React/NestJS/TypeORM/Express/Tauri/Axios/`better-sqlite3` (restam 2 menções em comentários) |
+| Driver nativo fora do domínio | ✅ `better-sqlite3` só em `platform/persistence/sqlite` (+ comentário em `modules/indexing/domain/ports.ts`) |
+| Fatia vertical `modules/<ctx>/{domain,application,infrastructure}` | ✅ conforme (P5) |
+| `domain/` não importa `domain/` de outro contexto | ✅ vocabulário compartilhado promovido a `core/domain/` (`MediaType`, `LessonMediaRole`) |
+| `application/` só cruza contexto por **ports** | ✅ 2 arestas: `library → indexing/domain` (EventBus, SourceProbe) e `indexing → library/domain/ports` |
+| Adapters compartilhados em `platform/` | ✅ conforme (`persistence/sqlite`, `fs`, `events`) |
+| Testes em `test/` espelhando `src/` | ✅ conforme (17 specs) |
+| Casos de uso explícitos em `application/` | ⚠️ **parcial** — `services/`, `queries.ts` e `resource-governor.ts` já vivem em `application/`; falta dividir em `use-cases/` |
+| `presentation/` (transporte) | ⚠️ **ausente** — previsto para a Fase 3 |
+| Adapters dentro do indicador de tamanho (~250 linhas) | ⚠️ exceções: `course.repository.sqlite.ts` (430), `indexing.store.sqlite.ts` (421) |
+
+Pendências, prioridade e risco: **P5/P7** do
+[`../../docs/REFACTORING_ROADMAP.md`](../../docs/REFACTORING_ROADMAP.md).

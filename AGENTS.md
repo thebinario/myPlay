@@ -73,6 +73,10 @@ Cada domínio deve possuir, quando necessário:
 
 Evite criar camadas, interfaces ou classes vazias apenas para seguir um padrão.
 
+**Estrutura canônica — a mesma para backend e frontend:** `app/` (composition root e shell) · `core/` (kernel: domínio compartilhado + ports + erros/validação/config) · `modules/<contexto>/{domain,application,infrastructure,presentation}` (uma fatia vertical por bounded context) · `shared/` (ui, testing — sem regra de negócio) · `platform/` (adapters técnicos compartilhados por 2+ contextos).
+
+Fonte única de verdade, com as regras de dependência, os critérios de quando cada camada existe e o mapa de migração atual → alvo: `docs/ARCHITECTURE.md`. Padrões táticos e SOLID: `docs/DDD_GUIDELINES.md`. Pastas e nomes: `docs/CODE_ORGANIZATION.md`. Prioridades de convergência: `docs/REFACTORING_ROADMAP.md` (P5 backend, P6/P7 frontend).
+
 ## 3. Regras de dependência
 
 O domínio não deve importar:

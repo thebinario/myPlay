@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ManifestParseError, parseManifest } from '../src/core/indexing/manifest';
+import { ManifestParseError, parseManifest } from '../src/modules/indexing/domain/manifest';
 
 describe('course manifest contract', () => {
   it('parses a valid manifest', () => {

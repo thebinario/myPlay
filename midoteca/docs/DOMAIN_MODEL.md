@@ -162,8 +162,9 @@ erDiagram
 
 ## 4. Contratos de repositório
 
-Os contratos vivem em `core/*/repository.ts` e são implementados em
-`infra/sqlite/repositories/*`. Eles **não** referenciam tipos de framework.
+Os contratos vivem em `modules/<contexto>/domain/ports.ts` e são implementados em
+`modules/<contexto>/infrastructure/*` (ou em `platform/`, quando servem 2+
+contextos). Eles **não** referenciam tipos de framework.
 
 ### LibraryRepository
 
@@ -236,24 +237,24 @@ get(key) / set(key, value) / list() / delete key;
 
 ## 5. Entrada, saída e erros
 
-- **Entradas** (`core/*/inputs.ts`) são tipos de comando com `id?` opcional
+- **Entradas** (`modules/<contexto>/domain/inputs.ts`) são tipos de comando com `id?` opcional
   (permite ids determinísticos em testes/seeds) e campos opcionais onde faz
   sentido.
-- **Saídas** são as entidades de domínio (`core/*/entities.ts`), sem tipos do
-  driver.
-- **Validação** ocorre na borda do repositório (`core/shared/validation.ts`),
+- **Saídas** são as entidades de domínio (`modules/<contexto>/domain/entities.ts`),
+  sem tipos do driver.
+- **Validação** ocorre na borda do repositório (`core/validation.ts`),
   lançando `ValidationError` antes de tocar o banco.
-- **Erros** (`core/shared/errors.ts`): `MidotecaError` →
+- **Erros** (`core/errors.ts`): `MidotecaError` →
   `NotFoundError`, `ValidationError`, `ConflictError`, `PersistenceError`. O
-  driver SQLite é mapeado por `infra/sqlite/errors.ts`.
+  driver SQLite é mapeado por `platform/persistence/sqlite/errors.ts`.
 
 ## 6. Compatibilidade com o client
 
-O client (`client/src/types/library.ts`) modela `Course`, `Document` e `Lesson`
+O client (`client/src/core/domain/library.ts`) modela `Course`, `Document` e `Lesson`
 com campos de apresentação (cover, tags, progresso, `lastPlaybackPosition`).
 Esses campos são **view-model** e pertencem à camada de aplicação/UI; o domínio
 guarda apenas dados canônicos. `Course.metadata` (JSON) é o ponto de extensão
-para tags/cover sem alterar o esquema. O contrato de busca em `core/search` já
+para tags/cover sem alterar o esquema. O contrato de busca em `modules/search` já
 espelha `SearchResultKind`/`SearchFilter` do client para futura ligação real.
 
 A fronteira frontend↔backend (ports no FE, casos de uso no núcleo) está descrita

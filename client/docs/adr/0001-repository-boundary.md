@@ -17,11 +17,11 @@ trocar a origem por dados reais (núcleo `midoteca` via IPC/HTTP) e para testar.
 
 Introduzir uma **fronteira de repositório** (Ports & Adapters) no frontend:
 
-1. **Ports** em `src/services/contracts.ts`: `LibraryCatalogRepository`,
-   `PlaybackStateRepository`, `ReadingStateRepository`, `PageProvider`,
-   `ISearchService`, agregados em `LibraryRepository`.
-2. **Adapter padrão** em memória: `MockLibraryService`
-   (`src/services/mockData.ts`) implementando `LibraryRepository`.
+1. **Ports**: `LibraryCatalogRepository`, `PlaybackStateRepository`,
+   `ReadingStateRepository`, `PageProvider`, `ISearchService`, agregados em
+   `LibraryRepository`.
+2. **Adapter padrão** em memória: `MockLibraryService` implementando
+   `LibraryRepository`.
 3. **Injeção** via React Context: `<LibraryProvider repository={…}>`; hooks
    `useLibraryRepository()`, `useLibraryItems()` (com `useSyncExternalStore`),
    `useLibrary()`.
@@ -53,8 +53,23 @@ Introduzir uma **fronteira de repositório** (Ports & Adapters) no frontend:
 - `useSyncExternalStore` exige que o snapshot seja estável (evitar novo array a
   cada `getSnapshot`).
 
+## Atualização de caminhos (após a migração de pastas)
+
+A decisão acima permanece; os caminhos mudaram com a migração para módulos por
+domínio e com o modelo canônico de
+[`../../../docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md):
+
+| No texto original | Hoje | Alvo canônico |
+| --- | --- | --- |
+| `src/services/contracts.ts` | `src/core/ports/libraryRepository.ts` | igual |
+| `src/services/mockData.ts` | `src/features/library/infrastructure/mockLibraryRepository.ts` | `src/modules/library/infrastructure/` |
+| `src/services/LibraryContext.tsx` | `src/features/library/presentation/LibraryProvider.tsx` | `src/modules/library/presentation/` |
+| `src/types/library.ts` | `src/core/domain/library.ts` | igual |
+| `src/services/libraryStorage.ts` | `src/features/library/infrastructure/libraryStorage.ts` | `src/modules/library/infrastructure/` |
+
 ## Próximos passos
 
 - Criar `IpcLibraryRepository` implementando o mesmo port (roadmap P3).
-- Fatiar `mockData.ts` (664 linhas) em fixtures + adapters (roadmap P2).
-- Extrair regras puras para `domain/` e casos de uso para `application/`.
+- Fatiar `mockLibraryRepository.ts` (**737 linhas**) em fixtures + adapters (roadmap P2).
+- Extrair regras puras para `domain/` e casos de uso para `application/` (roadmap P4/P7).
+- Renomear `features/` → `modules/` e mover testes para `test/` (roadmap P6).
