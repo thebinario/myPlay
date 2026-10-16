@@ -29,6 +29,7 @@ export interface MediaElementPlayback {
   pause: () => void;
   toggle: () => void;
   replay: () => void;
+  retry: () => void;
   seek: (time: number) => void;
   skip: (deltaSeconds: number) => void;
   setPlaybackRate: (rate: number) => void;
@@ -306,6 +307,14 @@ export function useMediaElementPlayback({
     play();
   }, [play, videoRef]);
 
+  const retry = useCallback(() => {
+    const video = videoRef.current;
+    initialTimeRef.current = currentTimeRef.current;
+    setIsPlaying(false);
+    setStatus('loading');
+    reloadVideo(video);
+  }, [videoRef]);
+
   const seek = useCallback(
     (time: number) => {
       if (statusRef.current === 'error') return;
@@ -370,6 +379,7 @@ export function useMediaElementPlayback({
       pause,
       toggle,
       replay,
+      retry,
       seek,
       skip,
       setPlaybackRate,
@@ -389,6 +399,7 @@ export function useMediaElementPlayback({
       pause,
       toggle,
       replay,
+      retry,
       seek,
       skip,
       setPlaybackRate,

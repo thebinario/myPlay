@@ -14,7 +14,7 @@ import type { Course, CourseModule, Document, Lesson, Movie } from '@/core/domai
 
 type Metadata = Record<string, unknown> | null;
 
-/** Builds a `file://` URL for a media file, resolving it against the source root. */
+/** Builds a desktop media URL, resolving the file against its source root. */
 export function buildMediaUrl(
   rootPath: string | undefined,
   relativePath: string | null | undefined,
@@ -22,18 +22,7 @@ export function buildMediaUrl(
   if (!rootPath || !relativePath) return '';
   const base = rootPath.replace(/[\\/]+$/, '');
   const relative = relativePath.replace(/^[\\/]+/, '');
-  return toFileUrl(`${base}/${relative}`);
-}
-
-function toFileUrl(filePath: string): string {
-  const normalized = filePath.replace(/\\/g, '/');
-  const encoded = normalized
-    .split('/')
-    .map((segment) => (/^[A-Za-z]:$/.test(segment) ? segment : encodeURIComponent(segment)))
-    .join('/');
-  if (normalized.startsWith('//')) return `file://${encoded.slice(2)}`;
-  if (/^[A-Za-z]:\//.test(normalized)) return `file:///${encoded}`;
-  return `file://${encoded}`;
+  return `midoteca-media://media/${encodeURIComponent(`${base}/${relative}`)}`;
 }
 
 function stringField(metadata: Metadata, key: string): string | undefined {
@@ -108,7 +97,6 @@ export function mapCourseTree(
             videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
             order: lesson.sortOrder,
             materials: [],
-            isUnavailable: primary ? primary.availability === 'missing' : undefined,
           };
         }),
     }));

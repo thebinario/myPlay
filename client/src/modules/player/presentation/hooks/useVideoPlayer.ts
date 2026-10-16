@@ -3,7 +3,11 @@ import type { Course, Lesson, SubtitleTrack } from '@/core/domain/library';
 import { useLibraryRepository } from '@/modules/library/presentation/LibraryProvider';
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 import { useAutoHideControls } from '@/modules/player/presentation/hooks/useAutoHideControls';
-import { formatSeconds, ratioFromOffset, seekTimeFromRatio } from '@/modules/player/domain/progress';
+import {
+  formatSeconds,
+  ratioFromOffset,
+  seekTimeFromRatio,
+} from '@/modules/player/domain/progress';
 import {
   lessonsOf,
   loadingLabelFor,
@@ -261,7 +265,11 @@ export function useVideoPlayer({
     handleSelectSubtitle(newTrack.id);
   }, [repository, course.id, currentLesson.id, handleSelectSubtitle]);
 
-  const handleReconnect = useCallback(() => setReconnected(true), []);
+  const retryPlayback = playback.retry;
+  const handleReconnect = useCallback(() => {
+    setReconnected(true);
+    retryPlayback();
+  }, [retryPlayback]);
 
   const availableSubtitles = currentLesson.subtitles ?? DEFAULT_SUBTITLES;
   const activeSubtitle = availableSubtitles.find((s) => s.id === selectedSubtitleId);

@@ -97,9 +97,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           disabled={isFirstLesson}
           aria-label="Aula anterior"
           variant={isFirstLesson ? 'muted' : 'default'}
-        >
-          <SkipBack size={18} />
-        </IconButton>
+        />
 
         <IconButton
           icon={RotateCcw}
@@ -107,9 +105,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           aria-label="Retroceder 10 segundos"
           title="Retroceder 10s"
           variant="default"
-        >
-          <RotateCcw size={18} />
-        </IconButton>
+        />
 
         <IconButton
           icon={isPlaying ? Pause : Play}
@@ -117,13 +113,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           aria-label={isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'}
           title={isPlaying ? 'Pausar' : 'Reproduzir'}
           variant="violet"
-        >
-          {isPlaying ? (
-            <Pause size={18} fill="#0D111B" />
-          ) : (
-            <Play size={18} fill="#0D111B" style={{ marginLeft: '2px' }} />
-          )}
-        </IconButton>
+        />
 
         <IconButton
           icon={RotateCw}
@@ -131,9 +121,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           aria-label="Avançar 10 segundos"
           title="Avançar 10s"
           variant="default"
-        >
-          <RotateCw size={18} />
-        </IconButton>
+        />
 
         <IconButton
           icon={SkipForward}
@@ -141,9 +129,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           disabled={isLastLesson}
           aria-label="Próxima aula"
           variant={isLastLesson ? 'muted' : 'default'}
-        >
-          <SkipForward size={18} />
-        </IconButton>
+        />
 
         <div style={{ marginLeft: '8px', fontSize: '13px', color: '#94A3B8' }}>
           <span data-testid="current-time" style={{ color: '#F0F4FC', fontWeight: 600 }}>
@@ -160,9 +146,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             onClick={onToggleMute}
             aria-label={isMuted ? 'Desmutar' : 'Mutar'}
             variant="muted"
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </IconButton>
+          />
           <input
             type="range"
             min="0"
@@ -182,7 +166,6 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           title="Legendas (CC)"
           variant={selectedSubtitleId ? 'violet' : 'muted'}
         >
-          <Subtitles size={17} />
           CC
         </IconButton>
 
@@ -202,9 +185,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
           title="Tela cheia"
           variant="muted"
-        >
-          {isFullscreen ? <Minimize size={17} /> : <Maximize size={17} />}
-        </IconButton>
+        />
       </div>
     </div>
   </div>

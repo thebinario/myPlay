@@ -4,7 +4,7 @@ import { newId } from '../../../../core/ids';
 import type { LibraryRepository } from '../../../library/domain/repositories';
 import type { EventBus } from '../../domain/events';
 import type { FileScanner, IndexingStore, ManifestLoader, SourceProbe } from '../../domain/ports';
-import type { DiscoveredFile, IndexSummary } from '../../domain/types';
+import type { DiscoveredFile, IndexSummary, ScanProgress } from '../../domain/types';
 import type { ResourceGovernor } from '../resource-governor';
 import { ApplyOrganization } from './apply-organization';
 import { ApplyTracks } from './apply-tracks';
@@ -92,12 +92,10 @@ export class RunScan {
     const discovered: DiscoveredFile[] = [];
     let batch: DiscoveredFile[] = [];
     let lastProgress = 0;
+    let scanErrors = 0;
 
-    const emitProgress = (progress: {
-      matched: number;
-      visited: number;
-      currentPath: string | null;
-    }) => {
+    const emitProgress = (progress: ScanProgress) => {
+      scanErrors = progress.errors;
       const now = Date.now();
       if (now - lastProgress < this.progressIntervalMs) return;
       lastProgress = now;
@@ -141,10 +139,13 @@ export class RunScan {
         return summary;
       }
 
-      const missingIds = store.markMissing(sourceId, runToken);
-      summary.missing = missingIds.length;
-      for (const mediaId of missingIds) {
-        events.emit('media:unavailable', { mediaId, sourceId, relativePath: '' });
+      summary.errors += scanErrors;
+      if (scanErrors === 0) {
+        const missingIds = store.markMissing(sourceId, runToken);
+        summary.missing = missingIds.length;
+        for (const mediaId of missingIds) {
+          events.emit('media:unavailable', { mediaId, sourceId, relativePath: '' });
+        }
       }
 
       await this.applyOrganization.execute(sourceId, source, discovered);
