@@ -9,6 +9,8 @@ import type { ImportScenario, ImportState, LibrarySource } from '@/core/domain/l
  * Ver docs/ARCHITECTURE.md §7.
  */
 export interface ImportRunner {
+  /** Falso no runner real (kernel); verdadeiro no simulador de demonstração. */
+  readonly simulated?: boolean;
   getState(): ImportState;
   subscribe(listener: () => void): () => void;
   start(sources: LibrarySource[]): void;
@@ -17,13 +19,15 @@ export interface ImportRunner {
   retry(): void;
   setScenario(scenario: ImportScenario): void;
   reset(): void;
-  /** Avança um passo da simulação. */
+  /** Avança um passo da simulação (no-op no runner real). */
   advance(): void;
 }
 
 /** View-model consumido pela apresentação. Produzido por `useImportFlow()`. */
 export interface ImportViewModel {
   state: ImportState;
+  /** Falso quando o runner é o real: esconde controles de demonstração. */
+  isSimulated: boolean;
   start(): void;
   pause(): void;
   resume(): void;

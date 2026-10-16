@@ -12,21 +12,35 @@ import { OnboardingProvider } from '@/modules/onboarding/presentation/providers/
 import { mockOnboardingRepository } from '@/modules/onboarding/infrastructure/mock-onboarding.repository';
 import { getMidotecaBridge } from '@/platform/desktop';
 import { IpcLibrarySourcesRepository } from '@/modules/sources/infrastructure/ipc/ipc-library-sources.repository';
+import { IpcImportRunner } from '@/modules/sources/infrastructure/ipc/ipc-import-runner';
+import { IpcLibraryRepository } from '@/modules/library/infrastructure/ipc/ipc-library-repository';
 import '@/index.css';
 
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
-const repository = new MockLibraryService(localStorageLibraryStorage);
+const mockRepository = new MockLibraryService(localStorageLibraryStorage);
 
-// Fontes reais via kernel SQLite quando rodando dentro do Electron; mock no browser.
+// Fontes e catálogo reais via kernel SQLite quando rodando dentro do Electron; mock no browser.
 const bridge = getMidotecaBridge();
 const sourcesRepository = bridge ? new IpcLibrarySourcesRepository(bridge) : undefined;
+const importRunner = bridge ? new IpcImportRunner(bridge) : undefined;
 if (sourcesRepository) void sourcesRepository.hydrate();
+
+// No desktop o catálogo (cursos/documentos) vem do kernel; reprodução/PDF/busca
+// continuam no mock delegado até os contratos respectivos serem migrados (P9).
+const libraryRepository = bridge
+  ? new IpcLibraryRepository(bridge, mockRepository)
+  : mockRepository;
+if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <LibraryProvider repository={repository}>
+    <LibraryProvider repository={libraryRepository}>
       <SettingsProvider repository={mockPreferencesRepository}>
-        <SourcesProvider repository={sourcesRepository ?? mockLibrarySourcesRepository}>
+        <SourcesProvider
+          repository={sourcesRepository ?? mockLibrarySourcesRepository}
+          runner={importRunner}
+          picker={bridge ?? undefined}
+        >
           <OnboardingProvider repository={mockOnboardingRepository}>
             <App />
           </OnboardingProvider>

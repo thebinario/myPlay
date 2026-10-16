@@ -20,6 +20,7 @@ function sourcesViewModel(sources: LibrarySource[]): SourcesViewModel {
 
 const importViewModel: ImportViewModel = {
   state: INITIAL_IMPORT_STATE,
+  isSimulated: true,
   start: noop,
   pause: noop,
   resume: noop,

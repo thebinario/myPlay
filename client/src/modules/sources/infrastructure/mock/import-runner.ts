@@ -42,6 +42,8 @@ export interface MockImportRunnerOptions {
  * falha (`offline`, `denied`, `error`) tornam os estados obrigatórios testáveis.
  */
 export class MockImportRunner implements ImportRunner {
+  readonly simulated = true;
+
   private state: ImportState = clone(INITIAL_IMPORT_STATE);
   private listeners = new Set<() => void>();
   private connectedSources: LibrarySource[] = [];

@@ -11,11 +11,12 @@ import {
   reconnectSource,
 } from '@/modules/sources/application/use-cases/reconnect-source';
 import { checkSourceAvailability } from '@/modules/sources/application/use-cases/check-source-availability';
+import { pickSourceDirectory } from '@/modules/sources/application/use-cases/pick-source-directory';
 import { useSourcesContext } from '@/modules/sources/presentation/providers/SourcesProvider';
 
 /** Fonte única de verdade das fontes de biblioteca + ações de gerenciamento. */
 export function useLibrarySources(): SourcesViewModel {
-  const { repository } = useSourcesContext();
+  const { repository, picker } = useSourcesContext();
 
   const subscribe = useCallback(
     (listener: () => void) => repository.subscribe(listener),
@@ -25,7 +26,7 @@ export function useLibrarySources(): SourcesViewModel {
   const sources = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   return useMemo<SourcesViewModel>(() => {
-    const deps = { repository };
+    const deps = { repository, picker };
     return {
       sources,
       addSource: (input: AddSourceInput): AddSourceResult => addSource(deps, input),
@@ -35,6 +36,7 @@ export function useLibrarySources(): SourcesViewModel {
       checkSource: (id) => {
         void checkSourceAvailability(deps, id);
       },
+      ...(picker ? { pickDirectory: () => pickSourceDirectory(deps) } : {}),
     };
-  }, [repository, sources]);
+  }, [repository, picker, sources]);
 }

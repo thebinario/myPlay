@@ -8,6 +8,7 @@ const noop = () => {};
 function viewModel(state: ImportState): ImportViewModel {
   return {
     state,
+    isSimulated: true,
     start: noop,
     pause: noop,
     resume: noop,

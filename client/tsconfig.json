@@ -21,7 +21,7 @@
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src"],
+  "include": ["src", "test"],
   "exclude": [
     "src/legacy",
     "src/setupProxy.js",

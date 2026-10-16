@@ -116,10 +116,27 @@ Fluxo de desenvolvimento: `npm run desktop:core` (builda `@midoteca/core`),
 para o ABI do Electron automaticamente; use `npm run desktop:start:fast` para
 abrir novamente sem repetir o `electron-rebuild`.
 
+## Importação (descoberta real)
+
+No desktop o fluxo de importação usa `IpcImportRunner`
+(`modules/sources/infrastructure/ipc/`), que dispara `indexing.scan` no kernel e
+reflete `media:discovered` / `index:completed` no `ImportState`. O progresso é
+dirigido pelo kernel; `advance`/`pause`/`resume`/`setScenario` são inertes (o RPC
+não expõe pausa). `ImportRunner.simulated === false` faz a `ImportPanel` esconder
+os controles de demonstração. Em browser/Storybook permanece o `MockImportRunner`.
+
 ## Segurança
 
 - `contextIsolation` ligado, `nodeIntegration` desligado, `sandbox` ligado.
 - Preload expõe apenas `invoke`/`onEvent` com allowlist de métodos do contrato.
+- O `main` responde com o envelope `{ ok, data }` / `{ ok: false, error }`; o
+  preload **desempacota** o envelope e lança erro em falha, de modo que
+  `window.midoteca.invoke` devolva o payload do método (mesmo shape dos testes de
+  integração). Como o preload roda sandboxed, o desempacotamento fica **inline**
+  (sandboxed preloads não podem `require` arquivos locais). Sem isso, todo adapter
+  IPC recebe o envelope cru e quebra (ex.: `sources.list.map is not a function`).
+- O seletor de pasta usa `window.midoteca.pickDirectory` → `dialog.showOpenDialog`;
+  sem o bridge (browser/Storybook) o botão "Procurar pasta" não é exibido.
 - Caminhos do renderer só entram por `dialog.showOpenDialog` (seleção de pasta)
   ou são validados pelo núcleo (`SourceProbe`) antes de qualquer uso.
 - O núcleo **nunca** apaga arquivos físicos ao remover catálogo.

@@ -23,7 +23,7 @@ export interface ImportPanelProps {
 }
 
 export const ImportPanel: React.FC<ImportPanelProps> = ({ flow, showScenario = true }) => {
-  const { state } = flow;
+  const { state, isSimulated } = flow;
   const isError = ERROR_PHASES.includes(state.phase);
   const isRunning = state.phase === 'scanning';
   const isPaused = state.phase === 'paused';
@@ -111,7 +111,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ flow, showScenario = t
             Iniciar descoberta
           </Button>
         )}
-        {isRunning && (
+        {isRunning && isSimulated && (
           <Button variant="secondary" size="sm" onClick={flow.pause}>
             <Pause size={13} style={{ marginRight: '6px' }} aria-hidden />
             Pausar
@@ -137,7 +137,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ flow, showScenario = t
         )}
       </div>
 
-      {showScenario && (
+      {showScenario && isSimulated && (
         <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '320px' }}>
           <span style={{ color: '#64748B', fontSize: '11px' }}>
             Simular condição (demonstração)

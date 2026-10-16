@@ -45,7 +45,7 @@ describe('LibrarySourcesPanel', () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.type(screen.getByLabelText('Caminho de demonstração'), 'D:/Filmes');
+    await user.type(screen.getByLabelText('Caminho da pasta'), 'D:/Filmes');
     await user.click(screen.getByRole('button', { name: /Adicionar pasta/ }));
 
     expect(screen.getByText('D:/Filmes')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('LibrarySourcesPanel', () => {
     const user = userEvent.setup();
     renderPanel([makeSource()]);
 
-    const input = screen.getByLabelText('Caminho de demonstração');
+    const input = screen.getByLabelText('Caminho da pasta');
     await user.type(input, 'd:/cursos/');
     await user.click(screen.getByRole('button', { name: /Adicionar pasta/ }));
 

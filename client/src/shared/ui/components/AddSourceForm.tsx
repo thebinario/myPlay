@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { FolderPlus } from 'lucide-react';
+import { FolderOpen, FolderPlus } from 'lucide-react';
 import type { AddSourceInput, AddSourceResult } from '@/core/contracts/library-sources';
 import { Button } from '@/shared/ui/components/Button';
 
 export interface AddSourceFormProps {
   onAdd: (input: AddSourceInput) => AddSourceResult;
+  /**
+   * Abre o seletor de pasta do sistema operacional. Presente apenas no runtime
+   * desktop; ausente em browser/Storybook (só entrada manual).
+   */
+  onPickDirectory?: () => Promise<string | null>;
   /** Rótulo do campo, usado para testes e leitores de tela. */
   label?: string;
   inputId?: string;
@@ -12,13 +17,20 @@ export interface AddSourceFormProps {
 
 export const AddSourceForm: React.FC<AddSourceFormProps> = ({
   onAdd,
-  label = 'Caminho de demonstração',
+  onPickDirectory,
+  label = 'Caminho da pasta',
   inputId = 'source-path-input',
 }) => {
   const [path, setPath] = useState('');
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(
     null,
   );
+
+  const pick = async () => {
+    if (!onPickDirectory) return;
+    const picked = await onPickDirectory();
+    if (picked) setPath(picked);
+  };
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -60,14 +72,22 @@ export const AddSourceForm: React.FC<AddSourceFormProps> = ({
             outline: 'none',
           }}
         />
+        {onPickDirectory && (
+          <Button type="button" variant="secondary" size="md" onClick={pick}>
+            <FolderOpen size={15} style={{ marginRight: '6px' }} aria-hidden />
+            Procurar pasta
+          </Button>
+        )}
         <Button type="submit" variant="secondary" size="md" disabled={!path.trim()}>
           <FolderPlus size={15} style={{ marginRight: '6px' }} aria-hidden />
           Adicionar pasta
         </Button>
       </div>
-      <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
-        Demonstração: nenhuma pasta real do computador é acessada.
-      </p>
+      {!onPickDirectory && (
+        <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
+          Demonstração: nenhuma pasta real do computador é acessada.
+        </p>
+      )}
       {feedback && (
         <span
           role={feedback.kind === 'error' ? 'alert' : 'status'}

@@ -11,22 +11,24 @@ const TICK_MS = 650;
  */
 export function useImportFlow(autoAdvance = true): ImportViewModel {
   const { repository, runner } = useSourcesContext();
+  const isSimulated = runner.simulated !== false;
 
   const subscribe = useCallback((listener: () => void) => runner.subscribe(listener), [runner]);
   const getSnapshot = useCallback(() => runner.getState(), [runner]);
   const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(() => {
-    if (!autoAdvance || state.phase !== 'scanning') return;
+    if (!autoAdvance || !isSimulated || state.phase !== 'scanning') return;
     const interval = window.setInterval(() => runner.advance(), TICK_MS);
     return () => window.clearInterval(interval);
-  }, [autoAdvance, runner, state.phase]);
+  }, [autoAdvance, isSimulated, runner, state.phase]);
 
   const start = useCallback(() => runner.start(repository.list()), [runner, repository]);
 
   return useMemo<ImportViewModel>(
     () => ({
       state,
+      isSimulated,
       start,
       pause: () => runner.pause(),
       resume: () => runner.resume(),
@@ -35,6 +37,6 @@ export function useImportFlow(autoAdvance = true): ImportViewModel {
       advance: () => runner.advance(),
       reset: () => runner.reset(),
     }),
-    [state, runner, start],
+    [state, isSimulated, runner, start],
   );
 }

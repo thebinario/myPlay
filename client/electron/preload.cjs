@@ -11,7 +11,17 @@ const EVENT_CHANNEL = 'midoteca:event';
 const PICK_DIRECTORY_CHANNEL = 'midoteca:pickDirectory';
 
 contextBridge.exposeInMainWorld('midoteca', {
-  invoke: (method, params) => ipcRenderer.invoke(RPC_CHANNEL, { method, params }),
+  // The main process answers with the transport envelope `{ ok, data }` /
+  // `{ ok: false, error }`; the bridge contract exposes the payload directly and
+  // surfaces failures as thrown errors. The unwrap stays inline because the
+  // preload runs sandboxed and cannot `require` local files.
+  invoke: async (method, params) => {
+    const response = await ipcRenderer.invoke(RPC_CHANNEL, { method, params });
+    if (!response || response.ok !== true) {
+      throw new Error(response?.error?.message ?? 'Falha na comunicação com o núcleo.');
+    }
+    return response.data;
+  },
   pickDirectory: () => ipcRenderer.invoke(PICK_DIRECTORY_CHANNEL),
   onEvent: (listener) => {
     const handler = (_event, payload) => listener(payload);

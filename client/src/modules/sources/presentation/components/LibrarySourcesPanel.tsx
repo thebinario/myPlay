@@ -51,7 +51,7 @@ export const LibrarySourcesPanel: React.FC<LibrarySourcesPanelProps> = ({
         </Button>
       </div>
 
-      <AddSourceForm onAdd={viewModel.addSource} />
+      <AddSourceForm onAdd={viewModel.addSource} onPickDirectory={viewModel.pickDirectory} />
 
       {sources.length === 0 ? (
         <p

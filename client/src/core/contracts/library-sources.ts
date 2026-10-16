@@ -13,6 +13,17 @@ export interface AddSourceInput {
   name?: string;
 }
 
+/**
+ * Capacidade nativa de escolher uma pasta do sistema operacional.
+ *
+ * Existe apenas no runtime desktop (Electron); no browser/Storybook não há
+ * seletor injetado. Implementada pelo preload (`window.midoteca.pickDirectory`).
+ */
+export interface DirectoryPicker {
+  /** Resolve com o caminho absoluto escolhido ou `null` se cancelado. */
+  pickDirectory(): Promise<string | null>;
+}
+
 export type AddSourceResult =
   { ok: true; source: LibrarySource } | { ok: false; error: 'duplicate' | 'invalid' };
 
@@ -39,4 +50,6 @@ export interface SourcesViewModel {
   reconnectSource(id: string): void;
   disconnectSource(id: string): void;
   checkSource(id: string): void;
+  /** Presente apenas quando o runtime oferece seletor nativo de pasta. */
+  pickDirectory?(): Promise<string | null>;
 }
