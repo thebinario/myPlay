@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sidebar } from '@/features/home/presentation/Sidebar';
-import { LibraryView } from '@/features/library/presentation/LibraryView';
-import { CourseDetailsView } from '@/features/courses/presentation/CourseDetailsView';
-import { CourseEditorView } from '@/features/courses/presentation/CourseEditorView';
-import { VideoPlayerView } from '@/features/player/presentation/VideoPlayerView';
-import { MoviePlayerView } from '@/features/player/presentation/MoviePlayerView';
-import { MiniPlayer } from '@/features/player/presentation/MiniPlayer';
-import { PdfViewer } from '@/features/documents/presentation/PdfViewer';
-import { HomeView } from '@/features/home/presentation/HomeView';
-import { SearchView } from '@/features/search/presentation/SearchView';
-import { SettingsView } from '@/features/settings/presentation/SettingsView';
+import { Sidebar } from '@/modules/home/presentation/Sidebar';
+import { LibraryView } from '@/modules/library/presentation/LibraryView';
+import { CourseDetailsView } from '@/modules/courses/presentation/CourseDetailsView';
+import { CourseEditorView } from '@/modules/courses/presentation/CourseEditorView';
+import { VideoPlayerView } from '@/modules/player/presentation/VideoPlayerView';
+import { MoviePlayerView } from '@/modules/player/presentation/MoviePlayerView';
+import { MiniPlayer } from '@/modules/player/presentation/MiniPlayer';
+import { PdfViewer } from '@/modules/documents/presentation/PdfViewer';
+import { HomeView } from '@/modules/home/presentation/HomeView';
+import { SearchView } from '@/modules/search/presentation/SearchView';
+import { SettingsView } from '@/modules/settings/presentation/SettingsView';
 import { NavigationTab, Course } from '@/core/domain/library';
-import { useLibrary } from '@/features/library/presentation/LibraryProvider';
+import { useLibrary } from '@/modules/library/presentation/LibraryProvider';
 
 type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
 

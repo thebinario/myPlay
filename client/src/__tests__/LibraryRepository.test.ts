@@ -3,7 +3,7 @@
  * Ciclo TDD: Red → Green → Refactor
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MockLibraryService, MOCK_COURSES, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { MockLibraryService, MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import type { Course, Document } from '@/core/domain/library';
 
 const coursesOf = (svc: MockLibraryService): Course[] => svc.getItems('course') as Course[];

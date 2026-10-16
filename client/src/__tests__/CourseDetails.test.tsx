@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { CourseDetailsView } from '@/features/courses/presentation/CourseDetailsView';
-import { MOCK_COURSES } from '@/features/library/infrastructure/mockLibraryRepository';
+import { CourseDetailsView } from '@/modules/courses/presentation/CourseDetailsView';
+import { MOCK_COURSES } from '@/modules/library/infrastructure/mock-library-repository';
 
 describe('MIDOTECA - Tela de Detalhes do Curso', () => {
   const sampleCourse = MOCK_COURSES[0]; // Arquitetura Desktop Moderna com Tauri & React

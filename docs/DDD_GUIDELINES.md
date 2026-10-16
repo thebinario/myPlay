@@ -62,11 +62,11 @@ modules/<contexto>/
 > responsabilidade real.
 
 Caminhos atuais × canônicos (mapa completo em
-[`ARCHITECTURE.md`](ARCHITECTURE.md) §12): hoje o backend usa
-`core/<ctx>/{entities,inputs,repository,service,queries}.ts` + `infra/`; o
-frontend usa `features/<ctx>/{application,infrastructure,presentation}`. A
-migração é incremental e está priorizada em
-[`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md).
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §12): backend e frontend já usam
+`modules/<ctx>/{domain,application,infrastructure,presentation}`. No frontend, os
+casos de uso ficam em `application/use-cases/` (sem React) e os hooks de
+apresentação em `presentation/hooks/`. A migração é incremental e está
+priorizada em [`REFACTORING_ROADMAP.md`](REFACTORING_ROADMAP.md).
 
 ## 3. Regra de dependência
 

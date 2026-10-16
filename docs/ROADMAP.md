@@ -40,14 +40,14 @@ A última coluna reflete o **estado real do repositório hoje**.
 
 | Área | Estado conhecido (protótipo) | Próximo objetivo | Evidência no repo |
 | --- | --- | --- | --- |
-| Biblioteca | Interface e mocks | Catálogo persistente | `client/src/features/library/infrastructure/mockLibraryRepository.ts`; núcleo já indexa |
+| Biblioteca | Interface e mocks | Catálogo persistente | `client/src/modules/library/infrastructure/mock-library-repository.ts`; núcleo já indexa |
 | Cursos e aulas | Telas funcionais sobre mocks | Modelo de domínio consistente | domínio em `midoteca/src/modules/courses` |
-| Editor | Edição inline e drag-and-drop | Componentes menores e persistência | `features/courses/presentation/CourseEditorView.tsx` (extraído) |
-| Player | Interface presente | Reprodução local real e retomada | `features/player/presentation/MoviePlayerView`/`VideoPlayerView` |
+| Editor | Edição inline e drag-and-drop | Componentes menores e persistência | `modules/courses/presentation/CourseEditorView.tsx` (extraído) |
+| Player | Interface presente | Reprodução local real e retomada | `modules/player/presentation/MoviePlayerView`/`VideoPlayerView` |
 | Pesquisa | Implementação sobre mocks | Busca no catálogo real | `LibraryQueryService` (núcleo) |
-| Leitor PDF | Provedor e páginas simulados | PDF real com leitura parcial | `features/documents/presentation/PdfViewer.tsx` (extraído) |
-| Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `features/*/presentation/*.stories.tsx` |
-| Configurações | Placeholder | Tela real e preferências persistentes | `features/settings/presentation` |
+| Leitor PDF | Provedor e páginas simulados | PDF real com leitura parcial | `modules/documents/presentation/PdfViewer.tsx` (extraído) |
+| Storybook | Instalado e parcialmente usado | Cobertura dos componentes relevantes | `client/.storybook`, `modules/*/presentation/*.stories.tsx` |
+| Configurações | Placeholder | Tela real e preferências persistentes | `modules/settings/presentation` |
 | HDs e indexação | Parcial | Integração desktop | `midoteca/src/modules/indexing` (Fases 1–2) |
 | Nuvem | Planejada | Posterior ao MVP | — |
 | Documentação | Parcialmente desatualizada | Corrigir antes de automatizar | `docs/`, `midoteca/docs/`, `client/docs/` |

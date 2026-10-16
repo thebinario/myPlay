@@ -2,12 +2,12 @@
  * MIDOTECA — Fase 4: persistência real via porta de storage (Ports & Adapters).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { MockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import {
   createInMemoryLibraryStorage,
   localStorageLibraryStorage,
   STORAGE_VERSION,
-} from '@/features/library/infrastructure/libraryStorage';
+} from '@/modules/library/infrastructure/library-storage';
 
 describe('libraryStorage — adapters', () => {
   it('adapter em memória faz round-trip e clear', () => {

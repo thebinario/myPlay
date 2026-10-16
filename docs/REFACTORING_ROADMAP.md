@@ -52,14 +52,14 @@ src/
 
 | Área | Situação |
 | --- | --- |
-| `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **17 arquivos de spec** / 92 testes verdes em `test/`. Pendente: casos de uso explícitos e `presentation/` |
-| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `features/<ctx>/{application,infrastructure,presentation}`, `shared/ui`. **13 arquivos de teste** em `src/__tests__`, **22 stories**. Telas grandes decompostas; sem `domain/` por contexto; código morto isolado em `legacy/` e `stories/` |
+| `midoteca/` (backend) | Fases 1–2 concluídas. **Layout canônico aplicado (P5)**: `app/` + `core/` + `modules/<ctx>/{domain,application,infrastructure}` + `platform/`. Regras de dependência **conformes** (0 violações). **116 testes verdes** em `test/`. **Casos de uso explícitos** em `library`, `indexing`, `courses` e `documents` (`application/use-cases/`); `services/*` viraram fachadas. Pendente: `presentation/` (transporte) |
+| `client/` (frontend) | `app/`, `core/{domain,ports,config}`, `modules/<ctx>/{application,domain,infrastructure,presentation}`, `shared/ui`. **15 arquivos de teste** em `src/__tests__`, **22 stories**. **P6/P7 aplicados**: `features/` → `modules/`; hooks de apresentação em `presentation/hooks/`; casos de uso puros em `application/use-cases/` e regras em `domain/` (`courses`, `documents`, `player`). Sem `domain/` em `home`/`search`/`settings` (não há regra pura); código morto isolado em `legacy/` e `stories/` |
 | `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
-> Contagens de testes: backend **confirmado em execução após o P5** (92 testes /
-> 17 arquivos, `vitest run`), além de `typecheck`, `lint`, `format:check` e
-> `build` em 0. O "212" do frontend continua **a reconferir** rodando `npm test`
-> em `client/` (dependências ainda não instaladas neste worktree).
+> Contagens de testes: backend **116 testes** (`vitest run`) e frontend
+> **246 testes / 42 arquivos** (`npm test`), ambos com `typecheck` e `build` em
+> 0. `lint` do frontend acusa erros **pré-existentes** apenas em `src/legacy/`
+> (fora do `tsconfig`, código morto a remover em P0).
 
 ## 4. Priorização
 
@@ -67,12 +67,12 @@ src/
 | --- | --- | --- | --- | --- |
 | **P0** | Remover código morto (`legacy/`, `stories/` do CRA, sobras) | Alto (ruído/confusão) | Baixo | ⏳ isolado, fora do build; remoção física pendente |
 | **P5** | Layout canônico do backend (`app/`, `core/`, `modules/`, `platform/`) | Alto (vocabulário único) | Médio (paths/imports) | ✅ layout concluído; casos de uso/presentation pendentes |
-| **P6** | Layout canônico do frontend (`features/` → `modules/`, testes → `test/`) | Médio (vocabulário único) | Baixo (mecânico) | ⏳ não iniciado |
-| **P2** | Separar fixtures de adapter em `mockLibraryRepository.ts` (737 linhas) | Médio | Baixo | ⏳ pendente |
-| **P7** | Casos de uso × hooks de apresentação no FE | Médio (testabilidade) | Médio | ⏳ pendente |
+| **P6** | Layout canônico do frontend (`features/` → `modules/`, testes → `test/`) | Médio (vocabulário único) | Baixo (mecânico) | ✅ `features/` → `modules/` + kebab-case da infra; mover testes para `test/` pendente |
+| **P2** | Separar fixtures de adapter em `mock-library-repository.ts` (737 linhas) | Médio | Baixo | ⏳ pendente |
+| **P7** | Casos de uso × hooks de apresentação no FE | Médio (testabilidade) | Médio | ✅ concluído |
 | **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ⏳ bloqueado por decisão de transporte (ADR) |
 | **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | ✅ concluído |
-| **P4** | `domain/` por contexto no FE | Médio | Médio | ⏳ estrutura pronta; `domain/` ausente |
+| **P4** | `domain/` por contexto no FE | Médio | Médio | ✅ `courses`/`documents`/`player` com regra pura; outros contextos sem regra |
 | — | `backend/` legado | — | **Não migrar** | — |
 
 Ordem recomendada: **P0** → **P6** (barato, alinha o vocabulário do frontend ao
@@ -109,24 +109,24 @@ subcomponentes):
 
 | Antes (myPlay) | Depois |
 | --- | --- |
-| `VideoPlayer.tsx` (1.046) | `features/player/presentation/VideoPlayerView.tsx` (~145) + `application/useVideoPlayer.ts` + controles |
-| `CourseEditorView.tsx` (591) | `features/courses/presentation/CourseEditorView.tsx` (~68) + `application/useCourseEditor.ts` |
-| `PdfViewer.tsx` (581) | `features/documents/presentation/PdfViewer.tsx` (~58) + `application/usePdfReader.ts` |
-| `SearchView.tsx` (529) | `features/search/presentation/SearchView.tsx` (~86) + `application/useUniversalSearch.ts` |
-| `CourseDetailsView.tsx` (531) | `features/courses/presentation/CourseDetailsView.tsx` |
-| `LibraryView.tsx` (446) | `features/library/presentation/LibraryView.tsx` |
-| `HomeView.tsx` (436) | `features/home/presentation/HomeView.tsx` + `Sidebar.tsx` |
-| `MoviePlayerView.tsx` (405) | `features/player/presentation/MoviePlayerView.tsx` |
-| `MiniPlayer.tsx` (308) | `features/player/presentation/MiniPlayer.tsx` |
+| `VideoPlayer.tsx` (1.046) | `modules/player/presentation/VideoPlayerView.tsx` (~145) + `presentation/hooks/useVideoPlayer.ts` + controles |
+| `CourseEditorView.tsx` (591) | `modules/courses/presentation/CourseEditorView.tsx` (~68) + `presentation/hooks/useCourseEditor.ts` |
+| `PdfViewer.tsx` (581) | `modules/documents/presentation/PdfViewer.tsx` (~58) + `presentation/hooks/usePdfReader.ts` |
+| `SearchView.tsx` (529) | `modules/search/presentation/SearchView.tsx` (~86) + `presentation/hooks/useUniversalSearch.ts` |
+| `CourseDetailsView.tsx` (531) | `modules/courses/presentation/CourseDetailsView.tsx` |
+| `LibraryView.tsx` (446) | `modules/library/presentation/LibraryView.tsx` |
+| `HomeView.tsx` (436) | `modules/home/presentation/HomeView.tsx` + `Sidebar.tsx` |
+| `MoviePlayerView.tsx` (405) | `modules/player/presentation/MoviePlayerView.tsx` |
+| `MiniPlayer.tsx` (308) | `modules/player/presentation/MiniPlayer.tsx` |
 
 Estratégia aplicada: **caracterização → extrair hook/caso de uso → extrair
 componentes → validar**. Comportamento visual preservado.
 
 ## 7. P2 — `mockLibraryRepository.ts`
 
-Hoje: **737 linhas** em `features/library/infrastructure/`, atrás do port
+Hoje: **737 linhas** em `modules/library/infrastructure/`, atrás do port
 `LibraryRepository`. Restante: separar **fixtures** (`fixtures/`) dos **adapters**
-(`mock-library.ts`, `mock-search.ts`) e extrair a persistência (`libraryStorage`)
+(`mock-library.ts`, `mock-search.ts`) e extrair a persistência (`library-storage`)
 como port de infraestrutura (já existe) — sem mudar comportamento.
 
 ## 8. P3 — Adapter do frontend sobre o núcleo
@@ -211,14 +211,18 @@ SQLite. Detalhes das decisões não previstas no mapa: `docs/ARCHITECTURE.md`
 
 ## 11. P6 — Layout canônico do frontend
 
-| Passo | De | Para |
-| --- | --- | --- |
-| 1 | `src/features/<ctx>/…` | `src/modules/<ctx>/…` (rename + alias `@/features/*` → `@/modules/*`) |
-| 2 | `src/__tests__/*.test.tsx` (13) | `test/**` espelhando a árvore |
-| 3 | `src/legacy/`, `src/stories/` | remover (P0) |
+| Passo | De | Para | Situação |
+| --- | --- | --- | --- |
+| 1 | `src/features/<ctx>/…` | `src/modules/<ctx>/…` (rename + alias `@/features/*` → `@/modules/*`) | ✅ feito |
+| 2 | `src/__tests__/*.test.tsx` | `test/**` espelhando a árvore | ⏳ pendente |
+| 3 | `src/legacy/`, `src/stories/` | remover (P0) | ⏳ pendente |
 
 Passo mecânico, sem mudança de comportamento. Verificar: `vitest.config`/`vite.config`
 (`setupFiles`, projetos), imports nos testes e stories, e o `tsconfig` (paths).
+
+Executado: `git mv src/features src/modules` + reescrita do alias em 98 imports;
+`library/infrastructure` normalizada para kebab-case (`mock-library-repository.ts`,
+`library-storage.ts`). Suíte verde após a etapa (212 testes).
 
 ## 12. P7 — Casos de uso × hooks de apresentação (FE)
 
@@ -232,6 +236,20 @@ Hoje `features/<ctx>/application/` guarda **hooks React**
   (estado de UI, efeitos, assinatura do repositório);
 - o hook chama o caso de uso; o componente chama o hook. Componente nunca contém
   regra.
+
+Executado (6 hooks movidos; `application/` do FE sem React):
+
+| Contexto | Regra extraída | Local |
+| --- | --- | --- |
+| courses | `renameCourse/Module/Lesson`, `reorderModules`, `moveLesson`; `recalculateCourseMetrics`; caso de uso `saveCourse` | `domain/course-editing.ts`, `domain/course-metrics.ts`, `application/use-cases/save-course.ts` |
+| search | `groupSearchResults`, `resolveSearchTarget` | `application/use-cases/*` |
+| documents | `normalizeReadingState`, `nextPage/previousPage`, `zoomIn/zoomOut`, `toggleColorMode`, `pageRange`, `scrollRatio`, `clampPage` | `domain/pdf-reading.ts` |
+| player | `formatSeconds`, `clampSeekTime`, `seekTimeFromRatio`, `ratioFromOffset`; `lessonsOf`, `nextLessonIndex`, `previousLessonIndex`, `loadingLabelFor` | `domain/progress.ts`, `domain/playlist.ts` |
+
+Testes: +34 casos (`CourseEditing`, `SearchUseCases`, `PdfReading`,
+`PlaybackDomain`) → frontend em 246 testes. `useMediaElementPlayback` e
+`useAutoHideControls` são apresentação pura (eventos do `<video>`), então foram
+apenas movidos para `presentation/hooks/`.
 
 ## 13. Backend legado (`backend/`)
 

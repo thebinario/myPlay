@@ -59,7 +59,7 @@
 | Arquivos — backend (`midoteca/`) | `kebab-case.ts` | `recursive-scanner.ts`, `add-source.ts` |
 | Arquivos — frontend, componentes | `PascalCase.tsx` | `CourseDetailsView.tsx` |
 | Arquivos — frontend, hooks | `camelCase` com prefixo `use` | `useMediaElementPlayback.ts` |
-| Pastas de camada | sempre `domain` · `application` · `infrastructure` · `presentation` · `platform` · `core` · `shared` · `modules` | (`client/` migra `features/` → `modules/`) |
+| Pastas de camada | sempre `domain` · `application` · `infrastructure` · `presentation` · `platform` · `core` · `shared` · `modules` | `client/` já usa `modules/` |
 | Tipos/Interfaces/Classes | `PascalCase` | `LibrarySource`, `SqliteMediaRepository` |
 | Funções/variáveis | `camelCase` | `resolveDefaultDatabasePath` |
 | Constantes | `UPPER_SNAKE_CASE` | `INDEXING_JOB_TYPES`, `MANIFEST_VERSION` |

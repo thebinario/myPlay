@@ -287,9 +287,11 @@ Decisões tomadas durante a migração (não estavam no mapa acima):
 - o barrel de `platform/persistence/sqlite` **deixou** de reexportar adapters de
   contexto (o `platform` não depende de `modules/*/infrastructure`).
 
-Pendências: casos de uso explícitos em `application/use-cases/`, `presentation/`
-(transporte) e adapters acima do indicador (`course.repository.sqlite.ts` 430
-linhas, `indexing.store.sqlite.ts` 421 linhas).
+Casos de uso extraídos em `modules/{library,indexing,courses,documents}/application/use-cases/`,
+com os antigos `services/*` reduzidos a fachadas de orquestração.
+
+Pendências: `presentation/` (transporte) e adapters acima do indicador
+(`course.repository.sqlite.ts` 430 linhas, `indexing.store.sqlite.ts` 421 linhas).
 
 ### 12.2 Frontend (`client/`) — verificado
 
@@ -298,10 +300,11 @@ linhas, `indexing.store.sqlite.ts` 421 linhas).
 | `src/app/{App.tsx,main.tsx}` | igual ✅ | só falta isolar navegação em `app/navigation/` |
 | `src/core/{domain,ports,config}` | igual ✅ | já é o kernel |
 | `src/shared/ui/*` | igual ✅ | design system |
-| `src/features/<ctx>/presentation/` | `src/modules/<ctx>/presentation/` | **renomear** `features/` → `modules/` (mecânico) |
-| `src/features/<ctx>/application/*` (hooks React) | separar: **casos de uso** em `application/`; **hooks de apresentação** em `presentation/hooks/` | hoje há hooks de apresentação em `application/` |
-| `src/features/<ctx>/domain/` | criar **quando houver regra pura** | ainda ausente em todos os contextos |
-| `src/features/library/infrastructure/*` | igual ✅ | único contexto com infraestrutura hoje |
+| `src/modules/<ctx>/presentation/` | igual ✅ | `features/` → `modules/` concluído |
+| `src/modules/<ctx>/application/use-cases/*` | separado ✅ | casos de uso puros (`courses/search`) |
+| `src/modules/<ctx>/domain/*` | criado ✅ | `courses/`, `documents/`, `player/` |
+| `src/modules/<ctx>/presentation/hooks/*` | separado ✅ | hooks de apresentação fora de `application/` |
+| `src/modules/library/infrastructure/*` | igual ✅ | único contexto com infraestrutura hoje (kebab-case) |
 | `src/__tests__/*.test.tsx` | `test/**` espelhando a árvore | mover (cheap) |
 | `src/legacy/`, `src/stories/` | **remover** | código morto (fora do build) |
 

@@ -40,13 +40,15 @@ de UI externa.
 - `src/core/ports/libraryRepository.ts` — contratos (`LibraryRepository` e ports
   menores de catálogo, reprodução, leitura, páginas e pesquisa).
 - `src/core/domain/library.ts` — domínio/view-models do app.
-- `src/features/<contexto>/{application,infrastructure,presentation}` — contextos
-  (`library`, `home`, `courses`, `player`, `documents`, `search`, `settings`).
+- `src/modules/<contexto>/{domain,application,infrastructure,presentation}` —
+  contextos (`library`, `home`, `courses`, `player`, `documents`, `search`,
+  `settings`). Casos de uso em `application/use-cases/`; hooks em
+  `presentation/hooks/`; regras puras em `domain/`.
 - `src/shared/ui/` — design system (átomos + stories).
 - Componentes visuais finos; lógica em hooks e no repositório.
 - Mídia real em `client/public/media/{videos,docs}`.
-- ⏳ Convergência pendente: `features/` → `modules/` e testes
-  `src/__tests__/` → `test/` (`docs/REFACTORING_ROADMAP.md` P6).
+- ⏳ Convergência pendente: testes `src/__tests__/` → `test/`
+  (`docs/REFACTORING_ROADMAP.md` P6).
 
 **Scripts** (npm — o mesmo da CI)
 

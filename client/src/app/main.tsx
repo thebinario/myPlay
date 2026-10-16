@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/app/App';
-import { LibraryProvider } from '@/features/library/presentation/LibraryProvider';
-import { MockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
-import { localStorageLibraryStorage } from '@/features/library/infrastructure/libraryStorage';
+import { LibraryProvider } from '@/modules/library/presentation/LibraryProvider';
+import { MockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
+import { localStorageLibraryStorage } from '@/modules/library/infrastructure/library-storage';
 import '@/index.css';
 
 // Composition root: repositório persistente (sobrevive a recarregamentos).

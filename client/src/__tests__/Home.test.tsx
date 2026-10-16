@@ -6,8 +6,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { HomeView } from '@/features/home/presentation/HomeView';
-import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '@/features/library/infrastructure/mockLibraryRepository';
+import { HomeView } from '@/modules/home/presentation/HomeView';
+import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '@/modules/library/infrastructure/mock-library-repository';
 import type { Course, Movie, Document } from '@/core/domain/library';
 
 const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;

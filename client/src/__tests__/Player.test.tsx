@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VideoPlayerView } from '@/features/player/presentation/VideoPlayerView';
-import { MOCK_COURSES, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { VideoPlayerView } from '@/modules/player/presentation/VideoPlayerView';
+import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import { Course, Lesson } from '@/core/domain/library';
 
 describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () => {

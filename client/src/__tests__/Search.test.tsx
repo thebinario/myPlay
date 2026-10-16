@@ -6,7 +6,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { MockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { MockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 
 // ── Serviço ──────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ describe('MockLibraryService.search()', () => {
 
 // ── Componente SearchView ─────────────────────────────────────────────────────
 
-import { SearchView } from '@/features/search/presentation/SearchView';
+import { SearchView } from '@/modules/search/presentation/SearchView';
 
 const mockOnOpen = vi.fn();
 

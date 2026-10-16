@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CourseEditorView } from '@/features/courses/presentation/CourseEditorView';
-import { MOCK_COURSES, mockLibraryService } from '@/features/library/infrastructure/mockLibraryRepository';
+import { CourseEditorView } from '@/modules/courses/presentation/CourseEditorView';
+import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import { Course } from '@/core/domain/library';
 
 describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
