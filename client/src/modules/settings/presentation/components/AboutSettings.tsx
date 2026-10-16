@@ -27,8 +27,7 @@ export const AboutSettings: React.FC<AboutSettingsProps> = ({ librarySummary }) 
         </div>
       </dl>
       <p style={{ color: '#64748B', fontSize: '12px', margin: 0 }}>
-        Versão demonstrativa com dados simulados. Reprodução, indexação e persistência reais chegam
-        nas próximas etapas.
+        Cursos, vídeos e documentos são organizados a partir das bibliotecas locais.
       </p>
     </section>
   );

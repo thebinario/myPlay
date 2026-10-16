@@ -1,4 +1,5 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
+import type { Course } from '@/core/domain/library';
 import type { ContentType, LibraryItem, SearchFilter, SearchResult } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
 import { loadLibraryCatalog } from '@/modules/library/infrastructure/ipc/load-library-catalog';
@@ -81,8 +82,55 @@ export class IpcLibraryRepository implements LibraryRepository {
     this.detachEvents = null;
   }
 
-  saveCourse(course: Parameters<LibraryRepository['saveCourse']>[0]) {
-    return this.delegate.saveCourse(course);
+  async saveCourse(course: Course): Promise<Course> {
+    const current = this.getCourseById(course.id);
+    const currentLessons = new Map(
+      current?.modules.flatMap((module) =>
+        module.lessons.map((lesson) => [lesson.id, lesson.title]),
+      ) ?? [],
+    );
+    await this.bridge.invoke('courses.saveOrganization', {
+      courseId: course.id,
+      ...(current?.title !== course.title ? { courseTitle: course.title } : {}),
+      modules: course.modules.map((module) => {
+        const currentModule = current?.modules.find((candidate) => candidate.id === module.id);
+        return {
+          id: module.id,
+          ...(currentModule?.title !== module.title ? { title: module.title } : {}),
+          lessonIds: module.lessons.map((lesson) => lesson.id),
+          lessonTitles: module.lessons
+            .filter((lesson) => currentLessons.get(lesson.id) !== lesson.title)
+            .map((lesson) => ({ lessonId: lesson.id, title: lesson.title })),
+        };
+      }),
+    });
+
+    const currentDocuments = new Map(
+      this.items
+        .flatMap((item) =>
+          item.type === 'course'
+            ? [
+                ...(item.documents ?? []),
+                ...item.modules.flatMap((module) => module.documents ?? []),
+              ]
+            : item.type === 'document'
+              ? [item]
+              : [],
+        )
+        .map((document) => [document.id, document.title]),
+    );
+    for (const document of course.documents ?? []) {
+      if (currentDocuments.get(document.id) !== document.title) {
+        await this.bridge.invoke('documents.rename', {
+          documentId: document.id,
+          title: document.title,
+        });
+      }
+    }
+
+    await this.refresh();
+    const refreshed = this.getCourseById(course.id) ?? course;
+    return { ...refreshed, documents: course.documents };
   }
 
   toggleLessonCompletion(courseId: string, lessonId: string) {
@@ -131,7 +179,9 @@ export class IpcLibraryRepository implements LibraryRepository {
   async saveDocumentPageCount(documentId: string, pageCount: number): Promise<void> {
     await this.bridge.invoke('documents.updatePageCount', { documentId, pageCount });
     this.items = this.items.map((item) =>
-      item.type === 'document' && item.id === documentId ? { ...item, totalPages: pageCount } : item,
+      item.type === 'document' && item.id === documentId
+        ? { ...item, totalPages: pageCount }
+        : item,
     );
     this.emit();
   }

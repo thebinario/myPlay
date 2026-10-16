@@ -272,8 +272,10 @@ export const App: React.FC = () => {
         {currentTab === 'library' && (
           <LibraryView
             items={items}
-            sources={import.meta.env.PROD ? sourcesViewModel.sources : undefined}
+            sources={sourcesViewModel.sources}
             onSelectCourse={handleSelectCourse}
+            onPlayLesson={handlePlayLesson}
+            onOpenMovie={handleOpenMovie}
             onOpenDocument={handleOpenDocument}
           />
         )}
@@ -290,7 +292,9 @@ export const App: React.FC = () => {
         {currentTab === 'course-details' && selectedCourse && (
           <CourseDetailsView
             course={selectedCourse}
-            libraryDocuments={docs.filter((document) => document.sourceId === selectedCourse.sourceId)}
+            libraryDocuments={docs.filter(
+              (document) => document.sourceId === selectedCourse.sourceId,
+            )}
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
             onPlayLesson={handlePlayLesson}
@@ -302,6 +306,9 @@ export const App: React.FC = () => {
         {currentTab === 'editor' && selectedCourse && (
           <CourseEditorView
             initialCourse={selectedCourse}
+            libraryDocuments={docs.filter(
+              (document) => document.sourceId === selectedCourse.sourceId,
+            )}
             onSave={handleSaveEditedCourse}
             onBack={() => setCurrentTab('course-details')}
           />
@@ -337,12 +344,12 @@ export const App: React.FC = () => {
 
         {currentTab === 'settings' && (
           <SettingsView
-            runtime={import.meta.env.DEV ? 'development' : 'desktop'}
+            runtime="desktop"
             sourcesSection={
               <LibrarySourcesPanel
                 viewModel={sourcesViewModel}
                 importFlow={importFlow}
-                runtime={import.meta.env.DEV ? 'development' : 'production'}
+                runtime="production"
               />
             }
             librarySummary={{

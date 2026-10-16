@@ -4,6 +4,7 @@ import { useLibraryRepository } from '@/modules/library/presentation/LibraryProv
 import {
   moveLesson,
   renameCourse,
+  renameDocument,
   renameLesson,
   renameModule,
   reorderModules,
@@ -14,18 +15,20 @@ export interface CourseEditorState {
   course: Course;
   historyLength: number;
   showSavedFeedback: boolean;
+  saveError: string | null;
   draggedModuleIndex: number | null;
   dragOverModuleIndex: number | null;
   handleUndo: () => void;
   handleCourseTitleChange: (newTitle: string) => void;
   handleModuleTitleChange: (moduleId: string, newTitle: string) => void;
   handleLessonTitleChange: (moduleId: string, lessonId: string, newTitle: string) => void;
+  handleDocumentTitleChange: (documentId: string, newTitle: string) => void;
   moveModule: (fromIndex: number, toIndex: number) => void;
   moveLessonToModule: (sourceModuleId: string, lessonId: string, targetModuleId: string) => void;
   handleDragStartModule: (index: number) => void;
   handleDragOverModule: (event: React.DragEvent, index: number) => void;
   handleDropModule: (dropIndex: number) => void;
-  handleSaveAll: () => void;
+  handleSaveAll: () => Promise<void>;
   handleDiscardChanges: () => void;
 }
 
@@ -44,6 +47,7 @@ export function useCourseEditor(
   const [course, setCourse] = useState<Course>(() => clone(initialCourse));
   const [history, setHistory] = useState<Course[]>([]);
   const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [draggedModuleIndex, setDraggedModuleIndex] = useState<number | null>(null);
   const [dragOverModuleIndex, setDragOverModuleIndex] = useState<number | null>(null);
 
@@ -55,6 +59,7 @@ export function useCourseEditor(
     setHistory((prev) => [...prev, clone(courseRef.current)]);
     setCourse(nextCourse);
     setShowSavedFeedback(false);
+    setSaveError(null);
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -91,6 +96,12 @@ export function useCourseEditor(
     [apply],
   );
 
+  const handleDocumentTitleChange = useCallback(
+    (documentId: string, newTitle: string) =>
+      apply((current) => renameDocument(current, documentId, newTitle)),
+    [apply],
+  );
+
   const moveModule = useCallback(
     (fromIndex: number, toIndex: number) =>
       apply((current) => reorderModules(current, fromIndex, toIndex)),
@@ -123,29 +134,38 @@ export function useCourseEditor(
     [draggedModuleIndex, moveModule],
   );
 
-  const handleSaveAll = useCallback(() => {
-    const saved = saveCourse({ courses: repository }, courseRef.current);
-    onSave(saved);
-    setShowSavedFeedback(true);
-    window.setTimeout(() => setShowSavedFeedback(false), 3500);
+  const handleSaveAll = useCallback(async () => {
+    setSaveError(null);
+    try {
+      const saved = await saveCourse({ courses: repository }, courseRef.current);
+      setCourse(saved);
+      onSave(saved);
+      setShowSavedFeedback(true);
+      window.setTimeout(() => setShowSavedFeedback(false), 3500);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Não foi possível salvar o curso.');
+    }
   }, [repository, onSave]);
 
   const handleDiscardChanges = useCallback(() => {
     setCourse(clone(initialCourse));
     setHistory([]);
     setShowSavedFeedback(false);
+    setSaveError(null);
   }, [initialCourse]);
 
   return {
     course,
     historyLength: history.length,
     showSavedFeedback,
+    saveError,
     draggedModuleIndex,
     dragOverModuleIndex,
     handleUndo,
     handleCourseTitleChange,
     handleModuleTitleChange,
     handleLessonTitleChange,
+    handleDocumentTitleChange,
     moveModule,
     moveLessonToModule,
     handleDragStartModule,

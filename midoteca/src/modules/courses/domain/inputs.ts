@@ -80,6 +80,7 @@ export interface OrganizationModuleInput {
   title?: string;
   /** Full, ordered list of the module's lesson ids (may include moves in). */
   lessonIds: string[];
+  lessonTitles?: Array<{ lessonId: string; title: string }>;
 }
 
 /**
@@ -89,5 +90,6 @@ export interface OrganizationModuleInput {
  */
 export interface SaveCourseOrganization {
   courseId: string;
+  courseTitle?: string;
   modules: OrganizationModuleInput[];
 }

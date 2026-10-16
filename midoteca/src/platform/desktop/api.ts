@@ -151,6 +151,11 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
         return midoteca.documents.update({ id: documentId, pageCount });
       }
 
+      case 'documents.rename': {
+        const { documentId, title } = params as { documentId: string; title: string };
+        return midoteca.documents.update({ id: documentId, title });
+      }
+
       case 'media.listBySource': {
         const { sourceId } = params as { sourceId: string };
         return midoteca.media.listBySource(sourceId);

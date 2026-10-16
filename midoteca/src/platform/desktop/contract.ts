@@ -50,6 +50,7 @@ export const DESKTOP_METHODS = [
   'courses.saveOrganization',
   'documents.list',
   'documents.updatePageCount',
+  'documents.rename',
   'media.listBySource',
   'media.listTracks',
   'progress.getPlayback',
@@ -94,6 +95,7 @@ export interface DesktopParams {
   'courses.saveOrganization': SaveCourseOrganization;
   'documents.list': undefined;
   'documents.updatePageCount': { documentId: string; pageCount: number };
+  'documents.rename': { documentId: string; title: string };
   'media.listBySource': { sourceId: string };
   'media.listTracks': { mediaFileId: string };
   'progress.getPlayback': { lessonId: string };
@@ -124,6 +126,7 @@ export interface DesktopResults {
   'courses.saveOrganization': CourseTree;
   'documents.list': Document[];
   'documents.updatePageCount': Document;
+  'documents.rename': Document;
   'media.listBySource': MediaFile[];
   'media.listTracks': MediaTrack[];
   'progress.getPlayback': PlaybackProgress | null;

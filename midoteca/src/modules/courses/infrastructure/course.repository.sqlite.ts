@@ -519,12 +519,23 @@ export class SqliteCourseRepository implements CourseRepository {
         input.modules,
       );
 
+      if (input.courseTitle !== undefined) {
+        this.db
+          .prepare(
+            `UPDATE courses SET title = ?, title_source = 'manual', updated_at = ? WHERE id = ?`,
+          )
+          .run(assertNonEmptyString(input.courseTitle, 'courseTitle'), nowIso(), input.courseId);
+      }
+
       const updateModule = this.db.prepare(
         `UPDATE course_modules SET title = ?, title_source = ?, sort_order = ?, sort_source = 'manual'
          WHERE id = ?`,
       );
       const updateLesson = this.db.prepare(
         `UPDATE lessons SET module_id = ?, sort_order = ?, sort_source = 'manual' WHERE id = ?`,
+      );
+      const updateLessonTitle = this.db.prepare(
+        `UPDATE lessons SET title = ?, title_source = 'manual' WHERE id = ? AND module_id = ?`,
       );
 
       input.modules.forEach((module, moduleIndex) => {
@@ -538,6 +549,12 @@ export class SqliteCourseRepository implements CourseRepository {
 
         module.lessonIds.forEach((lessonId, lessonIndex) => {
           updateLesson.run(module.id, lessonIndex, lessonId);
+        });
+        module.lessonTitles?.forEach(({ lessonId, title }) => {
+          if (!module.lessonIds.includes(lessonId)) {
+            throw new ValidationError(`Lesson ${lessonId} is not in module ${module.id}`);
+          }
+          updateLessonTitle.run(assertNonEmptyString(title, 'lessonTitle'), lessonId, module.id);
         });
       });
 

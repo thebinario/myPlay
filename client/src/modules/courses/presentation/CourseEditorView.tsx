@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Course } from '@/core/domain/library';
+import type { Course, Document } from '@/core/domain/library';
 import { useCourseEditor } from '@/modules/courses/presentation/hooks/useCourseEditor';
 import { EditorActions } from '@/modules/courses/presentation/EditorActions';
 import { CourseTitleEditor } from '@/modules/courses/presentation/CourseTitleEditor';
@@ -7,18 +7,42 @@ import { DraggableModule } from '@/modules/courses/presentation/DraggableModule'
 
 interface CourseEditorViewProps {
   initialCourse: Course;
+  libraryDocuments?: Document[];
   onSave: (course: Course) => void;
   onBack: () => void;
 }
 
 export const CourseEditorView: React.FC<CourseEditorViewProps> = ({
   initialCourse,
+  libraryDocuments = [],
   onSave,
   onBack,
 }) => {
-  const editor = useCourseEditor(initialCourse, onSave);
+  const editorInitialCourse = {
+    ...initialCourse,
+    documents: [
+      ...new Map(
+        [
+          ...(initialCourse.documents ?? []),
+          ...initialCourse.modules.flatMap((module) => module.documents ?? []),
+          ...libraryDocuments,
+        ].map((document) => [document.id, document]),
+      ).values(),
+    ],
+  };
+  const editor = useCourseEditor(editorInitialCourse, onSave);
   const { course } = editor;
   const allModules = course.modules.map((m) => ({ id: m.id, title: m.title }));
+  const linkedDocumentIds = new Set(
+    course.modules.flatMap((module) => module.documents?.map((document) => document.id) ?? []),
+  );
+  const unassignedDocuments = [
+    ...new Map(
+      [...(course.documents ?? [])]
+        .filter((document) => !linkedDocumentIds.has(document.id))
+        .map((document) => [document.id, document]),
+    ).values(),
+  ];
 
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
@@ -30,6 +54,12 @@ export const CourseEditorView: React.FC<CourseEditorViewProps> = ({
         onDiscard={editor.handleDiscardChanges}
         onSave={editor.handleSaveAll}
       />
+
+      {editor.saveError && (
+        <p role="alert" style={{ color: '#EF4444', margin: '0 0 16px' }}>
+          Falha ao salvar: {editor.saveError}
+        </p>
+      )}
 
       <CourseTitleEditor title={course.title} onChange={editor.handleCourseTitleChange} />
 
@@ -46,7 +76,11 @@ export const CourseEditorView: React.FC<CourseEditorViewProps> = ({
         {course.modules.map((mod, modIdx) => (
           <DraggableModule
             key={mod.id}
-            module={mod}
+            module={
+              modIdx === 0
+                ? { ...mod, documents: [...(mod.documents ?? []), ...unassignedDocuments] }
+                : mod
+            }
             index={modIdx}
             totalModules={course.modules.length}
             allModules={allModules}
@@ -58,6 +92,7 @@ export const CourseEditorView: React.FC<CourseEditorViewProps> = ({
             onDrop={editor.handleDropModule}
             onModuleTitleChange={editor.handleModuleTitleChange}
             onLessonTitleChange={editor.handleLessonTitleChange}
+            onDocumentTitleChange={editor.handleDocumentTitleChange}
             onMoveModule={editor.moveModule}
             onMoveLessonToModule={editor.moveLessonToModule}
           />

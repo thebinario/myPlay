@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import type { CourseModule } from '@/core/domain/library';
+import { EditableDocumentRow } from '@/modules/courses/presentation/EditableDocumentRow';
 import { EditableLessonRow } from '@/modules/courses/presentation/EditableLessonRow';
 
 interface DraggableModuleProps {
@@ -14,6 +15,7 @@ interface DraggableModuleProps {
   onDrop: (index: number) => void;
   onModuleTitleChange: (moduleId: string, title: string) => void;
   onLessonTitleChange: (moduleId: string, lessonId: string, title: string) => void;
+  onDocumentTitleChange: (documentId: string, title: string) => void;
   onMoveModule: (fromIndex: number, toIndex: number) => void;
   onMoveLessonToModule: (sourceModuleId: string, lessonId: string, targetModuleId: string) => void;
 }
@@ -29,6 +31,7 @@ export const DraggableModule: React.FC<DraggableModuleProps> = ({
   onDrop,
   onModuleTitleChange,
   onLessonTitleChange,
+  onDocumentTitleChange,
   onMoveModule,
   onMoveLessonToModule,
 }) => {
@@ -127,6 +130,14 @@ export const DraggableModule: React.FC<DraggableModuleProps> = ({
             modules={allModules}
             onTitleChange={onLessonTitleChange}
             onMoveToModule={onMoveLessonToModule}
+          />
+        ))}
+        {module.documents?.map((document, documentIndex) => (
+          <EditableDocumentRow
+            key={document.id}
+            document={document}
+            index={module.lessons.length + documentIndex}
+            onTitleChange={onDocumentTitleChange}
           />
         ))}
       </div>

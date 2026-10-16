@@ -23,7 +23,7 @@ export interface LibraryCatalogRepository {
   getCourseById(id: string): Course | undefined;
   getDocumentById(id: string): Document | undefined;
   /** Persiste um curso editado e notifica os assinantes. */
-  saveCourse(course: Course): Course;
+  saveCourse(course: Course): Course | Promise<Course>;
   /** Alterna a conclusão de uma aula e recalcula o progresso do curso. */
   toggleLessonCompletion(courseId: string, lessonId: string): Course | undefined;
   /**

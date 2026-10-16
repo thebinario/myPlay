@@ -11,6 +11,9 @@ export interface SaveCourseDependencies {
  * as métricas derivadas (duração total e progresso) para não depender do
  * adaptador de persistência.
  */
-export function saveCourse({ courses }: SaveCourseDependencies, course: Course): Course {
+export async function saveCourse(
+  { courses }: SaveCourseDependencies,
+  course: Course,
+): Promise<Course> {
   return courses.saveCourse(recalculateCourseMetrics(course));
 }

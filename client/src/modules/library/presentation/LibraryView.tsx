@@ -12,11 +12,13 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { LibrarySourceCard } from '@/modules/library/presentation/components/LibrarySourceCard';
+import { LibraryContentsList } from '@/modules/library/presentation/components/LibraryContentsList';
 
 interface LibraryViewProps {
   items: LibraryItem[];
   sources?: LibrarySource[];
   onSelectCourse: (courseId: string) => void;
+  onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMovie?: (movieId: string) => void;
   onOpenDocument?: (docId: string) => void;
 }
@@ -25,26 +27,40 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   items,
   sources,
   onSelectCourse,
+  onPlayLesson,
   onOpenMovie,
   onOpenDocument,
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'course' | 'movie' | 'document'>('all');
-  const [libraryTypeFilter, setLibraryTypeFilter] = useState<'all' | 'course' | 'movie'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const selectedSource = sources?.find((source) => source.id === selectedSourceId);
-  const visibleSources = sources?.filter(
-    (source) => libraryTypeFilter === 'all' || (source.libraryType ?? 'course') === libraryTypeFilter,
-  );
+  const visibleSources = sources?.filter((source) => {
+    const sourceItems = items.filter((item) => item.sourceId === source.id);
+    const matchesTab = activeTab === 'all' || sourceItems.some((item) => item.type === activeTab);
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const matchesSearch =
+      !query ||
+      source.name.toLocaleLowerCase().includes(query) ||
+      source.path.toLocaleLowerCase().includes(query) ||
+      sourceItems.some((item) =>
+        [item.title, item.description, item.category, ...item.tags].some((value) =>
+          value.toLocaleLowerCase().includes(query),
+        ),
+      );
+    return matchesTab && matchesSearch;
+  });
   const sourceItems = selectedSourceId
     ? items.filter((item) => item.sourceId === selectedSourceId)
     : items;
 
   const filteredItems = useMemo(() => {
     return sourceItems.filter((item) => {
-      const matchesTab = activeTab === 'all' || item.type === activeTab;
+      const matchesTab =
+        selectedSourceId && sources ? true : activeTab === 'all' || item.type === activeTab;
       if (!matchesTab) return false;
 
+      if (selectedSourceId && sources) return true;
       if (!searchQuery.trim()) return true;
 
       const q = searchQuery.toLowerCase();
@@ -55,7 +71,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
       return matchTitle || matchDesc || matchCategory || matchTags;
     });
-  }, [sourceItems, activeTab, searchQuery]);
+  }, [sourceItems, activeTab, searchQuery, selectedSourceId, sources]);
 
   const tabs = [
     { id: 'all' as const, label: 'Todos', icon: SlidersHorizontal },
@@ -92,22 +108,69 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '28px' }}>
           Selecione uma pasta para acessar seus cursos, filmes e documentos.
         </p>
-        <div role="tablist" aria-label="Filtrar tipo de biblioteca" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {([
-            ['all', 'Todas'],
-            ['course', 'Cursos'],
-            ['movie', 'Filmes'],
-          ] as const).map(([type, label]) => (
-            <button
-              key={type}
-              type="button"
-              role="tab"
-              aria-selected={libraryTypeFilter === type}
-              onClick={() => setLibraryTypeFilter(type)}
-            >
-              {label}
-            </button>
-          ))}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: '#141A28',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            padding: '8px 14px',
+            width: '100%',
+            maxWidth: '640px',
+            marginBottom: '20px',
+          }}
+        >
+          <Search size={18} color="#8B949E" style={{ marginRight: '10px', flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Buscar em cursos, filmes e documentos..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: '#FFFFFF',
+              fontSize: '13px',
+              width: '100%',
+              outline: 'none',
+            }}
+          />
+        </div>
+        <div
+          role="tablist"
+          aria-label="Filtros de conteúdo"
+          style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: isSelected ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
+                  color: isSelected ? '#A594FF' : '#94A3B8',
+                  fontWeight: isSelected ? 600 : 500,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Icon size={16} strokeWidth={isSelected ? 2.3 : 1.8} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
         {visibleSources?.length === 0 ? (
           <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
@@ -179,96 +242,17 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             Organize e acesse seus cursos, documentários cinematográficos e materiais de estudo.
           </p>
         </div>
-
-        {/* Search input with functional minimalism */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: '#141A28',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '10px',
-            padding: '8px 14px',
-            width: '320px',
-            transition: 'border-color 0.2s',
-          }}
-        >
-          <Search size={18} color="#8B949E" style={{ marginRight: '10px', flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Buscar em cursos, filmes e documentos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: '#FFFFFF',
-              fontSize: '13px',
-              width: '100%',
-              outline: 'none',
-            }}
-          />
-        </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div
-        role="tablist"
-        aria-label="Filtros de conteúdo"
-        style={{
-          display: 'flex',
-          gap: '8px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          paddingBottom: '14px',
-          marginBottom: '28px',
-        }}
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isSelected = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={isSelected}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: isSelected ? 'rgba(165, 148, 255, 0.15)' : 'transparent',
-                color: isSelected ? '#A594FF' : '#94A3B8',
-                fontWeight: isSelected ? 600 : 500,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease-in-out',
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.color = '#FFFFFF';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#94A3B8';
-                }
-              }}
-            >
-              <Icon size={16} strokeWidth={isSelected ? 2.3 : 1.8} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Cards Grid */}
-      {filteredItems.length === 0 ? (
+      {selectedSource && sources ? (
+        <LibraryContentsList
+          items={filteredItems}
+          onSelectCourse={onSelectCourse}
+          onPlayLesson={onPlayLesson}
+          onOpenMovie={onOpenMovie}
+          onOpenDocument={onOpenDocument}
+        />
+      ) : filteredItems.length === 0 ? (
         <div
           style={{
             padding: '64px 20px',

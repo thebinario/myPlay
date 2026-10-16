@@ -36,6 +36,21 @@ export function renameLesson(
   };
 }
 
+export function renameDocument(course: Course, documentId: string, title: string): Course {
+  return {
+    ...course,
+    documents: course.documents?.map((document) =>
+      document.id === documentId ? { ...document, title } : document,
+    ),
+    modules: course.modules.map((module) => ({
+      ...module,
+      documents: module.documents?.map((document) =>
+        document.id === documentId ? { ...document, title } : document,
+      ),
+    })),
+  };
+}
+
 /** Move um módulo para outra posição e reindexa a ordem sequencial. */
 export function reorderModules(course: Course, fromIndex: number, toIndex: number): Course {
   if (toIndex < 0 || toIndex >= course.modules.length) return course;
