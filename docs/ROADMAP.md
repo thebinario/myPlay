@@ -322,6 +322,10 @@ reais**.
 **Aceite:** instalar, abrir, importar, assistir, ler e recuperar a biblioteca
 **sem precisar configurar manualmente** um servidor de desenvolvimento.
 
+**Estado:** a Action manual para gerar instalador NSIS e executável portátil
+Windows x64 foi adicionada. A Fase 11 segue em andamento até validar esses
+artefatos em uma máquina Windows real e fechar os demais critérios acima.
+
 ### Versão 2.0 — Recursos opcionais
 
 #### Fase 12 — Armazenamento em nuvem e múltiplas fontes

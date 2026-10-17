@@ -1,0 +1,27 @@
+appId: com.midoteca.desktop
+productName: Midoteca
+directories:
+  output: release
+files:
+  - electron/**
+  - dist/**
+  - node_modules/**
+asar: true
+asarUnpack:
+  - '**/*.node'
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  artifactName: '${productName}-${version}-setup-${arch}.${ext}'
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+portable:
+  artifactName: '${productName}-${version}-portable-${arch}.${ext}'
+artifactName: '${productName}-${version}-${arch}.${ext}'

@@ -123,7 +123,12 @@ export function useMediaElementPlayback({
   initialTimeRef.current = initialTime;
   autoPlayRef.current = autoPlay;
 
-  const duration = mediaDuration > 0 ? mediaDuration : fallbackDuration;
+  const duration =
+    Number.isFinite(mediaDuration) && mediaDuration > 0
+      ? mediaDuration
+      : Number.isFinite(fallbackDuration)
+        ? fallbackDuration
+        : 0;
 
   // Reinicia o estado quando a mídia (src) ou a disponibilidade mudam.
   useEffect(() => {
@@ -187,7 +192,7 @@ export function useMediaElementPlayback({
     };
 
     const onLoadedMetadata = () => {
-      if (video.duration && !Number.isNaN(video.duration)) setMediaDuration(video.duration);
+      if (Number.isFinite(video.duration) && video.duration > 0) setMediaDuration(video.duration);
       seekToInitial();
       maybeAutoPlay();
       setStatus((prev) => (prev === 'loading' ? 'ready' : prev));
@@ -207,7 +212,10 @@ export function useMediaElementPlayback({
         return prev;
       });
     };
-    const onTimeUpdate = () => setCurrentTime(video.currentTime);
+    const onTimeUpdate = () => {
+      currentTimeRef.current = video.currentTime;
+      setCurrentTime(video.currentTime);
+    };
     const onPlaying = () => {
       setIsPlaying(true);
       setStatus('playing');
@@ -232,7 +240,7 @@ export function useMediaElementPlayback({
     const onError = () => setStatus('error');
     const onRateChange = () => setPlaybackRateState(video.playbackRate);
     const onDurationChange = () => {
-      if (video.duration && !Number.isNaN(video.duration)) setMediaDuration(video.duration);
+      if (Number.isFinite(video.duration) && video.duration > 0) setMediaDuration(video.duration);
     };
 
     video.addEventListener('loadstart', onLoadStart);
@@ -320,6 +328,7 @@ export function useMediaElementPlayback({
       if (statusRef.current === 'error') return;
       const dur = durationRef.current || 0;
       const clamped = clampSeekTime(time, dur);
+      currentTimeRef.current = clamped;
       setCurrentTime(clamped);
 
       const video = videoRef.current;
@@ -347,7 +356,17 @@ export function useMediaElementPlayback({
     [videoRef],
   );
 
-  const skip = useCallback((delta: number) => seek(currentTimeRef.current + delta), [seek]);
+  const skip = useCallback(
+    (delta: number) => {
+      const video = videoRef.current;
+      const mediaTime =
+        video && video.readyState >= 1 && Number.isFinite(video.currentTime)
+          ? video.currentTime
+          : currentTimeRef.current;
+      seek(mediaTime + delta);
+    },
+    [seek, videoRef],
+  );
 
   const setPlaybackRate = useCallback(
     (rate: number) => {

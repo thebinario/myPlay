@@ -1,16 +1,22 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
+import type { PlaybackProgress } from '@midoteca/core';
 import type { Course, Document } from '@/core/domain/library';
 import type { ContentType, LibraryItem, SearchFilter, SearchResult } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
 import { loadLibraryCatalog } from '@/modules/library/infrastructure/ipc/load-library-catalog';
 
-/** Real SQLite-backed catalog snapshot; remaining repository operations are delegated (P9). */
+function playbackPositionKey(courseId: string, lessonId: string): string {
+  return `${courseId}:${lessonId}`;
+}
+
+/** IPC-backed catalog snapshot; only operations not yet migrated use the delegate. */
 export class IpcLibraryRepository implements LibraryRepository {
   private items: LibraryItem[] = [];
   private readonly listeners = new Set<() => void>();
   private refreshing: Promise<void> | null = null;
   private detachEvents: (() => void) | null = null;
   private readonly readingProgressTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly playbackPositionsSeconds = new Map<string, number>();
 
   constructor(
     private readonly bridge: MidotecaBridge,
@@ -41,6 +47,7 @@ export class IpcLibraryRepository implements LibraryRepository {
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
       this.items = await loadLibraryCatalog(this.bridge);
+      this.playbackPositionsSeconds.clear();
       this.items.flatMap(getDocumentsFromItem).forEach((document) => {
         if (document.readingState) {
           this.delegate.saveDocumentReadingState(document.id, document.readingState);
@@ -51,7 +58,10 @@ export class IpcLibraryRepository implements LibraryRepository {
         item.modules.forEach((module) =>
           module.lessons.forEach((lesson) => {
             if (lesson.lastPlaybackPosition !== undefined) {
-              this.delegate.savePlaybackPosition(item.id, lesson.id, lesson.lastPlaybackPosition);
+              this.playbackPositionsSeconds.set(
+                playbackPositionKey(item.id, lesson.id),
+                lesson.lastPlaybackPosition,
+              );
             }
           }),
         );
@@ -173,8 +183,9 @@ export class IpcLibraryRepository implements LibraryRepository {
     this.replaceCatalogItem(updated);
     this.emit();
     this.persistPlaybackProgress(
+      courseId,
       lessonId,
-      this.delegate.getPlaybackPosition(courseId, lessonId),
+      this.getPlaybackPosition(courseId, lessonId),
       target.duration,
       completed,
       true,
@@ -183,17 +194,23 @@ export class IpcLibraryRepository implements LibraryRepository {
   }
 
   savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void {
-    this.delegate.savePlaybackPosition(courseId, lessonId, positionSeconds);
     const course = this.getCourseById(courseId);
     const lesson = course?.modules
       .flatMap((module) => module.lessons)
       .find((item) => item.id === lessonId);
     if (lesson) {
-      this.persistPlaybackProgress(lessonId, positionSeconds, lesson.duration, lesson.completed);
+      this.persistPlaybackProgress(
+        courseId,
+        lessonId,
+        positionSeconds,
+        lesson.duration,
+        lesson.completed,
+      );
     }
   }
 
   private persistPlaybackProgress(
+    courseId: string,
     lessonId: string,
     positionSeconds: number,
     durationSeconds: number,
@@ -207,7 +224,10 @@ export class IpcLibraryRepository implements LibraryRepository {
         durationMs: durationSeconds > 0 ? Math.round(durationSeconds * 1000) : null,
         completedAt: completed ? new Date().toISOString() : null,
       })
-      .then(() => (refreshAfterSave ? this.refresh() : undefined))
+      .then((saved: PlaybackProgress) => {
+        this.applyPlaybackProgress(courseId, saved);
+        return refreshAfterSave ? this.refresh() : undefined;
+      })
       .catch((error: unknown) => {
         console.error('[library] falha ao salvar progresso da aula', error);
       });
@@ -217,9 +237,17 @@ export class IpcLibraryRepository implements LibraryRepository {
     const lesson = this.getCourseById(courseId)
       ?.modules.flatMap((module) => module.lessons)
       .find((item) => item.id === lessonId);
-    return Math.max(
-      this.delegate.getPlaybackPosition(courseId, lessonId),
-      lesson?.lastPlaybackPosition ?? 0,
+    return (
+      this.playbackPositionsSeconds.get(playbackPositionKey(courseId, lessonId)) ??
+      lesson?.lastPlaybackPosition ??
+      0
+    );
+  }
+
+  private applyPlaybackProgress(courseId: string, progress: PlaybackProgress): void {
+    this.playbackPositionsSeconds.set(
+      playbackPositionKey(courseId, progress.lessonId),
+      progress.positionMs / 1000,
     );
   }
 

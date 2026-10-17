@@ -58,8 +58,7 @@ export const PlayerSurface: React.FC<PlayerSurfaceProps> = ({ player }) => {
     handleSelectSubtitle,
     handleSimulateImportSubtitle,
     handleReconnect,
-    handleTimelineClick,
-    handleTimelineKeyDown,
+    handleTimelineSeek,
   } = player;
 
   return (
@@ -262,8 +261,7 @@ export const PlayerSurface: React.FC<PlayerSurfaceProps> = ({ player }) => {
         onForward={handleForward10}
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
-        onTimelineClick={handleTimelineClick}
-        onTimelineKeyDown={handleTimelineKeyDown}
+        onTimelineSeek={handleTimelineSeek}
         onVolumeChange={(next) => {
           setVolume(next);
           if (isMuted) setIsMuted(false);

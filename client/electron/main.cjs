@@ -7,9 +7,9 @@
  */
 const path = require('node:path');
 const { realpath } = require('node:fs/promises');
-const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, dialog, ipcMain, net, protocol } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol } = require('electron');
 const { createMidoteca, createDesktopApi, DESKTOP_EVENTS } = require('@midoteca/core');
+const { createLibraryMediaResponse } = require('./library-media-response.cjs');
 
 const RPC_CHANNEL = 'midoteca:rpc';
 const EVENT_CHANNEL = 'midoteca:event';
@@ -67,10 +67,7 @@ async function serveLibraryMedia(request) {
     if (!roots.some((root) => root && isInsideRoot(filePath, root))) {
       return new Response(null, { status: 403 });
     }
-    return net.fetch(pathToFileURL(filePath).toString(), {
-      method: request.method,
-      headers: request.headers,
-    });
+    return createLibraryMediaResponse(filePath, request);
   } catch {
     return new Response(null, { status: 404 });
   }

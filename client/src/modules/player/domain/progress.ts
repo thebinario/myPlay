@@ -13,17 +13,19 @@ export function formatSeconds(sec: number): string {
 
 /** Limita um instante ao intervalo [0, duration] (quando a duração é conhecida). */
 export function clampSeekTime(time: number, duration: number): number {
-  if (duration > 0) return Math.min(Math.max(0, time), duration);
-  return Math.max(0, time);
+  const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  if (Number.isFinite(duration) && duration > 0) return Math.min(safeTime, duration);
+  return safeTime;
 }
 
 /** Converte a fração clicada na barra de progresso em tempo de destino. */
 export function seekTimeFromRatio(ratio: number, duration: number): number {
-  return ratio * duration;
+  if (!Number.isFinite(ratio) || !Number.isFinite(duration) || duration <= 0) return 0;
+  return Math.min(1, Math.max(0, ratio)) * duration;
 }
 
 /** Fração 0..1 da posição do ponteiro dentro de uma barra de progresso. */
 export function ratioFromOffset(offsetX: number, width: number): number | null {
-  if (width <= 0) return null;
-  return offsetX / width;
+  if (!Number.isFinite(offsetX) || !Number.isFinite(width) || width <= 0) return null;
+  return Math.min(1, Math.max(0, offsetX / width));
 }

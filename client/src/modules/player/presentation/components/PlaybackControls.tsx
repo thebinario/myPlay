@@ -33,8 +33,7 @@ interface PlaybackControlsProps {
   onForward: () => void;
   onPrevLesson: () => void;
   onNextLesson: () => void;
-  onTimelineClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-  onTimelineKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
+  onTimelineSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
   onToggleSubtitleMenu: () => void;
@@ -60,8 +59,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onForward,
   onPrevLesson,
   onNextLesson,
-  onTimelineClick,
-  onTimelineKeyDown,
+  onTimelineSeek,
   onVolumeChange,
   onToggleMute,
   onToggleSubtitleMenu,
@@ -82,12 +80,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       gap: '10px',
     }}
   >
-    <PlayerTimeline
-      currentTime={currentTime}
-      duration={duration}
-      onClick={onTimelineClick}
-      onKeyDown={onTimelineKeyDown}
-    />
+    <PlayerTimeline currentTime={currentTime} duration={duration} onSeek={onTimelineSeek} />
 
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

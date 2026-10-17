@@ -176,8 +176,13 @@ export const Seeking: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /avançar 10 segundos/i }));
+    await expect(canvas.getByTestId('current-time').textContent).toBe('02:10');
     await expect(canvas.getByTestId('player-seeking')).toBeTruthy();
     await expect(canvas.getByTestId('player-status').textContent).toBe('Buscando');
+
+    const timeline = canvas.getByRole('slider', { name: /linha do tempo/i });
+    fireEvent.change(timeline, { target: { value: '476' } });
+    await expect(canvas.getByTestId('current-time').textContent).toBe('07:56');
   },
 };
 

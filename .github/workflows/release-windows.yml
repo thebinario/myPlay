@@ -1,0 +1,89 @@
+name: Release Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão sem prefixo v (ex.: 0.5.0-beta.1 ou 1.0.0)'
+        required: true
+        type: string
+      channel:
+        description: Canal da release
+        required: true
+        type: choice
+        options:
+          - beta
+          - stable
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-windows-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            midoteca/package-lock.json
+            client/package-lock.json
+      - name: Validate release version and channel
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+        run: |
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+            echo "Use semantic version X.Y.Z or X.Y.Z-beta.N"
+            exit 1
+          fi
+          if [[ "$RELEASE_CHANNEL" == "beta" && "$RELEASE_VERSION" != *-beta.* ]]; then
+            echo "The beta channel requires a -beta.N version"
+            exit 1
+          fi
+          if [[ "$RELEASE_CHANNEL" == "stable" && "$RELEASE_VERSION" == *-* ]]; then
+            echo "The stable channel requires a stable X.Y.Z version"
+            exit 1
+          fi
+      - name: Install and build core
+        run: |
+          npm ci --prefix midoteca
+          npm run build --prefix midoteca
+          npm pack --prefix midoteca --pack-destination "$GITHUB_WORKSPACE/client"
+      - name: Prepare packaged core dependency
+        working-directory: client
+        shell: bash
+        run: |
+          node -e 'const fs = require("node:fs"); const app = require("./package.json"); const core = require("../midoteca/package.json"); app.dependencies["@midoteca/core"] = `file:${core.name.replace("/", "-")}-${core.version}.tgz`; fs.writeFileSync("package.json", `${JSON.stringify(app, null, 2)}\n`);'
+          npm install --package-lock-only --ignore-scripts
+      - name: Install desktop dependencies
+        working-directory: client
+        run: npm ci
+      - name: Set package version
+        working-directory: client
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: npm version "$env:RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        shell: pwsh
+      - name: Build Windows installer and portable app
+        working-directory: client
+        run: npm run build && npx electron-builder --win nsis portable --x64
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Midoteca v${{ inputs.version }} (${{ inputs.channel }})
+          prerelease: ${{ inputs.channel == 'beta' }}
+          generate_release_notes: true
+          files: |
+            client/release/*.exe
+            client/release/*.yml
+            client/release/*.blockmap

@@ -190,6 +190,55 @@ function wireCatalog(handlers: Record<string, (params: unknown) => unknown>) {
 }
 
 describe('IpcLibraryRepository', () => {
+  it('usa o progresso persistido no backend sem recuperar uma posição antiga do mock', async () => {
+    const delegate = new MockLibraryService();
+    delegate.savePlaybackPosition('c1', 'l1', 75);
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    handlers['progress.getPlayback'] = () => ({
+      id: 'p1',
+      lessonId: 'l1',
+      positionMs: 12_000,
+      durationMs: 90_000,
+      completedAt: null,
+      updatedAt: '2026-10-16T20:00:00.000Z',
+    });
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+
+    expect(repository.getPlaybackPosition('c1', 'l1')).toBe(12);
+    expect(delegate.getPlaybackPosition('c1', 'l1')).toBe(75);
+  });
+
+  it('não espelha a posição do player no repositório mock quando o backend está ativo', async () => {
+    const delegate = new MockLibraryService();
+    const saveMockPosition = vi.spyOn(delegate, 'savePlaybackPosition');
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    const saveBackendProgress = vi.fn((params: unknown) => ({
+      id: 'p1',
+      ...(params as object),
+      updatedAt: '2026-10-16T20:00:00.000Z',
+    }));
+    handlers['progress.savePlayback'] = saveBackendProgress;
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+
+    repository.savePlaybackPosition('c1', 'l1', 18);
+    await flush();
+
+    expect(saveMockPosition).not.toHaveBeenCalled();
+    expect(saveBackendProgress).toHaveBeenCalledWith({
+      lessonId: 'l1',
+      positionMs: 18_000,
+      durationMs: 90_000,
+      completedAt: null,
+    });
+    expect(repository.getPlaybackPosition('c1', 'l1')).toBe(18);
+  });
+
   it('hidrata o catálogo real a partir do kernel', async () => {
     const delegate = new MockLibraryService();
     const { bridge, handlers, calls } = createFakeBridge();

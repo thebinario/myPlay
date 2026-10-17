@@ -1,7 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VideoPlayerView } from '@/modules/player/presentation/views/VideoPlayerView';
-import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_COURSES,
+  mockLibraryService,
+} from '@/modules/library/infrastructure/mock-library-repository';
 import { Course, Lesson } from '@/core/domain/library';
 
 describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () => {
@@ -61,6 +64,42 @@ describe('MIDOTECA - Entrega 02: Player Mockado & Legendas (Telas 04 e 11)', () 
     const rewindBtn = screen.getByRole('button', { name: /retroceder 10 segundos/i });
     fireEvent.click(rewindBtn);
     expect(screen.getByTestId('current-time')).toHaveTextContent('02:00');
+  });
+
+  it('deve avançar a partir do tempo real do vídeo, mesmo antes do próximo timeupdate', () => {
+    render(
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
+    );
+    const video = screen.getByTestId('player-video') as HTMLVideoElement;
+    Object.defineProperty(video, 'currentTime', { configurable: true, writable: true, value: 180 });
+    Object.defineProperty(video, 'readyState', { configurable: true, value: 4 });
+
+    fireEvent.click(screen.getByRole('button', { name: /avançar 10 segundos/i }));
+
+    expect(screen.getByTestId('current-time')).toHaveTextContent('03:10');
+    expect(video.currentTime).toBe(190);
+  });
+
+  it('deve buscar na linha do tempo usando a posição escolhida na barra', () => {
+    render(
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
+    );
+    const timeline = screen.getByRole('slider', { name: /linha do tempo/i });
+    fireEvent.change(timeline, { target: { value: '447' } });
+
+    expect(screen.getByTestId('current-time')).toHaveTextContent('07:27');
+    expect((screen.getByTestId('player-video') as HTMLVideoElement).currentTime).toBe(447);
+  });
+
+  it('deve refletir no vídeo a posição final do arraste na barra', () => {
+    render(
+      <VideoPlayerView course={sampleCourse} initialLessonId={sampleLesson.id} onBack={vi.fn()} />,
+    );
+    const timeline = screen.getByRole('slider', { name: /linha do tempo/i });
+    fireEvent.change(timeline, { target: { value: '476' } });
+
+    expect(screen.getByTestId('current-time')).toHaveTextContent('07:56');
+    expect((screen.getByTestId('player-video') as HTMLVideoElement).currentTime).toBe(476);
   });
 
   it('deve alterar a velocidade de reprodução', () => {

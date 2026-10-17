@@ -3,11 +3,7 @@ import type { Course, Lesson, SubtitleTrack } from '@/core/domain/library';
 import { useLibraryRepository } from '@/modules/library/presentation/LibraryProvider';
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 import { useAutoHideControls } from '@/modules/player/presentation/hooks/useAutoHideControls';
-import {
-  formatSeconds,
-  ratioFromOffset,
-  seekTimeFromRatio,
-} from '@/modules/player/domain/progress';
+import { formatSeconds } from '@/modules/player/domain/progress';
 import {
   lessonsOf,
   loadingLabelFor,
@@ -77,8 +73,7 @@ export interface VideoPlayerState {
   showControls: () => void;
   handleForward10: () => void;
   handleRewind10: () => void;
-  handleTimelineClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-  handleTimelineKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
+  handleTimelineSeek: (time: number) => void;
   handleNextLesson: () => void;
   handlePrevLesson: () => void;
   handleSelectSubtitle: (subtitleId: string | null) => void;
@@ -205,29 +200,7 @@ export function useVideoPlayer({
     }
   }, []);
 
-  const handleTimelineClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const ratio = ratioFromOffset(e.clientX - rect.left, rect.width);
-      if (ratio === null) return;
-      playback.seek(seekTimeFromRatio(ratio, playback.duration));
-    },
-    [playback],
-  );
-
-  const handleTimelineKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        playback.skip(10);
-      }
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        playback.skip(-10);
-      }
-    },
-    [playback],
-  );
+  const handleTimelineSeek = useCallback((time: number) => playback.seek(time), [playback.seek]);
 
   const handleNextLesson = useCallback(() => {
     setCurrentLessonId((prev) => {
@@ -317,8 +290,7 @@ export function useVideoPlayer({
     showControls,
     handleForward10: () => playback.skip(10),
     handleRewind10: () => playback.skip(-10),
-    handleTimelineClick,
-    handleTimelineKeyDown,
+    handleTimelineSeek,
     handleNextLesson,
     handlePrevLesson,
     handleSelectSubtitle,

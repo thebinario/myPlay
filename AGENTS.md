@@ -100,6 +100,13 @@ Não coloque regras de negócio em hooks de apresentação.
 
 ## 4. Estratégia TDD
 
+**Regra obrigatória antes de toda feature ou correção:** identifique os testes e
+as stories afetados e atualize ou crie primeiro a cobertura do comportamento
+esperado. Execute essa cobertura antes de alterar o código de produção e
+confirme que falha pelo motivo esperado (Red); então implemente o mínimo para
+passar (Green) e refatore (Refactor). Não considere a tarefa concluída sem
+atualizar a cobertura pertinente.
+
 Para novas funcionalidades:
 
 1. Escrever teste que falha (Red).
@@ -117,6 +124,14 @@ Para código legado:
 Utilize testes unitários, de integração e de contrato conforme a necessidade.
 
 Não utilize mocks desnecessariamente; prefira testes reais dos adaptadores SQLite quando viável.
+
+Para mudanças visuais ou de interação, atualize também as stories do Storybook
+para representar os estados e fluxos afetados. Stories validam apresentação e
+interação, mas não substituem testes de integração/E2E quando a correção envolve
+runtime real, filesystem, IPC, persistência ou reprodução de mídia. Nesses
+casos, inclua cobertura E2E apropriada; para o player, valide reprodução e
+progresso com mídia local real no Electron, além dos estados visuais no
+Storybook.
 
 ## 5. Regras de organização do código
 
@@ -184,6 +199,11 @@ consuma o read model ou comando do backend. Quando o contrato não fornecer um
 dado necessário, estenda o contrato e a implementação do backend antes de
 introduzir um cálculo ou uma fonte de dados paralela na interface. Mantenha no
 frontend apenas transformações de apresentação e estado transitório de interação.
+No player, duração catalogada, posição retomada, progresso e conclusão devem ser
+obtidos e persistidos pelo backend; a interface deve encaminhar eventos da mídia
+e apresentar o estado retornado. Cálculos limitados à interação imediata, como
+converter a posição do ponteiro em uma solicitação de busca, não devem se tornar
+fonte de verdade nem substituir as regras e os dados do backend.
 
 Separe:
 

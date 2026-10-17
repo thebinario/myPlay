@@ -45,3 +45,11 @@ Estrutura canônica de destino (idêntica à do backend): `app/`, `core/`,
 passo **P6** de [`../docs/REFACTORING_ROADMAP.md`](../docs/REFACTORING_ROADMAP.md).
 
 Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Release Windows
+
+A geração e publicação são manuais pela GitHub Action **Release Windows** (`workflow_dispatch`). Informe uma versão SemVer e o canal:
+
+- `beta`: exige versão como `0.5.0-beta.1` e publica como pré-release.
+- `stable`: exige versão como `1.0.0` e publica como release estável.
+
+A Action compila o núcleo e o frontend no Windows, empacota o instalador NSIS e a versão portátil x64, e anexa os executáveis à GitHub Release. A primeira release candidate ainda precisa ser instalada e exercitada em uma máquina Windows real, conforme a Fase 11 do roadmap.
