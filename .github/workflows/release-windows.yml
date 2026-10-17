@@ -24,10 +24,12 @@ concurrency:
 
 jobs:
   package:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    env:
+      GYP_MSVS_VERSION: '2022'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -53,8 +55,9 @@ jobs:
             exit 1
           fi
       - name: Install and build core
+        shell: bash
         run: |
-          npm ci --prefix midoteca
+          npm ci --ignore-scripts --prefix midoteca
           npm run build --prefix midoteca
           npm pack --prefix midoteca --pack-destination "$GITHUB_WORKSPACE/client"
       - name: Prepare packaged core dependency
@@ -65,7 +68,10 @@ jobs:
           npm install --package-lock-only --ignore-scripts
       - name: Install desktop dependencies
         working-directory: client
-        run: npm ci
+        run: npm ci --ignore-scripts
+      - name: Install Electron runtime
+        working-directory: client
+        run: npm rebuild electron
       - name: Set package version
         working-directory: client
         env:
