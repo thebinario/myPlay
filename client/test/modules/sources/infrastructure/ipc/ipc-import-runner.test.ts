@@ -161,9 +161,7 @@ describe('IpcImportRunner', () => {
     handlers['indexing.scan'] = (params) => {
       const { sourceId } = params as { sourceId: string };
       scanned.push(sourceId);
-      return Promise.resolve(
-        summary({ sourceId, discovered: 1, created: 1 }),
-      );
+      return Promise.resolve(summary({ sourceId, discovered: 1, created: 1 }));
     };
 
     const runner = new IpcImportRunner(bridge);

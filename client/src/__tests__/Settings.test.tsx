@@ -33,13 +33,7 @@ describe('SettingsView', () => {
 
   it('oculta controles e textos de demonstração no runtime desktop', async () => {
     const user = userEvent.setup();
-    render(
-      <SettingsView
-        runtime="desktop"
-        onResetLibrary={vi.fn()}
-        onOpenOnboarding={vi.fn()}
-      />,
-    );
+    render(<SettingsView runtime="desktop" onResetLibrary={vi.fn()} onOpenOnboarding={vi.fn()} />);
 
     expect(screen.queryByRole('button', { name: /Restaurar dados de exemplo/ })).toBeNull();
     expect(screen.queryByText(/Modo demonstração/)).toBeNull();

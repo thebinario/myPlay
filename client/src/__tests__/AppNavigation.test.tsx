@@ -51,6 +51,7 @@ describe('MIDOTECA - Fundação Visual e Navegação', () => {
     fireEvent.click(screen.getByRole('button', { name: /^biblioteca$/i }));
 
     // 2. Clica no card do curso
+    fireEvent.click(screen.getByRole('button', { name: /^abrir biblioteca cursos$/i }));
     fireEvent.click(screen.getByText('Arquitetura Desktop Moderna com Tauri & React'));
     expect(
       screen.getByRole('button', { name: /editar organização do curso/i }),
@@ -82,22 +83,23 @@ describe('MIDOTECA - Fundação Visual e Navegação', () => {
     expect(screen.getByRole('button', { name: /legendas e idiomas \(cc\)/i })).toBeInTheDocument();
   });
 
-  it('deve abrir um PDF a partir da Biblioteca e retornar ao Início', () => {
+  it('deve abrir um PDF a partir da Biblioteca e retornar à Biblioteca', () => {
     render(<App />);
 
     // Navega para Biblioteca
     fireEvent.click(screen.getByRole('button', { name: /^biblioteca$/i }));
 
     // Clica no card de documento na Biblioteca
+    fireEvent.click(screen.getByRole('button', { name: /^abrir biblioteca cursos$/i }));
     fireEvent.click(screen.getByText('Clean Architecture para Aplicações Frontend.pdf'));
 
     // Valida que o leitor de PDF abriu
     expect(screen.getByRole('button', { name: /voltar da leitura/i })).toBeInTheDocument();
     expect(screen.getByTestId('pdf-page-canvas')).toBeInTheDocument();
 
-    // Retorna — agora vai para Início (comportamento novo da Etapa 3B)
+    // O leitor restaura a tela de origem.
     fireEvent.click(screen.getByRole('button', { name: /voltar da leitura/i }));
-    expect(screen.getByRole('heading', { name: /início/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /bibliotecas/i, level: 1 })).toBeInTheDocument();
   });
 
   it('deve abrir um PDF a partir do Início (Continue lendo) e retomar a leitura', () => {

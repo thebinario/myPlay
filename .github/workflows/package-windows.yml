@@ -1,0 +1,55 @@
+name: Package Windows
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      GYP_MSVS_VERSION: '2022'
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            midoteca/package-lock.json
+            client/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install core build dependencies
+        working-directory: midoteca
+        run: npm ci --ignore-scripts
+      - name: Install desktop build tools
+        run: npm ci --ignore-scripts
+      - name: Build and verify packaged application
+        run: npm run desktop:release
+      - name: Retain verified installers and build evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: midoteca-windows-x64-${{ inputs.version }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            client/release/artifacts/*.exe
+            client/release/artifacts/SHA256SUMS
+            client/release/artifacts/build-info.json

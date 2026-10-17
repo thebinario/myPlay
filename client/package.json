@@ -2,7 +2,11 @@
   "name": "midoteca-desktop",
   "private": true,
   "version": "1.0.0",
+  "main": "electron/main.cjs",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -24,7 +28,8 @@
     "desktop:start:fast": "electron electron/main.cjs",
     "desktop:smoke": "npm run desktop:rebuild && MIDOTECA_SMOKE=1 electron electron/main.cjs",
     "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start",
-    "desktop:stg": "node scripts/desktop-stg.cjs"
+    "desktop:stg": "node scripts/desktop-stg.cjs",
+    "desktop:release": "node scripts/desktop-release.cjs"
   },
   "dependencies": {
     "@midoteca/core": "file:../midoteca",

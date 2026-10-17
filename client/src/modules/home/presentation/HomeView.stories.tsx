@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { HomeView } from '@/modules/home/presentation/HomeView';
-import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_COURSES,
+  MOCK_MOVIES,
+  MOCK_DOCUMENTS,
+} from '@/modules/library/infrastructure/mock-library-repository';
 
 const meta: Meta<typeof HomeView> = {
   title: 'Home/HomeView',

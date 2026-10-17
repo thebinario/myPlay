@@ -30,7 +30,9 @@ async function waitForVite() {
     try {
       const response = await fetch(devUrl);
       if (response.ok) return;
-    } catch {}
+    } catch {
+      // Vite may still be starting; retry until the readiness deadline.
+    }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   throw new Error('Vite não iniciou em http://127.0.0.1:3333');
@@ -77,10 +79,14 @@ function stop(exitCode = 0) {
 async function main() {
   await run('npm', ['run', 'desktop:core']);
   await run('npm', ['run', 'desktop:rebuild']);
-  const coreWatcher = spawn('npx', ['tsc', '-p', 'tsconfig.build.json', '--watch', '--preserveWatchOutput'], {
-    cwd: path.join(projectRoot, 'midoteca'),
-    stdio: 'inherit',
-  });
+  const coreWatcher = spawn(
+    'npx',
+    ['tsc', '-p', 'tsconfig.build.json', '--watch', '--preserveWatchOutput'],
+    {
+      cwd: path.join(projectRoot, 'midoteca'),
+      stdio: 'inherit',
+    },
+  );
   children.add(coreWatcher);
   const vite = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--mode', 'stg'], {
     cwd: clientRoot,

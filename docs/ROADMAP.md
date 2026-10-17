@@ -322,9 +322,12 @@ reais**.
 **Aceite:** instalar, abrir, importar, assistir, ler e recuperar a biblioteca
 **sem precisar configurar manualmente** um servidor de desenvolvimento.
 
-**Estado:** a Action manual para gerar instalador NSIS e executável portátil
-Windows x64 foi adicionada. A Fase 11 segue em andamento até validar esses
-artefatos em uma máquina Windows real e fechar os demais critérios acima.
+**Estado:** beta/stable usam a mesma CI de qualidade e o mesmo comando de
+empacotamento do projeto. Push/PR também gera NSIS e portátil Windows x64 como
+artifacts. A publicação manual é condicionada ao smoke do executável empacotado
+com SQLite e RPC reais; publica também hashes e metadados do build. A Fase 11
+segue em andamento até confirmar a execução desse pipeline e validar instalação
+e fluxos completos no Windows 11, assinatura e os demais critérios acima.
 
 ### Versão 2.0 — Recursos opcionais
 

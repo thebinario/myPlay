@@ -1,7 +1,10 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
 import type { LibrarySourcesRepository } from '@/core/contracts/library-sources';
 import type { LibrarySource, SourceStatus } from '@/core/domain/library-source';
-import { mapCoreSource, mapCoreStatus } from '@/modules/sources/infrastructure/ipc/map-library-source';
+import {
+  mapCoreSource,
+  mapCoreStatus,
+} from '@/modules/sources/infrastructure/ipc/map-library-source';
 
 /** Real repository via Electron IPC/SQLite with a synchronous UI snapshot. */
 export class IpcLibrarySourcesRepository implements LibrarySourcesRepository {
@@ -77,9 +80,7 @@ export class IpcLibrarySourcesRepository implements LibrarySourcesRepository {
         const persisted = mapCoreSource(created, source.itemCount);
         this.persistedIds.set(source.id, persisted.id);
         this.cache = [
-          ...this.cache.filter(
-            (item) => item.id !== source.id && item.id !== persisted.id,
-          ),
+          ...this.cache.filter((item) => item.id !== source.id && item.id !== persisted.id),
           persisted,
         ];
         this.emit();
@@ -98,19 +99,21 @@ export class IpcLibrarySourcesRepository implements LibrarySourcesRepository {
     const pending = this.pendingWrites.get(id);
     await pending;
     const persistedId = this.persistedIds.get(id);
-    const found = persistedId !== undefined && this.cache.some(({ id: sourceId }) => sourceId === persistedId);
+    const found =
+      persistedId !== undefined && this.cache.some(({ id: sourceId }) => sourceId === persistedId);
     if (!found) throw new Error('A biblioteca não foi confirmada pelo núcleo.');
   }
 
   async rename(id: string, name: string): Promise<void> {
     const existing = this.getById(id);
     if (!existing) throw new Error('Biblioteca não encontrada.');
-    this.cache = this.cache.map((source) =>
-      source.id === id ? { ...source, name } : source,
-    );
+    this.cache = this.cache.map((source) => (source.id === id ? { ...source, name } : source));
     this.emit();
     try {
-      const updated = await this.bridge.invoke('sources.rename', { sourceId: id, displayName: name });
+      const updated = await this.bridge.invoke('sources.rename', {
+        sourceId: id,
+        displayName: name,
+      });
       this.cache = this.cache.map((source) =>
         source.id === id ? mapCoreSource(updated, existing.itemCount) : source,
       );

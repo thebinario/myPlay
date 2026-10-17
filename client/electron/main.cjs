@@ -10,6 +10,7 @@ const { realpath } = require('node:fs/promises');
 const { app, BrowserWindow, dialog, ipcMain, protocol } = require('electron');
 const { createMidoteca, createDesktopApi, DESKTOP_EVENTS } = require('@midoteca/core');
 const { createLibraryMediaResponse } = require('./library-media-response.cjs');
+const { runDesktopSmoke } = require('./desktop-smoke.cjs');
 
 const RPC_CHANNEL = 'midoteca:rpc';
 const EVENT_CHANNEL = 'midoteca:event';
@@ -113,12 +114,8 @@ app.whenReady().then(async () => {
   startKernel();
   protocol.handle(MEDIA_SCHEME, serveLibraryMedia);
 
-  // Smoke mode: boots the kernel inside Electron (real native SQLite), runs a
-  // round-trip RPC and exits. Used by CI/verification without opening a window.
   if (process.env.MIDOTECA_SMOKE === '1') {
-    const response = await api.handle({ method: 'system.info' });
-    console.log(`MIDOTECA_SMOKE ${JSON.stringify(response)}`);
-    app.quit();
+    await runDesktopSmoke(api, midoteca, app);
     return;
   }
 

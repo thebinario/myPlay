@@ -41,8 +41,12 @@ describe('LibrarySourcesPanel — seleção de pasta pelo SO (desktop)', () => {
   it('mostra o motivo devolvido pelo backend quando a biblioteca não é confirmada', async () => {
     const user = userEvent.setup();
     const source = {
-      id: 'local-source', path: '/Volumes/Study', name: 'Study', status: 'connected' as const,
-      itemCount: 0, lastScannedAt: null,
+      id: 'local-source',
+      path: '/Volumes/Study',
+      name: 'Study',
+      status: 'connected' as const,
+      itemCount: 0,
+      lastScannedAt: null,
     };
     render(
       <AddSourceForm
@@ -60,12 +64,23 @@ describe('LibrarySourcesPanel — seleção de pasta pelo SO (desktop)', () => {
   it('inicia a varredura após a confirmação do backend quando ele normaliza o caminho', async () => {
     const user = userEvent.setup();
     const source = {
-      id: 'kernel-source', rootPath: '/private/var/library', displayName: 'library',
-      status: 'active' as const, lastScanAt: null,
+      id: 'kernel-source',
+      rootPath: '/private/var/library',
+      displayName: 'library',
+      status: 'active' as const,
+      lastScanAt: null,
     };
     const scan = vi.fn(() => ({
-      sourceId: source.id, status: 'completed' as const, discovered: 0,
-      created: 0, updated: 0, moved: 0, unchanged: 0, missing: 0, errors: 0, durationMs: 0,
+      sourceId: source.id,
+      status: 'completed' as const,
+      discovered: 0,
+      created: 0,
+      updated: 0,
+      moved: 0,
+      unchanged: 0,
+      missing: 0,
+      errors: 0,
+      durationMs: 0,
     }));
     const bridge = createFakeBridge({
       'sources.list': () => [source],

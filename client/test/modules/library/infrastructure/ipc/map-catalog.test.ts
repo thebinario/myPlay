@@ -102,9 +102,9 @@ function courseTree(): CourseTree {
 }
 
 describe('buildMediaUrl', () => {
-  it('monta file:// codificando espaços e normalizando barras', () => {
+  it('monta URL do protocolo desktop codificando o caminho completo', () => {
     expect(buildMediaUrl('/Volumes/HD/', '/Curso/Aula 1.mp4')).toBe(
-      'file:///Volumes/HD/Curso/Aula%201.mp4',
+      'midoteca-media://media/%2FVolumes%2FHD%2FCurso%2FAula%201.mp4',
     );
   });
 
@@ -147,12 +147,16 @@ describe('mapCourseTree', () => {
     expect(course.modules).toHaveLength(1);
     expect(course.modules[0].title).toBe('Módulo A');
     expect(course.modules[0].lessons.map((l) => l.duration)).toEqual([90, 30]);
-    expect(course.modules[0].lessons[0].videoUrl).toBe('file:///Volumes/HD/Curso/aula-01.mp4');
+    expect(course.modules[0].lessons[0].videoUrl).toBe(
+      'midoteca-media://media/%2FVolumes%2FHD%2FCurso%2Faula-01.mp4',
+    );
     expect(course.modules[0].lessons[0].materials).toEqual([]);
     expect(course.modules[0].lessons[0].completed).toBe(false);
     expect(course.modules[0].documents?.map((doc) => doc.title)).toEqual(['02 - apostila.pdf']);
     expect(course.pdfCount).toBe(3);
-    expect(course.modules[0].documents?.[0].fileUrl).toBe('file:///Volumes/HD/Curso/apostila.pdf');
+    expect(course.modules[0].documents?.[0].fileUrl).toBe(
+      'midoteca-media://media/%2FVolumes%2FHD%2FCurso%2Fapostila.pdf',
+    );
   });
 
   it('marca aula como indisponível quando o arquivo físico sumiu', () => {
@@ -189,7 +193,7 @@ describe('mapDocumentSummary', () => {
       title: 'Manual.pdf',
       totalPages: 42,
       lastReadPage: 1,
-      fileUrl: 'file:///HD/docs/Manual.pdf',
+      fileUrl: 'midoteca-media://media/%2FHD%2Fdocs%2FManual.pdf',
     });
   });
 

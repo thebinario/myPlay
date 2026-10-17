@@ -1,7 +1,9 @@
 appId: com.midoteca.desktop
 productName: Midoteca
 directories:
-  output: release
+  app: release/app
+  output: release/artifacts
+npmRebuild: true
 files:
   - electron/**
   - dist/**

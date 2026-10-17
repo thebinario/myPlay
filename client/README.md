@@ -47,9 +47,42 @@ passo **P6** de [`../docs/REFACTORING_ROADMAP.md`](../docs/REFACTORING_ROADMAP.m
 Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Release Windows
 
-A geração e publicação são manuais pela GitHub Action **Release Windows** (`workflow_dispatch`). Informe uma versão SemVer e o canal:
+A geração e publicação são manuais pela GitHub Action **Release Windows** (`workflow_dispatch`).
+Informe uma versão SemVer inédita, sem o prefixo `v`, e o canal:
 
 - `beta`: exige versão como `0.5.0-beta.1` e publica como pré-release.
 - `stable`: exige versão como `1.0.0` e publica como release estável.
 
-A Action compila o núcleo e o frontend no Windows, empacota o instalador NSIS e a versão portátil x64, e anexa os executáveis à GitHub Release. A primeira release candidate ainda precisa ser instalada e exercitada em uma máquina Windows real, conforme a Fase 11 do roadmap.
+A release executa primeiro a CI de qualidade. Depois, no Windows Server 2022 com
+Node 24, Python 3.12 e Visual Studio 2022, usa `npm run desktop:release` para
+compilar o núcleo e o frontend, preparar um app isolado e gerar NSIS e portátil x64.
+O addon SQLite é reconstruído para a versão exata do Electron do lockfile.
+
+O comando também abre o executável empacotado em modo smoke: inicializa SQLite
+real, aplica migrações e executa `system.info` por RPC, com dados temporários.
+Somente após esse sucesso os instaladores, `SHA256SUMS` e `build-info.json` são
+publicados em **Releases**. Beta é pré-release; stable é marcada como latest.
+Uma tag existente é rejeitada para preservar versões já publicadas.
+
+A CI de push/PR executa o mesmo empacotamento Windows, após as verificações de
+qualidade, e guarda os arquivos como artifacts por 14 dias, sem publicar release.
+
+Para reproduzir o empacotamento na máquina local (Node 24 recomendado):
+
+```bash
+cd midoteca
+npm ci --ignore-scripts
+cd ../client
+npm ci --ignore-scripts
+npm run desktop:release -- 0.5.0-beta.1 beta --dir
+```
+
+`--dir` gera o app sem instalador e executa o smoke; no Windows, remova essa
+opção para gerar NSIS e portátil. Em outro sistema, o build local valida o
+pacote desse sistema; a compatibilidade Windows é verificada pelo runner Windows.
+As pastas `release/core`, `release/app` e `release/artifacts` são recriadas a cada
+execução. Manifestos e lockfiles do checkout não são alterados pelo comando.
+
+O smoke valida o boot e a dependência nativa, mas o aceite da Fase 11 ainda exige
+instalar e exercitar os fluxos de importação, reprodução, leitura e recuperação
+num Windows 11 real. Assinatura e atualização automática seguem pendentes.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { win32 } from 'node:path';
 import type { DocumentSummary, MediaFile } from '@midoteca/core';
 import { mapDocumentSummary } from '@/modules/library/infrastructure/ipc/map-catalog';
 
@@ -32,7 +33,7 @@ describe('PDF file URL from the library', () => {
     );
 
     expect(document.fileUrl).toBe(
-      'file:///Volumes/Study/PDFs/Guia%20%231%3Frev%3D2.pdf',
+      'midoteca-media://media/%2FVolumes%2FStudy%2FPDFs%2FGuia%20%231%3Frev%3D2.pdf',
     );
   });
 
@@ -64,6 +65,10 @@ describe('PDF file URL from the library', () => {
       new Map([['source-2', 'C:\\Library']]),
     );
 
-    expect(document.fileUrl).toBe('file:///C:/Library/PDFs/Guia%20final.pdf');
+    const url = new URL(document.fileUrl);
+    expect(url.protocol).toBe('midoteca-media:');
+    expect(win32.normalize(decodeURIComponent(url.pathname.slice(1)))).toBe(
+      'C:\\Library\\PDFs\\Guia final.pdf',
+    );
   });
 });

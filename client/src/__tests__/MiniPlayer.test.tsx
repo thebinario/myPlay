@@ -7,6 +7,7 @@ const COURSE_TITLE = MOCK_COURSES[0].title;
 
 const openCoursePlayer = () => {
   fireEvent.click(screen.getByRole('button', { name: /^biblioteca$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^abrir biblioteca cursos$/i }));
   fireEvent.click(screen.getByText(COURSE_TITLE));
   fireEvent.click(screen.getByRole('button', { name: /assistir aula 1\.1 visão geral/i }));
 };

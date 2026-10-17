@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1, 2, 3]);
-      expect(app.migration?.currentVersion).toBe(3);
+      expect(app.migration?.applied).toEqual([1, 2, 3, 4]);
+      expect(app.migration?.currentVersion).toBe(4);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(3);
+      expect(second.migration?.currentVersion).toBe(4);
     } finally {
       second.close();
     }
@@ -63,6 +63,7 @@ describe('database initialization and migrations', () => {
         { id: 1, name: '0001-initial-schema' },
         { id: 2, name: '0002-indexing' },
         { id: 3, name: '0003-course-organization' },
+        { id: 4, name: '0004-library-type' },
       ]);
     } finally {
       app.close();

@@ -1,7 +1,10 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CourseEditorView } from '@/modules/courses/presentation/CourseEditorView';
-import { MOCK_COURSES, mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_COURSES,
+  mockLibraryService,
+} from '@/modules/library/infrastructure/mock-library-repository';
 import { Course } from '@/core/domain/library';
 
 describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
@@ -103,7 +106,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
     fireEvent.click(saveButton);
 
     // Feedback discreto
-    expect(screen.getByText(/alterações salvas com sucesso/i)).toBeInTheDocument();
+    expect(await screen.findByText(/alterações salvas com sucesso/i)).toBeInTheDocument();
     expect(handleSave).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Curso Salvo no Mock',
@@ -115,7 +118,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
     expect(savedInService?.title).toBe('Curso Salvo no Mock');
   });
 
-  it('deve preservar os IDs, URLs e caminhos de arquivo originais das aulas ao salvar', () => {
+  it('deve preservar os IDs, URLs e caminhos de arquivo originais das aulas ao salvar', async () => {
     const handleSave = vi.fn();
 
     render(<CourseEditorView initialCourse={sampleCourse} onSave={handleSave} onBack={vi.fn()} />);
@@ -123,6 +126,7 @@ describe('MIDOTECA - Entrega 02: Editor de Cursos (Tela 09)', () => {
     const saveButton = screen.getByRole('button', { name: /salvar alterações/i });
     fireEvent.click(saveButton);
 
+    await waitFor(() => expect(handleSave).toHaveBeenCalledOnce());
     const savedCourse = handleSave.mock.calls[0][0] as Course;
     const firstLesson = savedCourse.modules[0].lessons[0];
 

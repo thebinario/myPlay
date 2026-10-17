@@ -18,6 +18,9 @@ beforeEach(() => {
   localStorage.clear();
   localStorage.setItem(ONBOARDING_STORAGE_KEY, 'complete');
   mockLibraryService.resetAll();
+  mockLibraryService.getItems().forEach((item) => {
+    item.sourceId = item.type === 'movie' ? 'demo-movies' : 'demo-courses';
+  });
   mockLibrarySourcesRepository.reset();
   mockPreferencesRepository.reset();
 });

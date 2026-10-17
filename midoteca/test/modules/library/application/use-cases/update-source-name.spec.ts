@@ -26,7 +26,10 @@ describe('UpdateSourceName', () => {
     };
 
     await expect(
-      new UpdateSourceName({ library }).execute({ sourceId: 'source-1', displayName: '  Cursos  ' }),
+      new UpdateSourceName({ library }).execute({
+        sourceId: 'source-1',
+        displayName: '  Cursos  ',
+      }),
     ).resolves.toMatchObject({ displayName: 'Cursos', rootPath: '/media/library' });
     expect(saved?.displayName).toBe('Cursos');
   });

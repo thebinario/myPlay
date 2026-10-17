@@ -94,6 +94,7 @@ export function mapCourseTree(
             title: lesson.title,
             duration: primary?.durationMs ? Math.round(primary.durationMs / 1000) : 0,
             completed: false,
+            isUnavailable: primary ? primary.availability === 'missing' : undefined,
             videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
             order: lesson.sortOrder,
             materials: [],

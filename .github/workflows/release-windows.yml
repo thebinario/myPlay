@@ -11,85 +11,71 @@ on:
         description: Canal da release
         required: true
         type: choice
-        options:
-          - beta
-          - stable
+        options: [beta, stable]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-windows-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
-  package:
-    runs-on: windows-2022
-    env:
-      GYP_MSVS_VERSION: '2022'
+  validate:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: |
-            midoteca/package-lock.json
-            client/package-lock.json
-      - name: Validate release version and channel
-        shell: bash
+          node-version: 24
+      - name: Validate version and reject an existing tag
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_CHANNEL: ${{ inputs.channel }}
         run: |
-          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
-            echo "Use semantic version X.Y.Z or X.Y.Z-beta.N"
+          node client/scripts/desktop-release.cjs --validate
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" > /dev/null
+          status=$?
+          set -e
+          if [[ "$status" == 0 ]]; then
+            echo "A tag v$RELEASE_VERSION já existe. Escolha uma nova versão."
             exit 1
+          elif [[ "$status" != 2 ]]; then
+            exit "$status"
           fi
-          if [[ "$RELEASE_CHANNEL" == "beta" && "$RELEASE_VERSION" != *-beta.* ]]; then
-            echo "The beta channel requires a -beta.N version"
-            exit 1
-          fi
-          if [[ "$RELEASE_CHANNEL" == "stable" && "$RELEASE_VERSION" == *-* ]]; then
-            echo "The stable channel requires a stable X.Y.Z version"
-            exit 1
-          fi
-      - name: Install and build core
-        shell: bash
-        run: |
-          npm ci --ignore-scripts --prefix midoteca
-          npm run build --prefix midoteca
-          npm pack --prefix midoteca --pack-destination "$GITHUB_WORKSPACE/client"
-      - name: Prepare packaged core dependency
-        working-directory: client
-        shell: bash
-        run: |
-          node -e 'const fs = require("node:fs"); const app = require("./package.json"); const core = require("../midoteca/package.json"); app.dependencies["@midoteca/core"] = `file:${core.name.replace("/", "-")}-${core.version}.tgz`; fs.writeFileSync("package.json", `${JSON.stringify(app, null, 2)}\n`);'
-          npm install --package-lock-only --ignore-scripts
-      - name: Install desktop dependencies
-        working-directory: client
-        run: npm ci --ignore-scripts
-      - name: Install Electron runtime
-        working-directory: client
-        run: npm rebuild electron
-      - name: Set package version
-        working-directory: client
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-        run: npm version "$env:RELEASE_VERSION" --no-git-tag-version --allow-same-version
-        shell: pwsh
-      - name: Build Windows installer and portable app
-        working-directory: client
-        run: npm run build && npx electron-builder --win nsis portable --x64
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+
+  build:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      version: ${{ inputs.version }}
+      channel: ${{ inputs.channel }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
         with:
-          tag_name: v${{ inputs.version }}
-          target_commitish: ${{ github.sha }}
-          name: Midoteca v${{ inputs.version }} (${{ inputs.channel }})
-          prerelease: ${{ inputs.channel == 'beta' }}
-          generate_release_notes: true
-          files: |
-            client/release/*.exe
-            client/release/*.yml
-            client/release/*.blockmap
+          name: midoteca-windows-x64-${{ inputs.version }}
+          path: release
+      - name: Publish verified Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+        run: |
+          (cd release && sha256sum --check SHA256SUMS)
+          jq -e --arg version "$RELEASE_VERSION" --arg channel "$RELEASE_CHANNEL" \
+            '.version == $version and .channel == $channel and .packagedSmoke == "passed" and .platform == "win32" and .arch == "x64"' release/build-info.json
+          args=(--title "Midoteca v$RELEASE_VERSION" --target "$GITHUB_SHA" --generate-notes)
+          if [[ "$RELEASE_CHANNEL" == beta ]]; then
+            args+=(--prerelease --latest=false)
+          else
+            args+=(--latest)
+          fi
+          gh release create "v$RELEASE_VERSION" release/*.exe release/SHA256SUMS release/build-info.json "${args[@]}"

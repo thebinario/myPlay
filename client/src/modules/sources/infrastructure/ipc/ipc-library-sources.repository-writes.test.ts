@@ -55,8 +55,11 @@ describe('IpcLibrarySourcesRepository writes', () => {
 
   it('confirma a biblioteca pela identidade retornada mesmo quando o backend normaliza o caminho', async () => {
     const persisted: FakeSource = {
-      id: 'kernel-id', rootPath: '/private/var/library', displayName: 'HD',
-      status: 'active', lastScanAt: null,
+      id: 'kernel-id',
+      rootPath: '/private/var/library',
+      displayName: 'HD',
+      status: 'active',
+      lastScanAt: null,
     };
     const bridge = createFakeBridge({
       'sources.list': () => [],

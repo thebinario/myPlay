@@ -43,10 +43,7 @@ describe('player/progress — tempo', () => {
 
 describe('player/playlist — navegação de aulas', () => {
   const course = {
-    modules: [
-      { lessons: [{ id: 'l1' }, { id: 'l2' }] },
-      { lessons: [{ id: 'l3' }] },
-    ],
+    modules: [{ lessons: [{ id: 'l1' }, { id: 'l2' }] }, { lessons: [{ id: 'l3' }] }],
   } as unknown as Course;
 
   it('achata as aulas de todos os módulos na ordem', () => {

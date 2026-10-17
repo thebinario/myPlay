@@ -10,12 +10,20 @@ import {
 describe('IpcLibrarySourcesRepository (fake bridge)', () => {
   it('hydrates sources with index counters and notifies listeners', async () => {
     const kernel: FakeSource = {
-      id: 'k1', rootPath: '/Volumes/HD', displayName: 'HD Cursos', status: 'active', lastScanAt: null,
+      id: 'k1',
+      rootPath: '/Volumes/HD',
+      displayName: 'HD Cursos',
+      status: 'active',
+      lastScanAt: null,
     };
     const bridge = createFakeBridge({
       'sources.list': () => [kernel],
       'indexing.status': () => ({
-        sourceId: 'k1', status: 'active', lastScanAt: null, mediaCount: 7, courseCount: 2,
+        sourceId: 'k1',
+        status: 'active',
+        lastScanAt: null,
+        mediaCount: 7,
+        courseCount: 2,
       }),
     });
     const repository = new IpcLibrarySourcesRepository(bridge);
@@ -36,7 +44,11 @@ describe('IpcLibrarySourcesRepository (fake bridge)', () => {
       'sources.add': (params) => {
         const { rootPath, displayName } = params as { rootPath: string; displayName: string };
         const created: FakeSource = {
-          id: 'k-new', rootPath, displayName, status: 'active', lastScanAt: null,
+          id: 'k-new',
+          rootPath,
+          displayName,
+          status: 'active',
+          lastScanAt: null,
         };
         state.sources = [created];
         return created;

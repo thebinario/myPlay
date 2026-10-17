@@ -158,3 +158,18 @@ satisfazer (LSP — [`ARCHITECTURE.md`](ARCHITECTURE.md) §9):
 - [ ] Comportamento legado preservado (caracterização) quando aplicável.
 - [ ] Teste de contrato atualizado/passando para todo adapter novo.
 - [ ] Nenhum mock desnecessário introduzido.
+
+## 11. Validação da distribuição desktop
+
+`npm run desktop:release -- 0.5.0-beta.1 beta --dir`, no `client/`, compila os
+pacotes, instala a árvore de produção isolada e abre o app empacotado em modo
+smoke. O smoke confere a versão do próprio executável e do Electron, inicializa
+SQLite real, aplica migrações e confirma o RPC `system.info`. Usa banco temporário
+e não acessa o catálogo pessoal. Falha, timeout ou resposta inválida bloqueiam os
+metadados de sucesso e a publicação. Não há substituição do SQLite por mocks.
+
+A CI executa esse fluxo no Windows, sem `--dir`, após as suítes existentes;
+confere instalador NSIS e portátil e retém `build-info.json` e `SHA256SUMS`.
+O workflow manual de release reutiliza essa CI e só publica os artifacts
+aprovados. O smoke não cobre o assistente de instalação nem os fluxos completos
+de importação, Player/PDF e recuperação: esses continuam no aceite da Fase 11.

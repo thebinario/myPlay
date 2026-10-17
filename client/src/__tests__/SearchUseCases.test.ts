@@ -3,7 +3,9 @@ import type { SearchResult } from '@/core/domain/library';
 import { groupSearchResults } from '@/modules/search/application/use-cases/group-search-results';
 import { resolveSearchTarget } from '@/modules/search/application/use-cases/resolve-search-target';
 
-function result(partial: Partial<SearchResult> & Pick<SearchResult, 'kind' | 'itemId'>): SearchResult {
+function result(
+  partial: Partial<SearchResult> & Pick<SearchResult, 'kind' | 'itemId'>,
+): SearchResult {
   return {
     title: 'Item',
     context: 'Contexto',
@@ -53,9 +55,7 @@ describe('resolveSearchTarget', () => {
 
   it('resolve aula com curso e aula', () => {
     expect(
-      resolveSearchTarget(
-        result({ kind: 'lesson', itemId: 'l1', courseId: 'c1', lessonId: 'l1' }),
-      ),
+      resolveSearchTarget(result({ kind: 'lesson', itemId: 'l1', courseId: 'c1', lessonId: 'l1' })),
     ).toEqual({ type: 'lesson', courseId: 'c1', lessonId: 'l1' });
   });
 

@@ -5,7 +5,11 @@ import type { CourseOrganizationDependencies } from '../dto';
 export class MoveLesson {
   constructor(private readonly deps: CourseOrganizationDependencies) {}
 
-  execute(lessonId: string, targetModuleId: string, targetIndex?: number): Promise<LessonMoveResult> {
+  execute(
+    lessonId: string,
+    targetModuleId: string,
+    targetIndex?: number,
+  ): Promise<LessonMoveResult> {
     return this.deps.courses.moveLessonToModule({ lessonId, targetModuleId, targetIndex });
   }
 }

@@ -1,5 +1,5 @@
 /**
- * MIDOTECA — primeiro acesso: gate no shell e reabertura via Configurações.
+ * MIDOTECA — primeiro acesso: gate no shell e controles de demonstração ocultos no desktop.
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,13 +27,12 @@ describe('MIDOTECA — primeiro acesso', () => {
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEY)).toBe('complete');
   });
 
-  it('reabre o primeiro acesso a partir das Configurações', async () => {
+  it('não expõe o atalho de demonstração no runtime desktop', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByLabelText('Configurações'));
-    await user.click(screen.getByRole('button', { name: /Abrir primeiro acesso/ }));
-
-    expect(screen.getByTestId('onboarding-view')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-view')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Abrir primeiro acesso/ })).not.toBeInTheDocument();
   });
 });
