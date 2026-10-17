@@ -17,85 +17,85 @@ describe('MockLibraryService.search()', () => {
     svc = new MockLibraryService();
   });
 
-  it('encontra curso pelo título', () => {
-    const results = svc.search('Tauri', 'all');
+  it('encontra curso pelo título', async () => {
+    const results = await svc.search('Tauri', 'all');
     expect(results.some((r) => r.kind === 'course' && r.title.includes('Tauri'))).toBe(true);
   });
 
-  it('encontra aula pelo nome', () => {
-    const results = svc.search('Visão Geral', 'all');
+  it('encontra aula pelo nome', async () => {
+    const results = await svc.search('Visão Geral', 'all');
     expect(results.some((r) => r.kind === 'lesson')).toBe(true);
   });
 
-  it('encontra aula buscando pelo filtro lesson', () => {
-    const results = svc.search('IPC', 'lesson');
+  it('encontra aula buscando pelo filtro lesson', async () => {
+    const results = await svc.search('IPC', 'lesson');
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => r.kind === 'lesson')).toBe(true);
   });
 
-  it('encontra PDF pelo nome (sem acentos)', () => {
-    const results = svc.search('Clean Architecture', 'document');
+  it('encontra PDF pelo nome (sem acentos)', async () => {
+    const results = await svc.search('Clean Architecture', 'document');
     expect(results.some((r) => r.kind === 'document')).toBe(true);
   });
 
-  it('encontra filme pelo título', () => {
-    const results = svc.search('Software Livre', 'all');
+  it('encontra filme pelo título', async () => {
+    const results = await svc.search('Software Livre', 'all');
     expect(results.some((r) => r.kind === 'movie')).toBe(true);
   });
 
-  it('filtra apenas cursos quando filtro é course', () => {
-    const results = svc.search('Tauri', 'course');
+  it('filtra apenas cursos quando filtro é course', async () => {
+    const results = await svc.search('Tauri', 'course');
     expect(results.every((r) => r.kind === 'course')).toBe(true);
   });
 
-  it('filtra apenas filmes quando filtro é movie', () => {
-    const results = svc.search('Fronteiras', 'movie');
+  it('filtra apenas filmes quando filtro é movie', async () => {
+    const results = await svc.search('Fronteiras', 'movie');
     expect(results.every((r) => r.kind === 'movie')).toBe(true);
   });
 
-  it('é case-insensitive (maiúsculas e minúsculas)', () => {
-    const lower = svc.search('tauri', 'all');
-    const upper = svc.search('TAURI', 'all');
+  it('é case-insensitive (maiúsculas e minúsculas)', async () => {
+    const lower = await svc.search('tauri', 'all');
+    const upper = await svc.search('TAURI', 'all');
     expect(lower.length).toBe(upper.length);
     expect(lower.length).toBeGreaterThan(0);
   });
 
-  it('trata acentos de maneira consistente', () => {
+  it('trata acentos de maneira consistente', async () => {
     // "Testes" vs busca sem acento "Testes"
-    const withAccent = svc.search('Testes Automatizados', 'all');
-    const withoutAccent = svc.search('testes automatizados', 'all');
+    const withAccent = await svc.search('Testes Automatizados', 'all');
+    const withoutAccent = await svc.search('testes automatizados', 'all');
     expect(withAccent.length).toBeGreaterThan(0);
     expect(withAccent.length).toBe(withoutAccent.length);
   });
 
-  it('retorna lista vazia quando não há resultados', () => {
-    const results = svc.search('xyzzy_inexistente_42', 'all');
+  it('retorna lista vazia quando não há resultados', async () => {
+    const results = await svc.search('xyzzy_inexistente_42', 'all');
     expect(results).toHaveLength(0);
   });
 
-  it('retorna lista vazia para query em branco', () => {
-    const results = svc.search('', 'all');
+  it('retorna lista vazia para query em branco', async () => {
+    const results = await svc.search('', 'all');
     expect(results).toHaveLength(0);
   });
 
-  it('resultado de aula possui courseId e lessonId', () => {
-    const results = svc.search('IPC', 'lesson');
+  it('resultado de aula possui courseId e lessonId', async () => {
+    const results = await svc.search('IPC', 'lesson');
     const lesson = results.find((r) => r.kind === 'lesson');
     expect(lesson).toBeDefined();
     expect(lesson!.courseId).toBeTruthy();
     expect(lesson!.lessonId).toBeTruthy();
   });
 
-  it('resultado de documento possui progressLabel quando lastReadPage > 1', () => {
-    const results = svc.search('Clean', 'document');
+  it('resultado de documento possui progressLabel quando lastReadPage > 1', async () => {
+    const results = await svc.search('Clean', 'document');
     const doc = results.find((r) => r.kind === 'document');
     expect(doc).toBeDefined();
     // Clean Architecture lastReadPage = 34 > 1
     expect(doc!.progressLabel).toMatch(/Página/);
   });
 
-  it('busca por tag encontra curso', () => {
-    const results = svc.search('TDD', 'course');
+  it('busca por tag encontra curso', async () => {
+    const results = await svc.search('TDD', 'course');
     expect(results.some((r) => r.kind === 'course')).toBe(true);
   });
 });

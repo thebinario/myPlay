@@ -145,9 +145,12 @@ export interface SearchResult {
   /** Progresso 0-100 (para cursos, filmes) ou página atual (para docs) */
   progressLabel?: string;
   coverUrl?: string;
+  sourceId?: string | null;
+  relativePath?: string | null;
+  filePath?: string | null;
 }
 
 /** Contrato desacoplado – preparado para futura implementação SQLite/FTS5 */
 export interface ISearchService {
-  search(query: string, filter: SearchFilter): SearchResult[];
+  search(query: string, filter: SearchFilter): Promise<SearchResult[]>;
 }

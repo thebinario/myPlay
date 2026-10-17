@@ -1,10 +1,11 @@
 import type { LibrarySource, LibrarySourceStatus, LibraryType } from './entities';
 import type {
   CourseSummary,
+  CatalogSearchFilter,
+  CatalogSearchHit,
   DocumentSummary,
   Page,
   Paged,
-  SearchResult,
   SourceIndexState,
 } from './read-models';
 
@@ -65,6 +66,6 @@ export interface LibraryRepository {
 export interface LibraryQueryStore {
   listCourses(query: Page & { sourceId?: string }): Paged<CourseSummary>;
   listDocuments(query: Page & { sourceId?: string }): Paged<DocumentSummary>;
-  search(text: string, query: Page): SearchResult;
+  search(text: string, query: Page & { filter?: CatalogSearchFilter }): CatalogSearchHit[];
   getSourceIndexState(sourceId: string): SourceIndexState | null;
 }

@@ -111,6 +111,7 @@ function wireCatalog(handlers: Record<string, (params: unknown) => unknown>) {
   handlers['media.listBySource'] = () => [
     coreMedia('mv1', 'src-1', 'Curso/aula-01.mp4', 'video', 90_000),
     coreMedia('mv2', 'src-1', 'docs/Manual.pdf', 'pdf'),
+    coreMedia('mv3', 'src-1', 'Filmes/Documentário Real.mp4', 'video', 120_000),
   ];
   handlers['catalog.listCourses'] = () => ({
     items: [courseSummary('c1', 'Curso Real', 'src-1')],
@@ -216,9 +217,9 @@ describe('IpcLibraryRepository', () => {
     repository.hydrate();
     await flush();
 
-    expect(repository.getItems().map((item) => item.id)).toEqual(['c1']);
+    expect(repository.getItems().map((item) => item.id)).toEqual(['c1', 'mv3']);
     expect(repository.getItems('course')).toHaveLength(1);
-    expect(repository.getItems('movie')).toEqual([]);
+    expect(repository.getItems('movie').map((item) => item.id)).toEqual(['mv3']);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].duration).toBe(90);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(true);
     expect(repository.getCourseById('c1')?.progress).toBe(100);
@@ -263,17 +264,68 @@ describe('IpcLibraryRepository', () => {
     expect(notifications).toBeGreaterThanOrEqual(2);
   });
 
-  it('delega reprodução, leitura, PDF e busca para o repositório mock', () => {
+  it('busca cursos, aulas e PDFs do catálogo IPC sem misturar resultados mockados', async () => {
     const delegate = new MockLibraryService();
-    const { bridge, handlers } = createFakeBridge();
+    const { bridge, handlers, calls } = createFakeBridge();
     wireCatalog(handlers);
+    handlers['catalog.search'] = () => [
+      {
+        kind: 'course',
+        itemId: 'c1',
+        title: 'Curso Real',
+        context: '',
+        available: true,
+        sourceId: 'src-1',
+        relativePath: 'Curso Real',
+        filePath: '/Volumes/HD/Curso Real',
+      },
+      {
+        kind: 'lesson',
+        itemId: 'l1',
+        lessonId: 'l1',
+        moduleId: 'm1',
+        courseId: 'c1',
+        title: 'Aula 1',
+        context: 'Curso Real • Módulo A',
+        available: true,
+        sourceId: 'src-1',
+        relativePath: 'Curso/aula-01.mp4',
+        filePath: '/Volumes/HD/Curso/aula-01.mp4',
+      },
+      {
+        kind: 'document',
+        itemId: 'd1',
+        title: 'Manual.pdf',
+        context: '',
+        available: true,
+        sourceId: 'src-1',
+        relativePath: 'docs/Manual.pdf',
+        filePath: '/Volumes/HD/docs/Manual.pdf',
+      },
+      {
+        kind: 'movie',
+        itemId: 'mv3',
+        title: 'Documentário Real',
+        context: '',
+        available: true,
+        sourceId: 'src-1',
+        relativePath: 'Filmes/Documentário Real.mp4',
+        filePath: '/Volumes/HD/Filmes/Documentário Real.mp4',
+      },
+    ];
     const repository = new IpcLibraryRepository(bridge, delegate);
 
-    repository.savePlaybackPosition('local', 'l1', 120);
-    expect(repository.getPlaybackPosition('local', 'l1')).toBe(120);
-
-    expect(repository.search('react', 'all')).toEqual(delegate.search('react', 'all'));
-    expect(repository.search('react', 'all').length).toBeGreaterThan(0);
+    const results = await repository.search('real', 'all');
+    expect(results.map((result) => result.title)).toEqual([
+      'Curso Real',
+      'Aula 1',
+      'Manual.pdf',
+      'Documentário Real',
+    ]);
+    expect(results.find((result) => result.kind === 'lesson')?.filePath).toBe(
+      '/Volumes/HD/Curso/aula-01.mp4',
+    );
+    expect(calls['catalog.search']).toBe(1);
   });
 
   it('não tenta buscar páginas de um PDF real pelo repositório mock', async () => {

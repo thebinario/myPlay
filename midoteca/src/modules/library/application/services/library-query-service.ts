@@ -1,10 +1,11 @@
 import type { LibraryQueryStore } from '../../domain/repositories';
 import type {
+  CatalogSearchFilter,
+  CatalogSearchHit,
   CourseSummary,
   DocumentSummary,
   Page,
   Paged,
-  SearchResult,
   SourceIndexState,
 } from '../../domain/read-models';
 import { listCourses } from '../queries/list-courses';
@@ -29,7 +30,7 @@ export class LibraryQueryService {
     return listDocuments(this.store, query);
   }
 
-  search(text: string, query: Page = {}): SearchResult {
+  search(text: string, query: Page & { filter?: CatalogSearchFilter } = {}): CatalogSearchHit[] {
     return search(this.store, text, query);
   }
 

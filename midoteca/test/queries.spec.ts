@@ -51,7 +51,7 @@ describe('LibraryQueryService', () => {
     expect(page.limit).toBe(200);
   });
 
-  it('searches courses and documents by title', async () => {
+  it('searches indexed catalog entities and returns their paths', async () => {
     const sourceId = await seed();
     const media = await app.media.create({
       sourceId,
@@ -64,10 +64,15 @@ describe('LibraryQueryService', () => {
     });
 
     const result = app.queries.search('curso');
-    expect(result.courses).toHaveLength(5);
-    expect(result.documents.map((d) => d.title)).toEqual(['Curso Manual']);
+    expect(result.filter((hit) => hit.kind === 'course')).toHaveLength(5);
+    expect(result.find((hit) => hit.kind === 'course')?.filePath).toContain('/hd/Curso 1');
+    expect(result.find((hit) => hit.kind === 'document')?.title).toBe('Curso Manual');
+    expect(result.find((hit) => hit.kind === 'document')?.filePath).toContain('/hd/doc.pdf');
 
-    expect(app.queries.search('   ').courses).toHaveLength(0);
+    expect(app.queries.search('   ')).toHaveLength(0);
+    expect(
+      app.queries.search('Aula', { filter: 'lesson' }).every((hit) => hit.kind === 'lesson'),
+    ).toBe(true);
   });
 
   it('reports per-source index state', async () => {

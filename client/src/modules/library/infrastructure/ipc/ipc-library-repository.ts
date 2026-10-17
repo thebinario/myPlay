@@ -317,8 +317,14 @@ export class IpcLibraryRepository implements LibraryRepository {
     this.delegate.resetAll();
   }
 
-  search(query: string, filter: SearchFilter): SearchResult[] {
-    return this.delegate.search(query, filter);
+  async search(query: string, filter: SearchFilter): Promise<SearchResult[]> {
+    const hits = await this.bridge.invoke('catalog.search', {
+      text: query,
+      filter,
+      limit: 200,
+      offset: 0,
+    });
+    return hits.map((hit) => ({ ...hit }));
   }
 }
 

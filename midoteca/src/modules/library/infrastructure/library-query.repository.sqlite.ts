@@ -1,8 +1,10 @@
+import { resolve } from 'node:path';
 import type {
+  CatalogSearchFilter,
+  CatalogSearchHit,
   CourseSummary,
   DocumentSummary,
   Paged,
-  SearchResult,
   SourceIndexState,
 } from '../domain/read-models';
 import type { LibraryQueryStore } from '../domain/repositories';
@@ -27,6 +29,50 @@ interface DocumentSummaryRow {
   media_file_id: string;
   title_source: string;
   page_count: number | null;
+}
+
+interface CatalogSearchRow {
+  kind: CatalogSearchHit['kind'];
+  item_id: string;
+  lesson_id: string | null;
+  module_id: string | null;
+  course_id: string | null;
+  title: string;
+  context: string | null;
+  source_id: string | null;
+  root_path: string | null;
+  relative_path: string | null;
+  available: number;
+}
+
+function mapCatalogSearchHit(row: CatalogSearchRow): CatalogSearchHit {
+  const title = row.kind === 'movie' ? fileTitle(row.relative_path ?? row.title) : row.title;
+  return {
+    kind: row.kind,
+    itemId: row.item_id,
+    ...(row.lesson_id ? { lessonId: row.lesson_id } : {}),
+    ...(row.module_id ? { moduleId: row.module_id } : {}),
+    ...(row.course_id ? { courseId: row.course_id } : {}),
+    title,
+    context: row.context ?? '',
+    available: Boolean(row.available),
+    sourceId: row.source_id,
+    relativePath: row.relative_path,
+    filePath:
+      row.root_path && row.relative_path
+        ? resolve(row.root_path, row.relative_path)
+        : row.root_path,
+  };
+}
+
+function fileTitle(relativePath: string): string {
+  const filename = relativePath.split(/[\\/]/).pop() ?? relativePath;
+  return (
+    filename
+      .replace(/\.[^.]+$/, '')
+      .replace(/[._-]+/g, ' ')
+      .trim() || filename
+  );
 }
 
 function mapCourseSummary(row: CourseSummaryRow): CourseSummary {
@@ -112,36 +158,83 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
     };
   }
 
-  search(text: string, query: { limit: number; offset: number }): SearchResult {
+  search(
+    text: string,
+    query: { limit: number; offset: number; filter?: CatalogSearchFilter },
+  ): CatalogSearchHit[] {
     const pattern = `%${text.replace(/[%_]/g, (c) => `\\${c}`)}%`;
-    const courseRows = this.db
+    const rows = this.db
       .prepare(
-        `SELECT c.id, c.title, c.source_id, c.relative_path, c.title_source,
-                c.updated_at,
-                (SELECT COUNT(*) FROM course_modules m WHERE m.course_id = c.id)
-                  AS module_count,
-                (SELECT COUNT(*) FROM lessons l
-                   JOIN course_modules m2 ON l.module_id = m2.id
-                   WHERE m2.course_id = c.id) AS lesson_count
-         FROM courses c
-         WHERE c.title LIKE ? ESCAPE '\\'
-         ORDER BY c.title COLLATE NOCASE
+        `WITH hits AS (
+           SELECT 'course' AS kind, c.id AS item_id, NULL AS lesson_id,
+                  NULL AS module_id, c.id AS course_id, c.title,
+                  COALESCE(c.description, '') AS context, s.id AS source_id,
+                  s.root_path, c.relative_path,
+                  CASE WHEN s.status = 'active' THEN 1 ELSE 0 END AS available
+           FROM courses c LEFT JOIN library_sources s ON s.id = c.source_id
+           WHERE (? = 'all' OR ? = 'course')
+             AND (c.title LIKE ? ESCAPE '\\' OR COALESCE(c.description, '') LIKE ? ESCAPE '\\'
+                  OR COALESCE(c.metadata, '') LIKE ? ESCAPE '\\')
+           UNION ALL
+           SELECT 'lesson', l.id, l.id, m.id, c.id, l.title,
+                  c.title || ' • ' || m.title, mf.source_id, s.root_path, mf.relative_path,
+                  CASE WHEN s.status = 'active' AND mf.availability = 'available' THEN 1 ELSE 0 END
+           FROM lessons l
+           JOIN course_modules m ON m.id = l.module_id
+           JOIN courses c ON c.id = m.course_id
+           LEFT JOIN media_files mf ON mf.id = (
+             SELECT lm.media_file_id FROM lesson_media lm
+             JOIN media_files primary_media ON primary_media.id = lm.media_file_id
+             WHERE lm.lesson_id = l.id AND lm.role = 'primary' AND primary_media.media_type = 'video'
+             ORDER BY lm.media_file_id LIMIT 1
+           )
+           LEFT JOIN library_sources s ON s.id = mf.source_id
+           WHERE (? = 'all' OR ? = 'lesson')
+             AND (l.title LIKE ? ESCAPE '\\' OR m.title LIKE ? ESCAPE '\\' OR c.title LIKE ? ESCAPE '\\')
+           UNION ALL
+           SELECT 'movie', mf.id, NULL, NULL, NULL, mf.relative_path,
+                  COALESCE(s.display_name, ''), s.id, s.root_path, mf.relative_path,
+                  CASE WHEN s.status = 'active' AND mf.availability = 'available' THEN 1 ELSE 0 END
+           FROM media_files mf JOIN library_sources s ON s.id = mf.source_id
+           WHERE (? = 'all' OR ? = 'movie') AND mf.media_type = 'video'
+             AND (s.library_type = 'movie' OR NOT EXISTS (
+               SELECT 1 FROM lesson_media lm WHERE lm.media_file_id = mf.id
+             ))
+             AND mf.relative_path LIKE ? ESCAPE '\\'
+           UNION ALL
+           SELECT 'document', d.id, NULL, NULL, NULL, d.title,
+                  COALESCE(s.display_name, ''), s.id, s.root_path, mf.relative_path,
+                  CASE WHEN s.status = 'active' AND mf.availability = 'available' THEN 1 ELSE 0 END
+           FROM documents d JOIN media_files mf ON mf.id = d.media_file_id
+           JOIN library_sources s ON s.id = mf.source_id
+           WHERE (? = 'all' OR ? = 'document')
+             AND (d.title LIKE ? ESCAPE '\\' OR mf.relative_path LIKE ? ESCAPE '\\')
+         )
+         SELECT * FROM hits ORDER BY kind COLLATE NOCASE, title COLLATE NOCASE
          LIMIT ? OFFSET ?`,
       )
-      .all(pattern, query.limit, query.offset) as CourseSummaryRow[];
-    const documentRows = this.db
-      .prepare(
-        `SELECT d.id, d.title, d.media_file_id, d.title_source, d.page_count
-         FROM documents d
-         WHERE d.title LIKE ? ESCAPE '\\'
-         ORDER BY d.title COLLATE NOCASE
-         LIMIT ? OFFSET ?`,
-      )
-      .all(pattern, query.limit, query.offset) as DocumentSummaryRow[];
-    return {
-      courses: courseRows.map(mapCourseSummary),
-      documents: documentRows.map(mapDocumentSummary),
-    };
+      .all(
+        query.filter ?? 'all',
+        query.filter ?? 'all',
+        pattern,
+        pattern,
+        pattern,
+        query.filter ?? 'all',
+        query.filter ?? 'all',
+        pattern,
+        pattern,
+        pattern,
+        query.filter ?? 'all',
+        query.filter ?? 'all',
+        pattern,
+        query.filter ?? 'all',
+        query.filter ?? 'all',
+        pattern,
+        pattern,
+        query.limit,
+        query.offset,
+      ) as CatalogSearchRow[];
+    return rows.map(mapCatalogSearchHit);
   }
 
   getSourceIndexState(sourceId: string): SourceIndexState | null {

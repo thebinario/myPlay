@@ -77,6 +77,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
       <SearchResults
         isEmpty={search.isEmpty}
+        isLoading={search.isLoading}
         hasResults={search.hasResults}
         grouped={search.grouped}
         onSelect={search.handleResultClick}

@@ -38,6 +38,24 @@ export interface SearchResult {
   documents: DocumentSummary[];
 }
 
+export type CatalogSearchKind = 'course' | 'lesson' | 'movie' | 'document';
+export type CatalogSearchFilter = 'all' | CatalogSearchKind;
+
+/** Search hit prepared by the core, including its local path for navigation. */
+export interface CatalogSearchHit {
+  kind: CatalogSearchKind;
+  itemId: string;
+  lessonId?: string;
+  moduleId?: string;
+  courseId?: string;
+  title: string;
+  context: string;
+  available: boolean;
+  sourceId: string | null;
+  relativePath: string | null;
+  filePath: string | null;
+}
+
 export interface SourceIndexState {
   sourceId: string;
   status: LibrarySourceStatus;

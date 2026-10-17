@@ -4,10 +4,11 @@ import type { Document } from '../../modules/documents';
 import type { IndexSummary, LibraryEvent } from '../../modules/indexing';
 import type {
   CourseSummary,
+  CatalogSearchFilter,
+  CatalogSearchHit,
   DocumentSummary,
   LibrarySource,
   Paged,
-  SearchResult,
   SourceIndexState,
 } from '../../modules/library';
 import type { MediaFile, MediaTrack } from '../../modules/media';
@@ -89,7 +90,7 @@ export interface DesktopParams {
   'indexing.status': { sourceId: string };
   'catalog.listCourses': PageParams & { sourceId?: string };
   'catalog.listDocuments': PageParams & { sourceId?: string };
-  'catalog.search': PageParams & { text: string };
+  'catalog.search': PageParams & { text: string; filter?: CatalogSearchFilter };
   'catalog.getCourseTree': { courseId: string };
   'courses.list': undefined;
   'courses.saveOrganization': SaveCourseOrganization;
@@ -120,7 +121,7 @@ export interface DesktopResults {
   'indexing.status': SourceIndexState | null;
   'catalog.listCourses': Paged<CourseSummary>;
   'catalog.listDocuments': Paged<DocumentSummary>;
-  'catalog.search': SearchResult;
+  'catalog.search': CatalogSearchHit[];
   'catalog.getCourseTree': CourseTree | null;
   'courses.list': Course[];
   'courses.saveOrganization': CourseTree;

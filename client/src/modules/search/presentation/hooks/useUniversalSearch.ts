@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SearchFilter, SearchResult, SearchResultKind } from '@/core/domain/library';
-import { useLibraryRepository } from '@/modules/library/presentation/LibraryProvider';
+import {
+  useLibraryItems,
+  useLibraryRepository,
+} from '@/modules/library/presentation/LibraryProvider';
 import { groupSearchResults } from '@/modules/search/application/use-cases/group-search-results';
 import { resolveSearchTarget } from '@/modules/search/application/use-cases/resolve-search-target';
 
@@ -16,6 +19,7 @@ export interface UniversalSearchState {
   filter: SearchFilter;
   inputRef: React.RefObject<HTMLInputElement | null>;
   isEmpty: boolean;
+  isLoading: boolean;
   hasResults: boolean;
   grouped: [SearchResultKind, SearchResult[]][];
   setQuery: (value: string) => void;
@@ -34,8 +38,11 @@ export function useUniversalSearch(
   initialQuery = '',
 ): UniversalSearchState {
   const repository = useLibraryRepository();
+  const catalogItems = useLibraryItems();
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<SearchFilter>('all');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,12 +62,35 @@ export function useUniversalSearch(
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const results = useMemo(
-    () => (query.trim() ? repository.search(query.trim(), filter) : []),
-    [repository, query, filter],
-  );
+  useEffect(() => {
+    const text = query.trim();
+    if (!text) {
+      setResults([]);
+      setIsLoading(false);
+      return;
+    }
 
-  const grouped = useMemo(() => groupSearchResults(results), [results]);
+    let active = true;
+    setIsLoading(true);
+    void repository
+      .search(text, filter)
+      .then((nextResults) => {
+        if (active) setResults(nextResults);
+      })
+      .catch((error: unknown) => {
+        console.error('[search] falha ao consultar o catálogo', error);
+        if (active) setResults([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [repository, query, filter, catalogItems]);
+
+  const grouped = groupSearchResults(results);
 
   const { onOpenCourse, onOpenLesson, onOpenMovie, onOpenDocument } = handlers;
   const handleResultClick = useCallback(
@@ -90,6 +120,7 @@ export function useUniversalSearch(
     filter,
     inputRef,
     isEmpty: query.trim() === '',
+    isLoading,
     hasResults: results.length > 0,
     grouped,
     setQuery,

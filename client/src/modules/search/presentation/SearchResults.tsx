@@ -6,6 +6,7 @@ import { SearchResultCard } from '@/modules/search/presentation/SearchResultCard
 
 interface SearchResultsProps {
   isEmpty: boolean;
+  isLoading: boolean;
   hasResults: boolean;
   grouped: [SearchResultKind, SearchResult[]][];
   onSelect: (result: SearchResult) => void;
@@ -13,6 +14,7 @@ interface SearchResultsProps {
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
   isEmpty,
+  isLoading,
   hasResults,
   grouped,
   onSelect,
@@ -55,7 +57,13 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       </div>
     )}
 
-    {!isEmpty && !hasResults && (
+    {!isEmpty && isLoading && (
+      <p role="status" style={{ paddingTop: '60px', textAlign: 'center', color: '#64748B' }}>
+        Buscando no catálogo...
+      </p>
+    )}
+
+    {!isEmpty && !isLoading && !hasResults && (
       <div
         data-testid="search-no-results"
         style={{
@@ -90,7 +98,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       </div>
     )}
 
-    {!isEmpty && hasResults && (
+    {!isEmpty && !isLoading && hasResults && (
       <div
         data-testid="search-results"
         style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}

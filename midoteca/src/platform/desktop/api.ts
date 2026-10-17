@@ -6,6 +6,7 @@ import {
   DESKTOP_METHODS,
   type DesktopErrorPayload,
   type DesktopMethod,
+  type DesktopParams,
   type DesktopRequest,
   type DesktopResponse,
 } from './contract';
@@ -122,12 +123,8 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
       }
 
       case 'catalog.search': {
-        const { text, limit, offset } = params as {
-          text: string;
-          limit?: number;
-          offset?: number;
-        };
-        return midoteca.queries.search(text, { limit, offset });
+        const { text, filter, limit, offset } = params as DesktopParams['catalog.search'];
+        return midoteca.queries.search(text, { filter, limit, offset });
       }
 
       case 'catalog.getCourseTree': {

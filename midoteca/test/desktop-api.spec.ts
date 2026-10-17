@@ -74,10 +74,12 @@ describe('desktop API (RPC surface)', () => {
     );
     expect(documents.total).toBe(1);
 
-    const search = unwrap<{ courses: unknown[]; documents: unknown[] }>(
-      await api.handle({ method: 'catalog.search', params: { text: 'Curso' } }),
+    const search = unwrap<Array<{ kind: string; title: string; filePath: string | null }>>(
+      await api.handle({ method: 'catalog.search', params: { text: 'intro', filter: 'lesson' } }),
     );
-    expect(search.courses.length).toBeGreaterThan(0);
+    expect(search).toHaveLength(1);
+    expect(search[0].kind).toBe('lesson');
+    expect(search[0].filePath).toContain('01 - Intro.mp4');
   });
 
   it('persists playback and reading progress across calls', async () => {
@@ -128,10 +130,12 @@ describe('desktop API (RPC surface)', () => {
     );
     const documentId = listed.items[0].id;
 
-    unwrap(await api.handle({
-      method: 'documents.updatePageCount',
-      params: { documentId, pageCount: 13 },
-    }));
+    unwrap(
+      await api.handle({
+        method: 'documents.updatePageCount',
+        params: { documentId, pageCount: 13 },
+      }),
+    );
 
     const updated = unwrap<{ items: Array<{ pageCount: number | null }> }>(
       await api.handle({ method: 'catalog.listDocuments', params: { sourceId } }),
