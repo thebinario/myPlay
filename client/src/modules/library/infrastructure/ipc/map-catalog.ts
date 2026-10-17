@@ -114,7 +114,7 @@ export function mapCourseTree(
     documents: tree.documents.map((document) =>
       mapTreeDocument(document, mediaById, sourceRootById),
     ),
-    progress: 0,
+    progress: tree.completionPercentage,
     modules,
     tags: stringArrayField(tree.course.metadata, 'tags'),
     createdAt: tree.course.createdAt,

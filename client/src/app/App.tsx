@@ -81,21 +81,7 @@ export const App: React.FC = () => {
 
   const selectedMovie = selectedMovieId ? movies.find((m) => m.id === selectedMovieId) : undefined;
 
-  const homeCourses = courses.map((course) => {
-    const lessons = course.modules.flatMap((module) => module.lessons);
-    const duration = lessons.reduce((total, lesson) => total + lesson.duration, 0);
-    const watched = lessons.reduce(
-      (total, lesson) =>
-        total +
-        Math.min(repository.getPlaybackPosition(course.id, lesson.id), lesson.duration || Infinity),
-      0,
-    );
-    const playbackProgress =
-      watched > 0
-        ? Math.max(1, Math.min(99, Math.floor((watched / (duration || watched)) * 100)))
-        : 0;
-    return course.progress > 0 ? course : { ...course, progress: playbackProgress };
-  });
+  const homeCourses = courses;
   const homeDocuments = [
     ...new Map(
       [

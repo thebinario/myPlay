@@ -23,10 +23,7 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
     expect(screen.getByText(sampleCourse.description)).toBeInTheDocument();
 
     // Progresso
-    const lessons = sampleCourse.modules.flatMap((module) => module.lessons);
-    const completedLessons = lessons.filter((lesson) => lesson.completed).length;
-    const completionPercentage = Math.round((completedLessons / lessons.length) * 100);
-    expect(screen.getByText(`${completionPercentage}% concluído`)).toBeInTheDocument();
+    expect(screen.getByText(`${sampleCourse.progress}% concluído`)).toBeInTheDocument();
 
     // Módulos
     expect(screen.getByText('Módulo 1: Fundamentos e Arquitetura')).toBeInTheDocument();

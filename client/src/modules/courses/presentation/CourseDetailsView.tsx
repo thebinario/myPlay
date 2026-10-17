@@ -95,20 +95,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         .map((document) => [document.id, document]),
     ).values(),
   ];
-  const trackedDocuments = [
-    ...new Map(
-      [...courseDocuments, ...course.modules.flatMap((module) => module.documents ?? [])].map(
-        (document) => [document.id, document],
-      ),
-    ).values(),
-  ];
-  const totalContent = totalLessons + trackedDocuments.length;
-  const completedDocuments = trackedDocuments.filter(
-    (document) => document.isRead ?? !!document.readingState?.completedAt,
-  ).length;
-  const completedContent = completedLessons + completedDocuments;
-  const completionPercentage =
-    totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
+  const completionPercentage = course.progress;
 
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>

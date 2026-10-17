@@ -175,6 +175,16 @@ de UX mais específicas devem ter escopo explícito; não podem se tornar uma
 segunda fonte de verdade. Se uma funcionalidade exigir regra de negócio, crie ou
 estenda o caso de uso no backend e exponha o contrato necessário ao frontend.
 
+**Priorize sempre os dados e o processamento no backend.** O backend deve
+persistir e fornecer os dados usados pelas telas, incluindo valores derivados
+como progresso, percentuais, contagens, status, resultados de busca e caminhos
+necessários para abrir arquivos. Não filtre, agregue, pesquise nem recalcule
+esses valores no frontend para reconstruir resultados que pertencem ao domínio;
+consuma o read model ou comando do backend. Quando o contrato não fornecer um
+dado necessário, estenda o contrato e a implementação do backend antes de
+introduzir um cálculo ou uma fonte de dados paralela na interface. Mantenha no
+frontend apenas transformações de apresentação e estado transitório de interação.
+
 Separe:
 
 - Componentes visuais.

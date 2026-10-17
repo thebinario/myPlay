@@ -636,9 +636,45 @@ export class SqliteCourseRepository implements CourseRepository {
       course: mapCourse(courseRow),
       totalDurationSeconds: metrics.totalDurationSeconds,
       pdfCount: metrics.pdfCount,
+      completionPercentage: this.readCourseCompletionPercentage(courseId),
       documents: courseDocuments,
       modules,
     };
+  }
+
+  private readCourseCompletionPercentage(courseId: string): number {
+    const row = this.db
+      .prepare(
+        `WITH course_content(kind, content_id) AS (
+           SELECT 'lesson', l.id
+           FROM lessons l JOIN course_modules cm ON cm.id = l.module_id
+           WHERE cm.course_id = ?
+           UNION
+           SELECT 'document', d.id
+           FROM documents d JOIN document_links dl ON dl.document_id = d.id
+           LEFT JOIN course_modules linked_module ON linked_module.id = dl.module_id
+           WHERE dl.course_id = ? OR linked_module.course_id = ?
+         )
+         SELECT COUNT(*) AS total_count,
+                COALESCE(SUM(CASE
+                  WHEN kind = 'lesson' AND EXISTS (
+                    SELECT 1 FROM playback_progress p
+                    WHERE p.lesson_id = content_id AND p.completed_at IS NOT NULL
+                  ) THEN 1
+                  WHEN kind = 'document' AND EXISTS (
+                    SELECT 1 FROM reading_progress r
+                    WHERE r.document_id = content_id AND r.completed_at IS NOT NULL
+                  ) THEN 1
+                  ELSE 0
+                END), 0) AS completed_count
+         FROM course_content`,
+      )
+      .get(courseId, courseId, courseId) as {
+      total_count: number;
+      completed_count: number;
+    };
+
+    return row.total_count ? Math.round((row.completed_count / row.total_count) * 100) : 0;
   }
 
   private readCourseMetrics(courseId: string): {

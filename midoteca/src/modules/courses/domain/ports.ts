@@ -18,6 +18,8 @@ export interface CourseTree {
   /** Aggregates used by the catalog card, computed by the read-side backend. */
   totalDurationSeconds: number;
   pdfCount: number;
+  /** Completion percentage across the course lessons and linked library PDFs. */
+  completionPercentage: number;
   documents: CourseTreeDocument[];
   modules: Array<
     CourseModule & {

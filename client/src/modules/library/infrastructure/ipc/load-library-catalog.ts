@@ -89,16 +89,11 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
       const documents = course.documents?.map((document) =>
         applyReadingProgress(document, readingByDocumentId.get(document.id)),
       );
-      const totalLessons = modules.reduce((total, module) => total + module.lessons.length, 0);
-      const completedLessons = modules.reduce(
-        (total, module) => total + module.lessons.filter((lesson) => lesson.completed).length,
-        0,
-      );
       return {
         ...course,
         modules,
         documents,
-        progress: totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        progress: tree.completionPercentage,
       };
     }),
     ...standaloneDocuments.map((document) =>

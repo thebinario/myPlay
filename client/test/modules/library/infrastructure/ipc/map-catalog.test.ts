@@ -31,6 +31,7 @@ function courseTree(): CourseTree {
   return {
     totalDurationSeconds: 999,
     pdfCount: 3,
+    completionPercentage: 50,
     course: {
       id: 'c1',
       title: 'Curso Real',

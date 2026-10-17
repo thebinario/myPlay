@@ -157,6 +157,19 @@ describe('course repository', () => {
     });
     await app.documentAssociations.attachToModule(moduleDocument.id, module.id);
     await app.documentAssociations.attachToCourse(courseDocument.id, course.id);
+    await app.progress.savePlayback({
+      lessonId: lesson.id,
+      positionMs: 123_000,
+      durationMs: 123_000,
+      completedAt: '2026-10-16T12:00:00.000Z',
+    });
+    await app.progress.saveReading({
+      documentId: moduleDocument.id,
+      page: 4,
+      scrollRatio: 1,
+      zoom: 1,
+      completedAt: '2026-10-16T12:00:00.000Z',
+    });
 
     const tree = await app.courses.getTree(course.id);
 
@@ -164,6 +177,7 @@ describe('course repository', () => {
     expect(tree?.modules[0].documents.map((document) => document.id)).toEqual([moduleDocument.id]);
     expect(tree?.totalDurationSeconds).toBe(123);
     expect(tree?.pdfCount).toBe(2);
+    expect(tree?.completionPercentage).toBe(67);
   });
 
   it('deleting a course cascades modules/lessons but keeps media files', async () => {

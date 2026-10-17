@@ -7,14 +7,26 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { HomeView } from '@/modules/home/presentation/HomeView';
-import { MOCK_COURSES, MOCK_MOVIES, MOCK_DOCUMENTS } from '@/modules/library/infrastructure/mock-library-repository';
+import {
+  MOCK_COURSES,
+  MOCK_MOVIES,
+  MOCK_DOCUMENTS,
+} from '@/modules/library/infrastructure/mock-library-repository';
 import type { Course, Movie, Document } from '@/core/domain/library';
 
 const inProgressCourse = MOCK_COURSES.find((c) => c.progress > 0 && c.progress < 100)!;
 const inProgressMovie = MOCK_MOVIES.find((m) => m.progress > 0 && m.progress < 100)!;
 const inProgressDoc = MOCK_DOCUMENTS.find((d) => d.lastReadPage > 1)!;
 
-const zeroCourse: Course = { ...MOCK_COURSES[0], progress: 0, id: 'zero-course' };
+const zeroCourse: Course = {
+  ...MOCK_COURSES[0],
+  progress: 0,
+  id: 'zero-course',
+  modules: MOCK_COURSES[0].modules.map((module) => ({
+    ...module,
+    lessons: module.lessons.map((lesson) => ({ ...lesson, lastPlaybackPosition: 0 })),
+  })),
+};
 const zeroMovie: Movie = { ...MOCK_MOVIES[0], progress: 0, id: 'zero-movie' };
 const zeroDoc: Document = { ...MOCK_DOCUMENTS[0], lastReadPage: 1, id: 'zero-doc' };
 

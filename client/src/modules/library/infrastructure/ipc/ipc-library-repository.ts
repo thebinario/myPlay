@@ -166,15 +166,9 @@ export class IpcLibraryRepository implements LibraryRepository {
         lesson.id === lessonId ? { ...lesson, completed } : lesson,
       ),
     }));
-    const lessonCount = modules.reduce((total, module) => total + module.lessons.length, 0);
-    const completedCount = modules.reduce(
-      (total, module) => total + module.lessons.filter((lesson) => lesson.completed).length,
-      0,
-    );
     const updated = {
       ...course,
       modules,
-      progress: lessonCount ? Math.round((completedCount / lessonCount) * 100) : 0,
     };
     this.replaceCatalogItem(updated);
     this.emit();
@@ -183,6 +177,7 @@ export class IpcLibraryRepository implements LibraryRepository {
       this.delegate.getPlaybackPosition(courseId, lessonId),
       target.duration,
       completed,
+      true,
     );
     return updated;
   }
@@ -203,6 +198,7 @@ export class IpcLibraryRepository implements LibraryRepository {
     positionSeconds: number,
     durationSeconds: number,
     completed: boolean,
+    refreshAfterSave = false,
   ): void {
     void this.bridge
       .invoke('progress.savePlayback', {
@@ -211,6 +207,7 @@ export class IpcLibraryRepository implements LibraryRepository {
         durationMs: durationSeconds > 0 ? Math.round(durationSeconds * 1000) : null,
         completedAt: completed ? new Date().toISOString() : null,
       })
+      .then(() => (refreshAfterSave ? this.refresh() : undefined))
       .catch((error: unknown) => {
         console.error('[library] falha ao salvar progresso da aula', error);
       });
@@ -265,6 +262,7 @@ export class IpcLibraryRepository implements LibraryRepository {
       })),
     );
     this.emit();
+    const completionChanged = previousState?.completedAt !== state.completedAt;
     const save = () => {
       this.readingProgressTimers.delete(documentId);
       void this.bridge
@@ -276,13 +274,14 @@ export class IpcLibraryRepository implements LibraryRepository {
           theme: state.colorMode,
           completedAt: state.completedAt ?? null,
         })
+        .then(() => (completionChanged ? this.refresh() : undefined))
         .catch((error: unknown) => {
           console.error('[library] falha ao salvar progresso do PDF', error);
         });
     };
     const pendingSave = this.readingProgressTimers.get(documentId);
     if (pendingSave) clearTimeout(pendingSave);
-    if (previousState?.completedAt !== state.completedAt) {
+    if (completionChanged) {
       save();
       return;
     }

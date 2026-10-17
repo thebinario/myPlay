@@ -120,6 +120,7 @@ function wireCatalog(handlers: Record<string, (params: unknown) => unknown>) {
     offset: 0,
   });
   handlers['catalog.getCourseTree'] = () => ({
+    completionPercentage: 67,
     course: {
       id: 'c1',
       title: 'Curso Real',
@@ -193,14 +194,20 @@ describe('IpcLibraryRepository', () => {
     const delegate = new MockLibraryService();
     const { bridge, handlers, calls } = createFakeBridge();
     wireCatalog(handlers);
+    let playbackCompletedAt: string | null = '2026-10-16T20:00:00.000Z';
+    let readingCompletedAt: string | null = '2026-10-16T20:00:00.000Z';
     handlers['progress.getPlayback'] = () => ({
       id: 'p1',
       lessonId: 'l1',
       positionMs: 90_000,
       durationMs: 90_000,
-      completedAt: '2026-10-16T20:00:00.000Z',
+      completedAt: playbackCompletedAt,
       updatedAt: '2026-10-16T20:00:00.000Z',
     });
+    handlers['progress.savePlayback'] = (params) => {
+      playbackCompletedAt = (params as { completedAt: string | null }).completedAt;
+      return params;
+    };
     handlers['progress.getReading'] = () => ({
       id: 'r1',
       documentId: 'd1',
@@ -209,9 +216,13 @@ describe('IpcLibraryRepository', () => {
       zoom: 1,
       theme: 'dark',
       viewMode: 'continuous',
-      completedAt: '2026-10-16T20:00:00.000Z',
+      completedAt: readingCompletedAt,
       updatedAt: '2026-10-16T20:00:00.000Z',
     });
+    handlers['progress.saveReading'] = (params) => {
+      readingCompletedAt = (params as { completedAt: string | null }).completedAt;
+      return params;
+    };
 
     const repository = new IpcLibraryRepository(bridge, delegate);
     repository.hydrate();
@@ -222,7 +233,7 @@ describe('IpcLibraryRepository', () => {
     expect(repository.getItems('movie').map((item) => item.id)).toEqual(['mv3']);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].duration).toBe(90);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(true);
-    expect(repository.getCourseById('c1')?.progress).toBe(100);
+    expect(repository.getCourseById('c1')?.progress).toBe(67);
     expect(repository.getCourseById('c1')?.modules[0].documents?.[0].id).toBe('d1');
     expect(repository.getCourseById('c1')?.modules[0].documents?.[0].isRead).toBe(true);
 
