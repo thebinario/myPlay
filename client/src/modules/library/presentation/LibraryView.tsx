@@ -21,6 +21,8 @@ interface LibraryViewProps {
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMovie?: (movieId: string) => void;
   onOpenDocument?: (docId: string) => void;
+  onToggleLesson?: (courseId: string, lessonId: string) => void;
+  onToggleDocumentRead?: (documentId: string) => void;
 }
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
@@ -30,6 +32,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onPlayLesson,
   onOpenMovie,
   onOpenDocument,
+  onToggleLesson,
+  onToggleDocumentRead,
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'course' | 'movie' | 'document'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -251,6 +255,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           onPlayLesson={onPlayLesson}
           onOpenMovie={onOpenMovie}
           onOpenDocument={onOpenDocument}
+          onToggleLesson={onToggleLesson}
+          onToggleDocumentRead={onToggleDocumentRead}
         />
       ) : filteredItems.length === 0 ? (
         <div

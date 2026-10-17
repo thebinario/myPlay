@@ -8,6 +8,8 @@ interface LibraryCourseContentsProps {
   onSelectCourse: (courseId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenDocument?: (documentId: string) => void;
+  onToggleLesson?: (courseId: string, lessonId: string) => void;
+  onToggleDocumentRead?: (documentId: string) => void;
   onOpenMovie?: (movieId: string) => void;
   extraMovies?: Movie[];
   extraDocuments?: Document[];
@@ -18,6 +20,8 @@ export const LibraryCourseContents: React.FC<LibraryCourseContentsProps> = ({
   onSelectCourse,
   onPlayLesson,
   onOpenDocument,
+  onToggleLesson,
+  onToggleDocumentRead,
   onOpenMovie,
   extraMovies = [],
   extraDocuments = [],
@@ -85,6 +89,10 @@ export const LibraryCourseContents: React.FC<LibraryCourseContentsProps> = ({
                 icon={<Play size={16} color="#A594FF" />}
                 onClick={onPlayLesson ? () => onPlayLesson(course.id, lesson.id) : undefined}
                 actionLabel="Reproduzir"
+                isComplete={lesson.completed}
+                onToggleComplete={
+                  onToggleLesson ? () => onToggleLesson(course.id, lesson.id) : undefined
+                }
               />
             ))}
             {moduleMovies.map((movie) => (
@@ -98,7 +106,12 @@ export const LibraryCourseContents: React.FC<LibraryCourseContentsProps> = ({
               />
             ))}
             {moduleDocuments.map((document) => (
-              <LibraryDocumentRow key={document.id} document={document} onOpen={onOpenDocument} />
+              <LibraryDocumentRow
+                key={document.id}
+                document={document}
+                onOpen={onOpenDocument}
+                onToggleRead={onToggleDocumentRead}
+              />
             ))}
           </details>
         );

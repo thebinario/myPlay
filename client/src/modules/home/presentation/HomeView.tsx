@@ -69,8 +69,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onExploreLibrary,
   onSearchOpen,
 }) => {
-  const watchingCourses = courses.filter((c) => c.progress > 0 && c.progress < 100);
-  const watchingMovies = movies.filter((m) => m.progress > 0 && m.progress < 100);
+  const watchingCourses = courses.filter((course) => course.progress > 0);
+  const watchingMovies = movies.filter((movie) => movie.progress > 0);
   const readingDocs = documents.filter(
     (document) => document.lastReadPage > 1 || !!document.readingState?.lastAccessedAt,
   );

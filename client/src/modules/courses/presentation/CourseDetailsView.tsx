@@ -95,6 +95,20 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         .map((document) => [document.id, document]),
     ).values(),
   ];
+  const trackedDocuments = [
+    ...new Map(
+      [...courseDocuments, ...course.modules.flatMap((module) => module.documents ?? [])].map(
+        (document) => [document.id, document],
+      ),
+    ).values(),
+  ];
+  const totalContent = totalLessons + trackedDocuments.length;
+  const completedDocuments = trackedDocuments.filter(
+    (document) => document.isRead ?? !!document.readingState?.completedAt,
+  ).length;
+  const completedContent = completedLessons + completedDocuments;
+  const completionPercentage =
+    totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
 
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
@@ -234,7 +248,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
               Progresso do Curso
             </span>
             <span style={{ color: '#A594FF', fontSize: '13px', fontWeight: 700 }}>
-              {course.progress}% concluído
+              {completionPercentage}% concluído
             </span>
           </div>
 
@@ -249,7 +263,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
           >
             <div
               style={{
-                width: `${course.progress}%`,
+                width: `${completionPercentage}%`,
                 height: '100%',
                 backgroundColor: '#A594FF',
                 boxShadow: '0 0 12px rgba(165, 148, 255, 0.6)',
@@ -577,9 +591,29 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                           style={{
                             display: 'flex',
                             alignItems: 'center',
+                            padding: '0 20px',
                             borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
                           }}
                         >
+                          <button
+                            type="button"
+                            aria-label={`Marcar ${document.title} como ${isRead ? 'não lido' : 'lido'}`}
+                            title={isRead ? 'Marcar como não lido' : 'Marcar como lido'}
+                            onClick={() => onToggleDocumentRead?.(document.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '4px',
+                              border: 0,
+                              borderRadius: '50%',
+                              background: 'transparent',
+                              color: isRead ? '#10B981' : '#64748B',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isRead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                          </button>
                           <button
                             type="button"
                             aria-label={`Abrir PDF ${document.title}`}
@@ -590,7 +624,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                               minWidth: 0,
                               alignItems: 'center',
                               gap: '10px',
-                              padding: '14px 20px',
+                              padding: '14px 0 14px 12px',
                               border: 0,
                               background: 'transparent',
                               color: '#F0F4FC',
@@ -605,26 +639,6 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                             <span style={{ marginLeft: 'auto', color: '#64748B' }}>
                               {document.totalPages > 0 ? `${document.totalPages} págs` : 'PDF'}
                             </span>
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Marcar ${document.title} como ${isRead ? 'não lido' : 'lido'}`}
-                            title={isRead ? 'Marcar como não lido' : 'Marcar como lido'}
-                            onClick={() => onToggleDocumentRead?.(document.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              margin: '0 16px',
-                              padding: '6px',
-                              border: 0,
-                              borderRadius: '50%',
-                              background: 'transparent',
-                              color: isRead ? '#10B981' : '#64748B',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {isRead ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                           </button>
                         </div>
                       );

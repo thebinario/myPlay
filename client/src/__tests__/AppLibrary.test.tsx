@@ -25,7 +25,7 @@ describe('App — fonte única de verdade do catálogo', () => {
     render(<App />);
 
     await user.click(screen.getByTestId(`home-course-${inProgressCourse.id}`));
-    expect(screen.getByText(`${inProgressCourse.progress}% concluído`)).toBeInTheDocument();
+    const initialProgress = Number(screen.getByText(/% concluído/).textContent?.match(/\d+/)?.[0]);
 
     const lesson = inProgressCourse.modules.flatMap((m) => m.lessons).find((l) => !l.completed)!;
     await user.click(
@@ -34,7 +34,8 @@ describe('App — fonte única de verdade do catálogo', () => {
 
     const updated = mockLibraryService.getCourseById(inProgressCourse.id)!;
     expect(updated.progress).not.toBe(inProgressCourse.progress);
-    expect(screen.getByText(`${updated.progress}% concluído`)).toBeInTheDocument();
+    const updatedProgress = Number(screen.getByText(/% concluído/).textContent?.match(/\d+/)?.[0]);
+    expect(updatedProgress).toBeGreaterThan(initialProgress);
   });
 
   it('inicia o player do projeto ao escolher uma aula para reproduzir', async () => {

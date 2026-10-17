@@ -10,6 +10,8 @@ interface LibraryContentsListProps {
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMovie?: (movieId: string) => void;
   onOpenDocument?: (documentId: string) => void;
+  onToggleLesson?: (courseId: string, lessonId: string) => void;
+  onToggleDocumentRead?: (documentId: string) => void;
 }
 
 export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
@@ -18,6 +20,8 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
   onPlayLesson,
   onOpenMovie,
   onOpenDocument,
+  onToggleLesson,
+  onToggleDocumentRead,
 }) => {
   const courses = items.filter((item) => item.type === 'course');
   const movies = items.filter((item): item is Movie => item.type === 'movie');
@@ -43,6 +47,8 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
           onSelectCourse={onSelectCourse}
           onPlayLesson={onPlayLesson}
           onOpenDocument={onOpenDocument}
+          onToggleLesson={onToggleLesson}
+          onToggleDocumentRead={onToggleDocumentRead}
           onOpenMovie={onOpenMovie}
           extraMovies={index === 0 ? movies : []}
           extraDocuments={index === 0 ? standaloneDocuments : []}
@@ -69,7 +75,12 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
             />
           ))}
           {standaloneDocuments.map((document) => (
-            <LibraryDocumentRow key={document.id} document={document} onOpen={onOpenDocument} />
+            <LibraryDocumentRow
+              key={document.id}
+              document={document}
+              onOpen={onOpenDocument}
+              onToggleRead={onToggleDocumentRead}
+            />
           ))}
         </details>
       )}

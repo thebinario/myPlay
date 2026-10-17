@@ -335,6 +335,8 @@ export const App: React.FC = () => {
             onPlayLesson={handlePlayLesson}
             onOpenMovie={handleOpenMovie}
             onOpenDocument={handleOpenDocument}
+            onToggleLesson={handleToggleLesson}
+            onToggleDocumentRead={handleToggleDocumentRead}
           />
         )}
 
