@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { Course, Document, Lesson, Material } from '@/core/domain/library';
+import { Course, Document, Material } from '@/core/domain/library';
 import {
   ArrowLeft,
   Play,
   CheckCircle2,
   Circle,
-  Clock,
   ChevronDown,
   ChevronUp,
   FileText,
   Code,
   ExternalLink,
-  GraduationCap,
-  Edit,
 } from 'lucide-react';
+import { CourseProgressCard } from './CourseProgressCard';
 
 interface CourseDetailsViewProps {
   course: Course;
@@ -60,31 +58,6 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
     return `${minutes}:${remainder.toString().padStart(2, '0')}`;
   };
 
-  const formatTotalDuration = (sec: number): string => {
-    const hours = Math.floor(sec / 3600);
-    const minutes = Math.floor((sec % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`;
-    }
-    return `${minutes}min`;
-  };
-
-  // Encontra a próxima aula não concluída
-  const getNextLesson = (): Lesson | undefined => {
-    for (const mod of course.modules) {
-      for (const les of mod.lessons) {
-        if (!les.completed) return les;
-      }
-    }
-    return course.modules[0]?.lessons[0];
-  };
-
-  const nextLesson = getNextLesson();
-  const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
-  const completedLessons = course.modules.reduce(
-    (acc, m) => acc + m.lessons.filter((l) => l.completed).length,
-    0,
-  );
   const moduleDocumentIds = new Set(
     course.modules.flatMap((module) => module.documents?.map((document) => document.id) ?? []),
   );
@@ -95,8 +68,6 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         .map((document) => [document.id, document]),
     ).values(),
   ];
-  const completionPercentage = course.progress;
-
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
       {/* Back button */}
@@ -131,210 +102,12 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         Voltar para a biblioteca
       </button>
 
-      {/* Course Banner Card */}
-      <div
-        style={{
-          backgroundColor: '#141A28',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '32px',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-        }}
-      >
-        {/* Subtle background glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-60px',
-            right: '-60px',
-            width: '260px',
-            height: '260px',
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(165, 148, 255, 0.15) 0%, rgba(13, 17, 27, 0) 70%)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span
-            style={{
-              backgroundColor: 'rgba(165, 148, 255, 0.15)',
-              color: '#A594FF',
-              fontSize: '12px',
-              fontWeight: 600,
-              padding: '4px 10px',
-              borderRadius: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <GraduationCap size={14} />
-            {course.category}
-          </span>
-          <span style={{ color: '#64748B', fontSize: '13px' }}>•</span>
-          <span
-            style={{
-              color: '#94A3B8',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-            }}
-          >
-            <Clock size={13} />
-            {formatTotalDuration(course.totalDuration)} no total
-          </span>
-          <span style={{ color: '#64748B', fontSize: '13px' }}>•</span>
-          <span style={{ color: '#94A3B8', fontSize: '13px' }}>
-            {completedLessons} de {totalLessons} aulas concluídas
-          </span>
-        </div>
-
-        <h1
-          style={{
-            fontSize: '30px',
-            fontWeight: 700,
-            color: '#FFFFFF',
-            lineHeight: '1.25',
-            letterSpacing: '-0.5px',
-          }}
-        >
-          {course.title}
-        </h1>
-
-        <p
-          style={{
-            color: '#94A3B8',
-            fontSize: '15px',
-            lineHeight: '1.6',
-            maxWidth: '900px',
-          }}
-        >
-          {course.description}
-        </p>
-
-        {/* Progress Bar & Actions */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            paddingTop: '10px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#F0F4FC', fontSize: '13px', fontWeight: 600 }}>
-              Progresso do Curso
-            </span>
-            <span style={{ color: '#A594FF', fontSize: '13px', fontWeight: 700 }}>
-              {completionPercentage}% concluído
-            </span>
-          </div>
-
-          <div
-            style={{
-              width: '100%',
-              height: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderRadius: '999px',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${completionPercentage}%`,
-                height: '100%',
-                backgroundColor: '#A594FF',
-                boxShadow: '0 0 12px rgba(165, 148, 255, 0.6)',
-                borderRadius: '999px',
-                transition: 'width 0.4s ease',
-              }}
-            />
-          </div>
-
-          {/* Action Buttons Row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginTop: '8px',
-              flexWrap: 'wrap',
-            }}
-          >
-            {nextLesson && (
-              <button
-                onClick={() => onPlayLesson && onPlayLesson(course.id, nextLesson.id)}
-                aria-label={`Continuar: ${nextLesson.title}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  backgroundColor: '#A594FF',
-                  color: '#0D111B',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s ease',
-                  boxShadow: '0 4px 14px rgba(165, 148, 255, 0.3)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#8D77FF';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#A594FF';
-                }}
-              >
-                <Play size={16} fill="#0D111B" />
-                Continuar: {nextLesson.title}
-              </button>
-            )}
-
-            {onEditCourse && (
-              <button
-                onClick={() => onEditCourse(course.id)}
-                aria-label="Editar organização do curso"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: '#1A2234',
-                  color: '#F0F4FC',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '10px',
-                  padding: '10px 18px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#A594FF';
-                  e.currentTarget.style.color = '#A594FF';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.color = '#F0F4FC';
-                }}
-              >
-                <Edit size={16} />
-                Editar Curso
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <CourseProgressCard
+        course={course}
+        spacingAfter={32}
+        onPlayLesson={onPlayLesson}
+        onEditCourse={onEditCourse}
+      />
 
       {/* Modules and Lessons Section */}
       <div>

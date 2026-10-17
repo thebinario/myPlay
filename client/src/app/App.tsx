@@ -323,6 +323,7 @@ export const App: React.FC = () => {
             onOpenDocument={handleOpenDocument}
             onToggleLesson={handleToggleLesson}
             onToggleDocumentRead={handleToggleDocumentRead}
+            onEditCourse={handleEditCourse}
           />
         )}
 

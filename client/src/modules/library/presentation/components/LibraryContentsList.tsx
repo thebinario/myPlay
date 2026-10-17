@@ -12,6 +12,7 @@ interface LibraryContentsListProps {
   onOpenDocument?: (documentId: string) => void;
   onToggleLesson?: (courseId: string, lessonId: string) => void;
   onToggleDocumentRead?: (documentId: string) => void;
+  onEditCourse?: (courseId: string) => void;
 }
 
 export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
@@ -22,6 +23,7 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
   onOpenDocument,
   onToggleLesson,
   onToggleDocumentRead,
+  onEditCourse,
 }) => {
   const courses = items.filter((item) => item.type === 'course');
   const movies = items.filter((item): item is Movie => item.type === 'movie');
@@ -50,6 +52,7 @@ export const LibraryContentsList: React.FC<LibraryContentsListProps> = ({
           onToggleLesson={onToggleLesson}
           onToggleDocumentRead={onToggleDocumentRead}
           onOpenMovie={onOpenMovie}
+          onEditCourse={onEditCourse}
           extraMovies={index === 0 ? movies : []}
           extraDocuments={index === 0 ? standaloneDocuments : []}
         />

@@ -23,6 +23,7 @@ describe('conteúdos da biblioteca', () => {
       ...MOCK_COURSES[0],
       id: 'course-test',
       sourceId: source.id,
+      progress: 86,
       documents: [],
       modules: [
         {
@@ -43,27 +44,39 @@ describe('conteúdos da biblioteca', () => {
     const onPlayLesson = vi.fn();
     const onOpenMovie = vi.fn();
     const onOpenDocument = vi.fn();
+    const onSelectCourse = vi.fn();
+    const onEditCourse = vi.fn();
 
     render(
       <LibraryView
         items={[course, movie, document]}
         sources={[source]}
-        onSelectCourse={vi.fn()}
+        onSelectCourse={onSelectCourse}
         onPlayLesson={onPlayLesson}
         onOpenMovie={onOpenMovie}
         onOpenDocument={onOpenDocument}
+        onEditCourse={onEditCourse}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /abrir biblioteca biblioteca de teste/i }));
 
     expect(screen.getByText('Módulo')).toBeInTheDocument();
     expect(screen.getByText('2 vídeos · 1 PDFs')).toBeInTheDocument();
+    expect(screen.getByText('86% concluído')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Progresso do curso' })).toHaveAttribute(
+      'aria-valuenow',
+      '86',
+    );
+    fireEvent.click(screen.getByRole('button', { name: course.title }));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar organização do curso' }));
     const playButtons = screen.getAllByRole('button', { name: /reproduzir/i });
     fireEvent.click(playButtons[0]);
     fireEvent.click(playButtons[1]);
     fireEvent.click(screen.getByRole('button', { name: new RegExp(document.title) }));
 
     expect(onPlayLesson).toHaveBeenCalledWith(course.id, 'lesson-test');
+    expect(onSelectCourse).toHaveBeenCalledWith(course.id);
+    expect(onEditCourse).toHaveBeenCalledWith(course.id);
     expect(onOpenMovie).toHaveBeenCalledWith(movie.id);
     expect(onOpenDocument).toHaveBeenCalledWith(document.id);
   });

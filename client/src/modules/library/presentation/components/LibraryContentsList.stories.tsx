@@ -25,7 +25,7 @@ type Story = StoryObj<typeof LibraryContentsList>;
 
 export const ModulesWithVideosAndPdfs: Story = {
   args: {
-    items: [MOCK_COURSES[0], MOCK_MOVIES[0], MOCK_DOCUMENTS[0]],
+    items: [{ ...MOCK_COURSES[0], progress: 86 }, MOCK_MOVIES[0], MOCK_DOCUMENTS[0]],
     onSelectCourse: () => {},
     onPlayLesson: () => {},
     onOpenMovie: () => {},
