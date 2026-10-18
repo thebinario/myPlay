@@ -195,6 +195,52 @@ describe('organize', () => {
     expect(aoVivo.modules[0].documents.map((d) => d.title)).toEqual(['Apostila 05 - Resumo']);
   });
 
+  it('treats a source root named like a collection as the collection itself', () => {
+    const plan = organize(
+      [
+        file('Design/Domestika/Curso 04 - UI/Aulas/Aula 01 - Intro.mp4', 'video'),
+        file('Design/Domestika/Curso 04 - UI/Aulas/Apostila.pdf', 'pdf'),
+      ],
+      { rootLabel: 'Coleção 02 - Negócios e Criativo' },
+    );
+
+    expect(plan.collections).toHaveLength(1);
+    const collection = plan.collections[0];
+    expect(collection.relativePath).toBe('');
+    expect(collection.title).toBe('Coleção 02 - Negócios e Criativo');
+    expect(collection.courses).toHaveLength(1);
+
+    const course = collection.courses[0];
+    expect(course.relativePath).toBe('Design/Domestika/Curso 04 - UI');
+    expect(course.title).toBe('Curso 04 - UI');
+    expect(course.collectionPath).toBe('');
+    expect(course.category).toBe('Design');
+    expect(course.provider).toBe('Domestika');
+    expect(plan.courses).toHaveLength(1);
+    expect(plan.courses[0].relativePath).toBe('Design/Domestika/Curso 04 - UI');
+  });
+
+  it('treats a source root named like a course as the course itself', () => {
+    const plan = organize(
+      [
+        file('Aulas/Aula 01 - Boas-vindas.webm', 'video'),
+        file('Aulas/Aula 02 - Lógica 720p.mp4', 'video'),
+        file('03 - Ao Vivo/Aula 03 - Vídeo 540p.ts', 'video'),
+      ],
+      { rootLabel: 'Curso 01 - Lógica de Programação' },
+    );
+
+    expect(plan.collections).toHaveLength(0);
+    expect(plan.courses).toHaveLength(1);
+    const course = plan.courses[0];
+    expect(course.relativePath).toBe('');
+    expect(course.title).toBe('Curso 01 - Lógica de Programação');
+    expect(course.collectionPath).toBeNull();
+    expect(course.category).toBeNull();
+    expect(course.provider).toBeNull();
+    expect(course.sections.map((section) => section.title).sort()).toEqual(['Ao Vivo', 'Aulas']);
+  });
+
   it('keeps PDF-only folders (no course marker, no videos) as loose documents', () => {
     const plan = organize([file('Coleção 01/Programação/Udemy/Curso X/SemVideo/nota.pdf', 'pdf')], {
       rootLabel: 'HD',

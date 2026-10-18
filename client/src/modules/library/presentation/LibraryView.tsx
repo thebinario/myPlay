@@ -13,10 +13,9 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { LibrarySourceCard } from '@/modules/library/presentation/components/LibrarySourceCard';
-import { LibraryContentsList } from '@/modules/library/presentation/components/LibraryContentsList';
-import { LibraryCourseContents } from '@/modules/library/presentation/components/LibraryCourseContents';
 import { CollectionsGrid } from '@/modules/library/presentation/components/CollectionsGrid';
-import { CoursesGrid } from '@/modules/library/presentation/components/CoursesGrid';
+import { CollectionDetail } from '@/modules/library/presentation/components/CollectionDetail';
+import { SourceContents } from '@/modules/library/presentation/components/SourceContents';
 
 const EMPTY_COLLECTIONS: Collection[] = [];
 
@@ -53,6 +52,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const selectedCollection = (collections ?? EMPTY_COLLECTIONS).find(
     (collection) => collection.id === selectedCollectionId,
   );
+  const sourceCollections = selectedSource
+    ? (collections ?? EMPTY_COLLECTIONS).filter(
+        (collection) => collection.sourceId === selectedSource.id,
+      )
+    : [];
   const visibleSources = sources?.filter((source) => {
     const sourceItems = items.filter((item) => item.sourceId === source.id);
     const matchesTab = activeTab === 'all' || sourceItems.some((item) => item.type === activeTab);
@@ -116,6 +120,25 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       onOpenDocument(item.id);
     }
   };
+
+  if (selectedCollection) {
+    return (
+      <div style={{ padding: '32px 40px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+        <CollectionDetail
+          collection={selectedCollection}
+          backLabel={selectedSource ? 'Voltar à biblioteca' : 'Voltar às coleções'}
+          onBack={() => setSelectedCollectionId(null)}
+          onSelectCourse={onSelectCourse}
+          onPlayLesson={onPlayLesson}
+          onOpenMovie={onOpenMovie}
+          onOpenDocument={onOpenDocument}
+          onToggleLesson={onToggleLesson}
+          onToggleDocumentRead={onToggleDocumentRead}
+          onEditCourse={onEditCourse}
+        />
+      </div>
+    );
+  }
 
   if (sources && !selectedSource) {
     return (
@@ -190,69 +213,26 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             );
           })}
         </div>
-        {selectedCollection ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setSelectedCollectionId(null)}
-              style={{
-                background: 'transparent',
-                border: 0,
-                color: '#94A3B8',
-                cursor: 'pointer',
-                padding: 0,
-                marginBottom: 12,
-              }}
-            >
-              <ArrowLeft
-                size={15}
-                style={{ verticalAlign: 'middle', marginRight: 6 }}
-                aria-hidden
-              />
-              Voltar às coleções
-            </button>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#FFFFFF', marginBottom: 20 }}>
-              {selectedCollection.title}
-            </h2>
-            {selectedCollection.courses.length > 1 ? (
-              <CoursesGrid courses={selectedCollection.courses} onSelectCourse={onSelectCourse} />
-            ) : (
-              <LibraryCourseContents
-                course={selectedCollection.courses[0]}
-                onSelectCourse={onSelectCourse}
-                onPlayLesson={onPlayLesson}
-                onOpenDocument={onOpenDocument}
-                onToggleLesson={onToggleLesson}
-                onToggleDocumentRead={onToggleDocumentRead}
-                onOpenMovie={onOpenMovie}
-                onEditCourse={onEditCourse}
-              />
-            )}
-          </>
+        {activeTab === 'all' || activeTab === 'course' ? (
+          <CollectionsGrid
+            collections={collections ?? EMPTY_COLLECTIONS}
+            onOpenCollection={setSelectedCollectionId}
+          />
+        ) : null}
+        {visibleSources?.length === 0 ? (
+          <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
         ) : (
-          <>
-            {activeTab === 'all' || activeTab === 'course' ? (
-              <CollectionsGrid
-                collections={collections ?? EMPTY_COLLECTIONS}
-                onOpenCollection={setSelectedCollectionId}
-              />
-            ) : null}
-            {visibleSources?.length === 0 ? (
-              <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                  gap: '16px',
-                }}
-              >
-                {visibleSources?.map((source) => (
-                  <LibrarySourceCard key={source.id} source={source} onOpen={setSelectedSourceId} />
-                ))}
-              </div>
-            )}
-          </>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '16px',
+            }}
+          >
+            {visibleSources?.map((source) => (
+              <LibrarySourceCard key={source.id} source={source} onOpen={setSelectedSourceId} />
+            ))}
+          </div>
         )}
       </div>
     );
@@ -312,8 +292,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       </div>
 
       {selectedSource && sources ? (
-        <LibraryContentsList
+        <SourceContents
           items={filteredItems}
+          collections={sourceCollections}
+          onOpenCollection={setSelectedCollectionId}
           onSelectCourse={onSelectCourse}
           onPlayLesson={onPlayLesson}
           onOpenMovie={onOpenMovie}

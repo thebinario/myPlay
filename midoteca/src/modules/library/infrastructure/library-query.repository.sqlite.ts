@@ -111,6 +111,9 @@ interface CollectionSummaryRow {
   title_source: string;
   updated_at: string;
   course_count: number;
+  total_duration_seconds: number;
+  content_count: number;
+  completed_count: number;
 }
 
 interface CollectionRow {
@@ -145,6 +148,8 @@ function mapCollectionSummary(row: CollectionSummaryRow): CollectionSummary {
     relativePath: row.relative_path,
     titleSource: row.title_source as TitleSource,
     courseCount: row.course_count,
+    totalDurationSeconds: row.total_duration_seconds,
+    progress: row.content_count ? Math.round((row.completed_count / row.content_count) * 100) : 0,
     updatedAt: row.updated_at,
   };
 }
@@ -297,8 +302,49 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
     const params: unknown[] = query.sourceId ? [query.sourceId] : [];
     const rows = this.db
       .prepare(
-        `SELECT c.id, c.title, c.source_id, c.relative_path, c.title_source, c.updated_at,
-                (SELECT COUNT(*) FROM courses co WHERE co.collection_id = c.id) AS course_count
+        `WITH collection_content(collection_id, kind, content_id) AS (
+           SELECT co.collection_id, 'lesson', l.id
+           FROM lessons l
+           JOIN course_modules cm ON cm.id = l.module_id
+           JOIN courses co ON co.id = cm.course_id
+           WHERE co.collection_id IS NOT NULL
+           UNION
+           SELECT co.collection_id, 'document', d.id
+           FROM documents d
+           JOIN document_links dl ON dl.document_id = d.id
+           JOIN courses co ON co.id = COALESCE(
+             (SELECT parent.course_id FROM course_modules parent WHERE parent.id = dl.module_id),
+             dl.course_id)
+           WHERE co.collection_id IS NOT NULL
+         )
+         SELECT c.id, c.title, c.source_id, c.relative_path, c.title_source, c.updated_at,
+                (SELECT COUNT(*) FROM courses co WHERE co.collection_id = c.id) AS course_count,
+                CAST(ROUND(COALESCE((
+                  SELECT SUM(mf.duration_ms)
+                  FROM courses co
+                  JOIN course_modules cm ON cm.course_id = co.id
+                  JOIN lessons l ON l.module_id = cm.id
+                  JOIN media_files mf ON mf.id = (
+                    SELECT candidate.id
+                    FROM lesson_media lm
+                    JOIN media_files candidate ON candidate.id = lm.media_file_id
+                    WHERE lm.lesson_id = l.id AND candidate.media_type = 'video'
+                    ORDER BY CASE WHEN lm.role = 'primary' THEN 0 ELSE 1 END, candidate.id
+                    LIMIT 1
+                  )
+                  WHERE co.collection_id = c.id AND mf.media_type = 'video'
+                ), 0) / 1000.0) AS INTEGER) AS total_duration_seconds,
+                (SELECT COUNT(*) FROM collection_content cc
+                 WHERE cc.collection_id = c.id) AS content_count,
+                (SELECT COUNT(*) FROM collection_content cc
+                 WHERE cc.collection_id = c.id AND (
+                   (cc.kind = 'lesson' AND EXISTS (
+                     SELECT 1 FROM playback_progress p
+                     WHERE p.lesson_id = cc.content_id AND p.completed_at IS NOT NULL))
+                   OR (cc.kind = 'document' AND EXISTS (
+                     SELECT 1 FROM reading_progress r
+                     WHERE r.document_id = cc.content_id AND r.completed_at IS NOT NULL))
+                 )) AS completed_count
          FROM collections c
          ${where}
          ORDER BY c.title COLLATE NOCASE

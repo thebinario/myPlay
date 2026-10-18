@@ -60,9 +60,10 @@ export class ApplyOrganization {
           relativePath: course.relativePath,
           detectedTitle: course.title,
           manifestTitle: manifest?.course?.title ?? null,
-          collectionId: course.collectionPath
-            ? (collectionIds.get(course.collectionPath) ?? null)
-            : null,
+          collectionId:
+            course.collectionPath !== null
+              ? (collectionIds.get(course.collectionPath) ?? null)
+              : null,
           category: course.category,
           provider: course.provider,
         });

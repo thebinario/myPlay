@@ -1,16 +1,12 @@
 import type { CollectionSummary } from '@midoteca/core';
-import {
-  collectionProgress,
-  collectionTotalDuration,
-  type Collection,
-} from '@/core/domain/collection';
+import type { Collection } from '@/core/domain/collection';
 import type { Course, LibraryItem } from '@/core/domain/library';
 
 /**
  * Groups the already-materialized catalog courses into collections using the
  * kernel read model (`catalog.listCollections`). Aggregates (duration, progress)
- * are derived from the courses themselves, so the projection stays pure and the
- * IPC adapter remains thin.
+ * come from the backend read model, so the projection stays pure and the IPC
+ * adapter remains thin.
  *
  * Collections whose courses were filtered out (e.g. movie-only sources) are
  * dropped, keeping the UI view consistent with the catalog.
@@ -31,15 +27,11 @@ export function buildCollections(
         tags: [],
         createdAt: summary.updatedAt,
         courseCount: summary.courseCount,
-        totalDuration: 0,
-        progress: 0,
+        totalDuration: summary.totalDurationSeconds,
+        progress: summary.progress,
         courses: selected,
       };
-      return {
-        ...collection,
-        totalDuration: collectionTotalDuration(collection),
-        progress: collectionProgress(collection),
-      };
+      return collection;
     })
     .filter((collection) => collection.courses.length > 0);
 }

@@ -169,6 +169,13 @@ Concluído no núcleo `midoteca/`:
   com detecção por path/nome, facets (categoria = 1º nível entre coleção e curso,
   provedor = último), colapso de níveis e dedup de codificações
   (`540p`, `(Cópia)`).
+- Detecção **na raiz da fonte** (`rootKind`, inferido do nome da pasta raiz):
+  fonte cuja raiz é a própria coleção (`Coleção …`) abre a coleção na raiz
+  (`relativePath = ''`) e lê facets/curso a partir do 1º nível; fonte cuja raiz é
+  o próprio curso (`Curso …`) vira o curso (raiz), com os níveis abaixo
+  classificados como seção/módulo. Sem isso, importar apontando direto para uma
+  coleção/curso criava cursos com `collection_id` NULL ou um curso espúrio
+  (`Aulas`). `apply-organization` vincula a coleção de raiz (path vazio) ao curso.
 - Scanner reconhece `.ts` como vídeo.
 - Migração `0005-collections`: tabelas `collections` e `course_sections`,
   colunas `courses.collection_id`/`category`/`provider` e
@@ -179,15 +186,29 @@ Concluído no núcleo `midoteca/`:
   `catalog.listCollections` e `catalog.getCollectionTree` (JSON-able).
 - `catalog.getCourseTree` passou a incluir `course.collectionId` e `sections`
   (agrupamento de módulos), mantendo `modules` achatado por compatibilidade.
+- `Course` (read model) expõe `category`/`provider` (colunas gravadas pelo
+  indexer); `catalog.getCourseTree` e `courses.list` passam a devolvê-los.
+- `CollectionSummary` (`catalog.listCollections`) passou a trazer os agregados
+  `totalDurationSeconds` e `progress` (aulas + PDFs vinculados), calculados
+  no backend — o grid de coleções não recalcula duração/progresso.
 
 Concluído no cliente `client/` (consumo em produção):
 
 - `load-library-catalog` lê `catalog.listCollections` e monta o read model de
-  coleções (`buildCollections`), derivando duração/progresso dos cursos já
-  materializados (sem recalcular regra de negócio).
-- `map-catalog` projeta `collectionId` e `sections` em `Course`.
+  coleções (`buildCollections`), consumindo `totalDurationSeconds`/`progress`
+  diretamente do backend (sem recalcular na UI).
+- `map-catalog` projeta `collectionId`, `sections`, `category` e `provider` em
+  `Course`; `tags` derivam de `metadata.tags` quando presentes, senão de
+  `[category, provider]` (convenção do catálogo). `coverUrl` permanece vazio para
+  conteúdo descoberto (não há imagem no filesystem).
 - `LibraryCatalogRepository.getCollections()` (+ `MockLibraryService` e
   `IpcLibraryRepository`); `useLibrary()`/`useLibraryCollections()` reativos.
+- Drill-down da **fonte** (`LibraryView`): ao abrir uma fonte, mostra as
+  **coleções dessa fonte** (`CollectionsGrid` filtrado por `sourceId`); abrir uma
+  coleção mostra os cards de curso (`CollectionDetail`/`CoursesGrid`). Fontes sem
+  coleção mostram os cursos como cards (vários) ou o conteúdo do curso único.
+  Antes, a fonte "achatava" os cursos e renderizava cada um como bloco de módulos
+  (`LibraryCourseContents`), parecendo módulos.
 - `LibraryView` renderiza `CollectionsGrid` na home. Ao abrir uma coleção:
   - **um único curso** → mostra a listagem de módulos desse curso
     (`LibraryCourseContents`), sem passo extra;

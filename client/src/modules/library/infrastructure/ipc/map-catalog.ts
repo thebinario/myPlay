@@ -120,13 +120,25 @@ export function mapCourseTree(
     modules: [...section.modules].sort((a, b) => a.sortOrder - b.sortOrder).map(mapModule),
   }));
 
+  // Facets: dedicated columns first, metadata as fallback. Tags default to the
+  // category/provider facets (matching the catalog convention) unless the course
+  // carries explicit metadata tags.
+  const category = tree.course.category ?? stringField(tree.course.metadata, 'category') ?? '';
+  const provider = tree.course.provider ?? stringField(tree.course.metadata, 'provider');
+  const metadataTags = stringArrayField(tree.course.metadata, 'tags');
+  const tags =
+    metadataTags.length > 0
+      ? metadataTags
+      : [category, provider].filter((value): value is string => Boolean(value));
+
   return {
     id: tree.course.id,
     sourceId: tree.course.sourceId,
     type: 'course',
     title: tree.course.title,
     description: tree.course.description ?? '',
-    category: stringField(tree.course.metadata, 'category') ?? '',
+    category,
+    ...(provider ? { provider } : {}),
     collectionId: tree.course.collectionId ?? null,
     coverUrl: stringField(tree.course.metadata, 'coverUrl') ?? '',
     totalDuration: tree.totalDurationSeconds,
@@ -137,7 +149,7 @@ export function mapCourseTree(
     progress: tree.completionPercentage,
     modules,
     sections: sections.length > 0 ? sections : undefined,
-    tags: stringArrayField(tree.course.metadata, 'tags'),
+    tags,
     createdAt: tree.course.createdAt,
   };
 }

@@ -171,6 +171,25 @@ describe('mapCourseTree', () => {
     expect(course.modules[0].lessons[1].duration).toBe(0);
   });
 
+  it('deriva category/provider/tags dos campos do curso quando não há metadata', () => {
+    const base = courseTree();
+    const tree: CourseTree = {
+      ...base,
+      course: {
+        ...base.course,
+        category: 'Design',
+        provider: 'Domestika',
+        metadata: null,
+      },
+    };
+
+    const course = mapCourseTree(tree, new Map(), new Map());
+
+    expect(course.category).toBe('Design');
+    expect(course.provider).toBe('Domestika');
+    expect(course.tags).toEqual(['Design', 'Domestika']);
+  });
+
   it('projeta seções e collectionId quando o curso pertence a uma coleção', () => {
     const base = courseTree();
     const tree: CourseTree = {

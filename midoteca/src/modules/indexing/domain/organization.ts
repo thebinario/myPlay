@@ -85,15 +85,25 @@ export interface OrganizePlan {
 }
 
 export interface OrganizeOptions {
-  /** Title for the synthetic course built from root-level videos. */
+  /** Label of the source root folder, used for synthetic courses and root detection. */
   rootLabel: string;
+  /**
+   * Role played by the source root itself. When omitted it is inferred from
+   * `rootLabel`: a root named like a collection opens a collection at the
+   * source root, and a root named like a course is the course. This covers
+   * sources imported pointing directly at a collection or a course folder.
+   */
+  rootKind?: 'collection' | 'course' | null;
   /** Movie libraries keep videos independent instead of grouping them as courses. */
   libraryType?: 'course' | 'movie';
 }
 
+type RootKind = 'collection' | 'course' | null;
+
 const IMPLICIT_MODULE_TITLE = 'Aulas';
 const IMPLICIT_SECTION_TITLE = 'Conteúdo';
 const ROOT_COURSE_RELATIVE_PATH = '';
+const ROOT_COLLECTION_RELATIVE_PATH = '';
 
 const COLLECTION_RE = /^cole[cç][ãa]o\b/i;
 const COURSE_RE = /^curso\b/i;
@@ -115,11 +125,14 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
   }
 
   const plan = new PlanBuilder();
+  const kind = resolveRootKind(options);
 
   const rootVideos = videos.filter((f) => segments(f.relativePath).length === 1);
   if (rootVideos.length > 0) {
+    const collectionPath = kind === 'collection' ? ROOT_COLLECTION_RELATIVE_PATH : null;
     const course = plan.ensureCourse({
-      collectionPath: null,
+      collectionPath,
+      collectionTitle: collectionPath !== null ? cleanName(options.rootLabel).title : null,
       coursePath: ROOT_COURSE_RELATIVE_PATH,
       courseTitle: options.rootLabel,
       category: null,
@@ -136,7 +149,7 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
 
   for (const video of videos) {
     if (segments(video.relativePath).length < 2) continue; // root videos handled above
-    const place = placement(video.relativePath);
+    const place = placement(video.relativePath, options, kind);
     const course = plan.ensureCourse(place);
     const section = course.ensureSection(place.sectionPath, place.sectionTitle, place.sectionOrder);
     const module = section.ensureModule(place.modulePath, place.moduleTitle, place.moduleOrder);
@@ -160,7 +173,7 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
       }
       continue;
     }
-    const place = placement(pdf.relativePath);
+    const place = placement(pdf.relativePath, options, kind);
     const course = plan.findCourse(place.coursePath);
     if (!course) {
       looseDocuments.push(toDocument(pdf));
@@ -198,6 +211,7 @@ const MAX_ORDER = Number.MAX_SAFE_INTEGER;
 
 interface Placement {
   collectionPath: string | null;
+  collectionTitle: string | null;
   coursePath: string;
   courseTitle: string;
   courseOrder: number;
@@ -212,18 +226,57 @@ interface Placement {
   lessonFileName: string;
 }
 
+/** Infers the role of the source root from its label when not given explicitly. */
+function resolveRootKind(options: OrganizeOptions): RootKind {
+  if (options.rootKind !== undefined) return options.rootKind;
+  if (isCollection(options.rootLabel)) return 'collection';
+  if (isCourse(options.rootLabel)) return 'course';
+  return null;
+}
+
 /**
  * Derives the collection/course/section/module placement of a file from its
  * POSIX relative path. Lesson resolution is intentionally left to the module
  * builder so several encodings of the same lesson collapse together.
+ *
+ * When the source root itself is the collection (rootKind `collection`) the
+ * collection lives at the root and facets/course are read from the first
+ * folders. When the root is the course (rootKind `course`) every folder below
+ * is classified as section/module.
  */
-function placement(relativePath: string): Placement {
+function placement(relativePath: string, options: OrganizeOptions, kind: RootKind): Placement {
   const parts = segments(relativePath);
   const fileName = parts[parts.length - 1];
   const folders = parts.slice(0, -1);
 
-  const collectionIdx = folders.length > 0 && isCollection(folders[0]) ? 0 : -1;
-  const searchStart = collectionIdx >= 0 ? 1 : 0;
+  if (kind === 'course') {
+    const course = cleanName(options.rootLabel);
+    return {
+      ...chainPlacement(ROOT_COURSE_RELATIVE_PATH, folders, fileName),
+      collectionPath: null,
+      collectionTitle: null,
+      coursePath: ROOT_COURSE_RELATIVE_PATH,
+      courseTitle: course.title,
+      courseOrder: course.order,
+      category: null,
+      provider: null,
+    };
+  }
+
+  const rootIsCollection = kind === 'collection';
+  const collectionIdx =
+    !rootIsCollection && folders.length > 0 && isCollection(folders[0]) ? 0 : -1;
+  const searchStart = rootIsCollection ? 0 : collectionIdx >= 0 ? 1 : 0;
+  const collectionPath = rootIsCollection
+    ? ROOT_COLLECTION_RELATIVE_PATH
+    : collectionIdx >= 0
+      ? folders[0]
+      : null;
+  const collectionTitle = rootIsCollection
+    ? cleanName(options.rootLabel).title
+    : collectionIdx >= 0
+      ? cleanName(folders[0]).title
+      : null;
 
   let courseIdx = -1;
   for (let i = searchStart; i < folders.length; i += 1) {
@@ -236,7 +289,6 @@ function placement(relativePath: string): Placement {
     courseIdx = Math.min(searchStart, Math.max(0, folders.length - 1));
   }
 
-  const collectionPath = collectionIdx >= 0 ? folders[0] : null;
   const coursePath = folders.slice(0, courseIdx + 1).join('/');
   const courseParsed = cleanName(folders[courseIdx]);
   const facets = folders.slice(searchStart, courseIdx);
@@ -244,13 +296,40 @@ function placement(relativePath: string): Placement {
   const provider = facets.length > 1 ? cleanName(facets[facets.length - 1]).title : null;
 
   const after = folders.slice(courseIdx + 1);
+  return {
+    ...chainPlacement(coursePath, after, fileName),
+    collectionPath,
+    collectionTitle,
+    coursePath,
+    courseTitle: courseParsed.title,
+    courseOrder: courseParsed.order,
+    category,
+    provider,
+  };
+}
+
+/** Classifies the folders below a course into a section and module placement. */
+function chainPlacement(
+  coursePath: string,
+  after: readonly string[],
+  fileName: string,
+): Pick<
+  Placement,
+  | 'sectionPath'
+  | 'sectionTitle'
+  | 'sectionOrder'
+  | 'modulePath'
+  | 'moduleTitle'
+  | 'moduleOrder'
+  | 'lessonFileName'
+> {
   const roles = classifyChain(after);
 
   let sectionPath = coursePath;
   let sectionTitle = IMPLICIT_SECTION_TITLE;
   let sectionOrder = MAX_ORDER;
   if (roles.section >= 0) {
-    sectionPath = `${coursePath}/${after.slice(0, roles.section + 1).join('/')}`;
+    sectionPath = joinRelative(coursePath, after.slice(0, roles.section + 1).join('/'));
     const parsed = cleanName(after[roles.section]);
     sectionTitle = parsed.title;
     sectionOrder = parsed.order;
@@ -260,19 +339,13 @@ function placement(relativePath: string): Placement {
   let moduleTitle = IMPLICIT_MODULE_TITLE;
   let moduleOrder = MAX_ORDER;
   if (roles.module >= 0) {
-    modulePath = `${coursePath}/${after.slice(0, roles.module + 1).join('/')}`;
+    modulePath = joinRelative(coursePath, after.slice(0, roles.module + 1).join('/'));
     const parsed = cleanName(after[roles.module]);
     moduleTitle = parsed.title;
     moduleOrder = parsed.order;
   }
 
   return {
-    collectionPath,
-    coursePath,
-    courseTitle: courseParsed.title,
-    courseOrder: courseParsed.order,
-    category,
-    provider,
     sectionPath,
     sectionTitle,
     sectionOrder,
@@ -281,6 +354,11 @@ function placement(relativePath: string): Placement {
     moduleOrder,
     lessonFileName: fileName,
   };
+}
+
+/** Joins a course path with a relative chain, tolerating a root (empty) course. */
+function joinRelative(base: string, rest: string): string {
+  return base === '' ? rest : `${base}/${rest}`;
 }
 
 interface ChainRoles {
@@ -328,13 +406,17 @@ class PlanBuilder {
 
   ensureCourse(place: {
     collectionPath: string | null;
+    collectionTitle: string | null;
     coursePath: string;
     courseTitle: string;
     category: string | null;
     provider: string | null;
   }): CourseBuilder {
-    if (place.collectionPath) {
-      const collection = this.ensureCollection(place.collectionPath);
+    if (place.collectionPath !== null) {
+      const collection = this.ensureCollection(
+        place.collectionPath,
+        place.collectionTitle ?? cleanName(place.collectionPath).title,
+      );
       return collection.ensureCourse(place);
     }
     let course = this.rootCourses.get(place.coursePath);
@@ -361,10 +443,10 @@ class PlanBuilder {
     return null;
   }
 
-  private ensureCollection(relativePath: string): CollectionBuilder {
+  private ensureCollection(relativePath: string, title: string): CollectionBuilder {
     let collection = this.collections.get(relativePath);
     if (!collection) {
-      collection = new CollectionBuilder(relativePath, cleanName(relativePath).title);
+      collection = new CollectionBuilder(relativePath, title);
       this.collections.set(relativePath, collection);
     }
     return collection;

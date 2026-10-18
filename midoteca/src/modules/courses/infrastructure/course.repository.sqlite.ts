@@ -49,6 +49,8 @@ interface CourseRow {
   detected_title: string | null;
   title_source: string;
   collection_id: string | null;
+  category: string | null;
+  provider: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,7 +104,8 @@ interface CourseTreeDocumentRow {
 
 const COURSE_SELECT = `
   SELECT id, title, description, metadata, source_id, relative_path,
-         detected_title, title_source, collection_id, created_at, updated_at
+         detected_title, title_source, collection_id, category, provider,
+         created_at, updated_at
   FROM courses
 `;
 
@@ -117,6 +120,8 @@ function mapCourse(row: CourseRow): Course {
     detectedTitle: row.detected_title,
     titleSource: row.title_source as TitleSource,
     collectionId: row.collection_id ?? null,
+    category: row.category ?? null,
+    provider: row.provider ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

@@ -325,6 +325,8 @@ describe('IpcLibraryRepository', () => {
           relativePath: 'Coleção 01 - Tecnologia',
           titleSource: 'detected',
           courseCount: 1,
+          totalDurationSeconds: 0,
+          progress: 0,
           updatedAt: '2026-10-01T00:00:00Z',
         },
       ],

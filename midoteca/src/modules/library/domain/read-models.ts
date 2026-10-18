@@ -72,6 +72,10 @@ export interface CollectionSummary {
   relativePath: string;
   titleSource: TitleSource;
   courseCount: number;
+  /** Aggregated video duration across the collection's courses (seconds). */
+  totalDurationSeconds: number;
+  /** Completion percentage (0–100) across lessons and linked documents. */
+  progress: number;
   updatedAt: string;
 }
 

@@ -101,3 +101,43 @@ describe('LibraryView — detalhe da coleção', () => {
     expect(screen.queryByText('Aula do Curso A')).not.toBeInTheDocument();
   });
 });
+
+describe('LibraryView — drill-down da fonte', () => {
+  it('mostra as coleções da fonte e depois os cursos ao abrir uma coleção', () => {
+    renderLibrary([
+      collection([
+        course('c1', 'Curso A', 'Aula do Curso A'),
+        course('c2', 'Curso B', 'Aula do Curso B'),
+      ]),
+    ]);
+
+    fireEvent.click(screen.getByText('HD'));
+
+    expect(screen.getByText('Coleções')).toBeInTheDocument();
+    expect(screen.getByText('Coleção 01 - Tecnologia')).toBeInTheDocument();
+    expect(screen.queryByText('Curso A')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Coleção 01 - Tecnologia'));
+
+    expect(screen.getByText('Curso A')).toBeInTheDocument();
+    expect(screen.getByText('Curso B')).toBeInTheDocument();
+    expect(screen.queryByText('Aula do Curso A')).not.toBeInTheDocument();
+  });
+
+  it('mostra cards de curso quando a fonte tem vários cursos e nenhuma coleção', () => {
+    render(
+      <LibraryView
+        items={[course('c1', 'Curso A', 'Aula do Curso A'), course('c2', 'Curso B', 'Aula B')]}
+        sources={[source]}
+        collections={[]}
+        onSelectCourse={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('HD'));
+
+    expect(screen.getByText('Curso A')).toBeInTheDocument();
+    expect(screen.getByText('Curso B')).toBeInTheDocument();
+    expect(screen.queryByText('Aula do Curso A')).not.toBeInTheDocument();
+  });
+});

@@ -30,54 +30,23 @@ function summary(overrides: Partial<CollectionSummary> & { id: string }): Collec
     relativePath: overrides.id,
     titleSource: 'detected',
     courseCount: 0,
+    totalDurationSeconds: 0,
+    progress: 0,
     updatedAt: '2026-01-02T00:00:00Z',
     ...overrides,
   };
 }
 
 describe('buildCollections', () => {
-  it('agrupa cursos por collectionId e agrega duração e progresso', () => {
+  it('agrupa cursos por collectionId usando os agregados do read model do núcleo', () => {
     const courses: Course[] = [
-      course({
-        id: 'c1',
-        collectionId: 'col-1',
-        modules: [
-          {
-            id: 'm1',
-            courseId: 'c1',
-            title: 'M1',
-            order: 1,
-            lessons: [
-              {
-                id: 'l1',
-                moduleId: 'm1',
-                title: 'L1',
-                duration: 100,
-                completed: true,
-                videoUrl: '',
-                order: 1,
-                materials: [],
-              },
-              {
-                id: 'l2',
-                moduleId: 'm1',
-                title: 'L2',
-                duration: 200,
-                completed: false,
-                videoUrl: '',
-                order: 2,
-                materials: [],
-              },
-            ],
-          },
-        ],
-      }),
+      course({ id: 'c1', collectionId: 'col-1' }),
       course({ id: 'c2', collectionId: 'col-1' }),
       course({ id: 'loose', collectionId: null }),
     ];
 
     const result = buildCollections(courses, [
-      summary({ id: 'col-1', courseCount: 2 }),
+      summary({ id: 'col-1', courseCount: 2, totalDurationSeconds: 300, progress: 50 }),
       summary({ id: 'col-empty', courseCount: 5 }),
     ]);
 

@@ -27,6 +27,10 @@ export interface Course {
   titleSource: TitleSource;
   /** Owning collection when the source organizes courses into collections. */
   collectionId?: string | null;
+  /** Category facet derived from the folder path (e.g. "Programação Front-end"). */
+  category?: string | null;
+  /** Provider/platform facet derived from the folder path (e.g. "Udemy"). */
+  provider?: string | null;
   createdAt: string;
   updatedAt: string;
 }
