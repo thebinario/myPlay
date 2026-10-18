@@ -1,7 +1,7 @@
 # Roadmap de Refatoração — Midoteca
 
 > Recorte **de execução/refatoração** do plano mestre de produto
-> [`ROADMAP.md`](ROADMAP.md) (14 fases / 4 versões). Aqui está **o que migrar
+> [`ROADMAP.md`](ROADMAP.md) (15 fases / 4 versões). Aqui está **o que migrar
 > primeiro** no código existente, de forma incremental, para convergir ao
 > **modelo canônico** de [`ARCHITECTURE.md`](ARCHITECTURE.md) — o mesmo para
 > backend e frontend. Não impõe reescrita total. Regras em

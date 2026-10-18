@@ -80,7 +80,7 @@ base de código**; os conceitos úteis estão registrados em
 
 ## Documentação
 
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — plano mestre (14 fases / 4 versões)
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — plano mestre (15 fases / 4 versões)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/DDD_GUIDELINES.md`](docs/DDD_GUIDELINES.md)
 - [`docs/CODE_ORGANIZATION.md`](docs/CODE_ORGANIZATION.md)

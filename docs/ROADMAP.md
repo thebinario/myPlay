@@ -18,7 +18,7 @@ O objetivo **não é apenas ter um player**. É construir uma aplicação deskto
 **confiável, extensível e fácil de usar**, mantendo a interface minimalista
 mesmo quando as funcionalidades internas ficarem sofisticadas.
 
-O projeto é dividido em **14 fases** distribuídas em **quatro versões**. Não se
+O projeto é dividido em **15 fases** distribuídas em **quatro versões**. Não se
 deve tentar concluir tudo numa única implementação nem transformar todos os
 arquivos legados de uma vez.
 
@@ -31,7 +31,7 @@ arquivos legados de uma vez.
 | **v0.1 — Fundação** | base em evolução contínua | Arquitetura progressiva, testes, Storybook, estado consistente e serviços desacoplados |
 | **v0.5 — Biblioteca local funcional** | produto | Indexação de HDs, catálogo persistente, cursos, player real, leitor PDF e recuperação de fontes |
 | **v1.0 — Lançamento estável** | distribuição | Instalação desktop, onboarding, desempenho, acessibilidade, testes E2E, backup e distribuição |
-| **v2.0 — Expansão** | pós-MVP | Armazenamento em nuvem, múltiplas fontes de mídia, sincronização opcional e recursos inteligentes |
+| **v2.0 — Expansão** | pós-MVP | Armazenamento em nuvem, múltiplas fontes de mídia, sincronização opcional, gestão de contas/perfis (Admin/Usuário), controle de acesso a conteúdos, submissão de PDFs para avaliação com notas, edição avançada de PDFs e recursos inteligentes |
 
 ## 2. Estado atual do projeto
 
@@ -83,11 +83,12 @@ Horizonte aproximado: **32 semanas**.
 | F11 · Distribuição desktop | S30–S32 | v1.0 |
 | F12 · Nuvem opcional | S32+ | v2.0 |
 | F13 · Automação e IA | pós-v1.0 (opcional) | v2.0 |
+| F14 · Multi-usuário, permissões e avaliação | pós-v1.0 (v2.0) | v2.0 |
 
 ```text
 S1        S8             S16            S24         S32
 |---------|--------------|--------------|-----------|
- F00-F02 ──► v0.1   F03──F08 ──► v0.5   F09-F11 ──► v1.0   F12-F13 ──► v2.0
+ F00-F02 ──► v0.1   F03──F08 ──► v0.5   F09-F11 ──► v1.0   F12-F14 ──► v2.0
 ```
 
 O calendário real será ajustado após a auditoria e a medição da velocidade de
@@ -241,15 +242,21 @@ não suportados mostram mensagens claras, **sem prometer compatibilidade univers
 
 #### Evolução futura — Edição de PDF · *pós-MVP*
 
+**História de usuário:**
+- *Como usuário do projeto, quero poder editar um PDF selecionando uma área e editar em texto, fazer notas e etc.*
+
 **Entregas planejadas**
 
+- Seleção de área específica da página/documento (caixa delimitadora / retângulo de interesse).
+- Edição e inserção de texto na área selecionada, com suporte a tipografia, cores e alinhamento.
+- Criação e gestão de notas (sticky notes, anotações contextuais, comentários e marcações).
 - Anotações, marcações e destaques associados às páginas do documento.
-- Persistência das alterações entre sessões e na biblioteca local.
+- Persistência das alterações entre sessões e na biblioteca local (camada não destrutiva).
 - Exportação de uma cópia editada, mantendo o PDF de origem intacto.
 - Indicação clara de alterações pendentes e tratamento de falhas ao salvar.
+- Integração da cópia editada com o fluxo de submissão para avaliação (Fase 14).
 
-**Aceite:** anotar e destacar um PDF, fechar e reabrir mantendo as alterações,
-exportar uma cópia e confirmar que o arquivo original permanece intacto.
+**Aceite:** selecionar uma área do PDF, editar/inserir texto e notas, salvar mantendo o arquivo original protegido, reabrir preservando as edições e poder exportar a versão editada.
 
 #### Fase 08 — Pesquisa universal e Início
 
@@ -370,6 +377,29 @@ experiência validados** antes de ser incorporado ao produto.
 > crítico**. Só devem ser considerados se resolverem um problema que provedores
 > convencionais não resolvam.
 
+#### Fase 14 — Gestão de contas, controle de acesso e avaliação de PDFs
+
+**Objetivo:** Suportar múltiplos perfis de usuário (administrador e usuário comum), controle de permissões de acesso a conteúdos e fluxo avaliativo com submissão de PDFs editados e atribuição de notas.
+
+**Histórias de usuário:**
+
+- **Como usuário administrador:** quero ter a possibilidade de ser administrador e criar contas nesse projeto.
+- **Como usuário não administrador:** quero usar conteúdos que o administrador me deu acesso.
+- **Como usuário não administrador:** quero poder enviar algo que fiz em PDF editado para o administrador avaliar e dar uma nota.
+- **Como usuário administrador:** quero poder avaliar o PDF editado enviado pelo usuário e atribuir uma nota com parecer/feedback.
+
+**Entregas**
+
+- Módulo de autenticação e perfis de usuário (RBAC: Administrador e Usuário comum).
+- Gestão de contas: criação, listagem, edição de credenciais e desativação de contas pelo administrador.
+- Controle de acesso granular a conteúdos: concessão de permissões pelo administrador por curso, módulo, documento ou mídia.
+- Visão restrita para usuário não administrador: catálogo, buscas e navegação filtram estritamente os conteúdos aos quais o usuário recebeu permissão explícita.
+- Módulo de submissão de atividades: envio do PDF editado pelo usuário não administrador com registro de data, versão e status.
+- Painel de avaliação do administrador: fila de submissões pendentes, visualização do PDF editado entregue, atribuição de nota (numérica/conceito) e parecer avaliativo.
+- Consulta de avaliação: interface para o usuário não administrador consultar a nota recebida, observações do administrador e histórico de submissões.
+
+**Aceite:** um usuário administrador cria uma conta para um usuário não administrador e concede acesso a conteúdos específicos; o usuário autenticado visualiza apenas esses conteúdos, edita um PDF e o envia para avaliação; o administrador visualiza a entrega, atribui nota e devolve o feedback, que fica visível ao usuário.
+
 ---
 
 ## 5. Arquitetura-alvo
@@ -482,7 +512,7 @@ da F03. O backend NestJS/PostgreSQL legado não faz parte do runtime desktop.
 
 | MVP (v1.0) | Pós-MVP (v2.0+) |
 | --- | --- |
-| Biblioteca local, cursos, filmes, Player, legendas, leitura de PDFs, pesquisa, importação incremental, catálogo offline, persistência, recuperação e aplicativo instalável | Edição de PDFs, Backblaze B2, Google Drive, sincronização entre dispositivos, P2P, Telegram, IA, transcrição, tradução e automação avançada da documentação |
+| Biblioteca local, cursos, filmes, Player, legendas, leitura de PDFs, pesquisa, importação incremental, catálogo offline, persistência, recuperação e aplicativo instalável | Edição avançada de PDFs (seleção de área, texto e notas), gestão de contas e perfis (Admin/Usuário), controle de acesso por permissão, submissão e avaliação de PDFs com notas, Backblaze B2, Google Drive, sincronização entre dispositivos, P2P, Telegram, IA, transcrição, tradução e automação avançada da documentação |
 
 ---
 
@@ -495,7 +525,7 @@ Quatro **milestones**:
 | `v0.1-foundation` | 00–02 | Arquitetura estabilizada |
 | `v0.5-local-library` | 03–08 | Biblioteca local real |
 | `v1.0-desktop` | 09–11 | Produto instalável e confiável |
-| `v2.0-extended` | 12–13 | Nuvem e extensões |
+| `v2.0-extended` | 12–14 | Nuvem, multi-usuário, avaliação e extensões |
 
 Para cada fase, criar **issues pequenas** com objetivo, escopo, dependências,
 testes e critérios de aceite. Idealmente, **um PR resolve uma mudança coerente**,
