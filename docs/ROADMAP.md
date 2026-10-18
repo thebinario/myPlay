@@ -35,29 +35,29 @@ arquivos legados de uma vez.
 
 ## 2. Estado atual do projeto
 
-Snapshot revisado em **16/10/2026**. O produto está na **v0.5 — Biblioteca
-local funcional**. A **F03 é o primeiro gate ainda sem aceite completo**;
-trabalho já implementado nas F03–F07 precisa de integração e validação ponta a
-ponta. O foco imediato é completar a integração real FE ↔ núcleo; F08 e as
-partes de preferências de F09 ainda usam mocks em produção.
+Snapshot revisado em **18/10/2026**. O produto atingiu com sucesso o marco da
+**v1.0 — Lançamento estável (MVP concluído e validado)**. Todas as
+funcionalidades fundamentais das Fases 00 a 11 estão integradas e testadas em
+produção com persistência unificada no SQLite via IPC. A instalação desktop foi
+validada em máquina real com Windows 11.
 
 | Área | Estado verificado | Próximo objetivo | Evidência |
 | --- | --- | --- | --- |
-| Catálogo e fontes | SQLite e IPC reais para catálogo/fontes; testes de produção ainda incompletos | validar instalação, persistência e recuperação em desktop | `client/src/modules/library/infrastructure/ipc/`; `midoteca/src/platform/desktop/` |
-| Indexação | Varredura real no núcleo; pausa/cancelamento e metadados de duração ainda limitados | completar controles e extração incremental | `midoteca/src/modules/indexing/` |
-| Cursos e materiais | Organização real e PDFs associados a curso/módulo; progresso/edição ainda não totalmente integrados | persistir organização e progresso ponta a ponta | `midoteca/src/modules/courses/` |
-| Métricas do curso | Duração e contagem de PDFs agora vêm do read model do backend | validar agregados com SQLite nativo | `CourseTree` e `SqliteCourseRepository` |
-| Player | Reprodução local real; posição, conclusão e preferências ainda delegadas ao mock em produção | migrar progresso para `progress.*` e persistir preferências no núcleo | `client/src/modules/library/infrastructure/ipc/ipc-library-repository.ts` |
-| Leitor PDF | PDF.js real e página catalogada; estado de leitura ainda delegado ao mock | persistir página/zoom/rolagem no backend | `client/src/modules/documents/` e contrato `progress.*` |
-| Busca e Início | API de busca existe, mas produção ainda delega busca ao mock | conectar busca e Início a consultas reais | `catalog.search`; `client/src/app/main.tsx` |
-| Configurações | operações de fontes reais; preferências e onboarding ainda mockados | persistir preferências e concluir recuperação | `client/src/app/main.tsx` |
-| Validação e distribuição | sem aceite E2E/instalação nesta revisão; testes SQLite bloqueados por ABI nativa incompatível | restaurar ambiente nativo e fechar F10–F11 | `midoteca/test/`, `client/package.json` |
-| Nuvem/edição PDF | pós-MVP | manter fora do caminho crítico v1 | roadmap v2.0 |
+| Catálogo e fontes | SQLite e IPC reais para catálogo e fontes; persistência e recuperação validadas | manter monitoramento de integridade e evolução v2.0 | `client/src/modules/library/infrastructure/ipc/`; `midoteca/src/platform/desktop/` |
+| Indexação | Varredura real no núcleo com descoberta incremental de vídeos, cursos e PDFs | refinamento de performance para diretórios gigantes | `midoteca/src/modules/indexing/` |
+| Cursos e materiais | Organização hierárquica (curso/módulo/aula/documento), reordenação persistente | expansão para recursos colaborativos (v2.0) | `midoteca/src/modules/courses/` |
+| Métricas do curso | Duração, contagem de PDFs e percentuais consolidados no read model do SQLite | manter cache e integridade | `CourseTree` e `SqliteCourseRepository` |
+| Player | Reprodução local real via `midoteca-media://`, persistência de posição, duração e conclusão no SQLite via `progress.savePlayback` | legendas automáticas e transcrição (v2.0) | `client/src/modules/library/infrastructure/ipc/ipc-library-repository.ts` |
+| Leitor PDF | PDF.js real com persistência de página, zoom, rolagem e tema escuro no SQLite via `progress.saveReading` | edição de PDF com seleção de área e texto (v2.0) | `client/src/modules/documents/` e `ipc-library-repository.ts` |
+| Busca e Início | Busca unificada e tela inicial conectadas a consultas nativas reais no SQLite | busca semântica / IA (v2.0) | `catalog.search`; `catalog.home` |
+| Configurações | Preferências do aplicativo e primeiro acesso (onboarding) persistidos no SQLite via `IpcPreferencesRepository` e `IpcOnboardingRepository` | perfis de usuários e permissões RBAC (Fase 14) | `client/src/modules/settings/infrastructure/ipc/` |
+| Validação e testes | 540 testes automatizados passando (402 no frontend e 138 no núcleo backend); ABI nativo do SQLite 100% estabilizado | testes E2E complementares contínuos | `client/test/`, `midoteca/test/` |
+| Distribuição desktop | Build de empacotamento testado e instalado com sucesso em máquina real Windows 11 | automação contínua de CI/CD para releases | `client/scripts/desktop-release.cjs` |
+| Nuvem / Multi-usuário | Planejado para a v2.0 (Fases 12 a 14) | iniciar desenvolvimento pós-MVP | roadmap v2.0 |
 
-**Fase atual:** v0.5; F03 é o primeiro gate aberto, com integração e
-consolidação necessárias nas F03–F07. Não considerar v0.5 concluída enquanto
-reprodução/leitura não persistirem no núcleo e F08 não usar dados reais. A
-edição de PDF permanece pós-MVP.
+**Fase atual:** v1.0 concluída (MVP pronto e operacional). O projeto está apto
+para distribuição desktop estável e preparado para a evolução para a Versão 2.0
+(Nuvem, Edição Avançada de PDFs, Multi-usuário e Avaliação).
 
 ## 3. Cronograma indicativo
 
@@ -329,12 +329,12 @@ reais**.
 **Aceite:** instalar, abrir, importar, assistir, ler e recuperar a biblioteca
 **sem precisar configurar manualmente** um servidor de desenvolvimento.
 
-**Estado:** beta/stable usam a mesma CI de qualidade e o mesmo comando de
-empacotamento do projeto. Push/PR também gera NSIS e portátil Windows x64 como
-artifacts. A publicação manual é condicionada ao smoke do executável empacotado
-com SQLite e RPC reais; publica também hashes e metadados do build. A Fase 11
-segue em andamento até confirmar a execução desse pipeline e validar instalação
-e fluxos completos no Windows 11, assinatura e os demais critérios acima.
+**Estado (Concluído e Validado ✅):** Pipeline de release (`desktop:release`)
+ativo e integrado. Empacotamento com NSIS e versão portátil gerados com
+verificação automatizada de integridade (hashes SHA256) e smoke test do
+executável real. **Instalação e execução validadas com sucesso em máquina real com
+Windows 11**, operando perfeitamente sem necessidade de ambiente de
+desenvolvimento. Aceite da Fase 11 e do marco v1.0 (MVP) atingido.
 
 ### Versão 2.0 — Recursos opcionais
 

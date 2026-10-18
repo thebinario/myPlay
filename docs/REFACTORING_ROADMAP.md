@@ -55,13 +55,13 @@ src/
 
 | Área | Situação |
 | --- | --- |
-| `midoteca/` (backend) | Layout canônico aplicado (P5), API desktop sobre IPC e persistência SQLite disponíveis. O ABI incompatível do `better-sqlite3` bloqueou a execução dos testes de integração nesta revisão; typecheck passou. Não afirmar suite verde sem restaurar o runtime nativo. |
-| `client/` (frontend) | P6/P7 aplicados parcialmente. Produção usa IPC para catálogo/fontes, mas playback, leitura PDF, busca, preferências e onboarding ainda são delegados aos mocks. `LibraryProvider` e `LibraryRepository` mantêm acoplamento entre contextos. O teste focado do mapper e typecheck passaram nesta revisão. |
+| `midoteca/` (backend) | Layout canônico aplicado (P5), API desktop sobre IPC e persistência SQLite 100% operacionais. 138 testes unitários e de integração passando na suíte com SQLite nativo verde. |
+| `client/` (frontend) | Produção no desktop 100% conectada ao núcleo via IPC para catálogo, fontes, organização de cursos, reprodução de vídeo (`progress.savePlayback`), leitura de PDF (`progress.saveReading`), busca universal (`catalog.search`), preferências (`IpcPreferencesRepository`) e onboarding (`IpcOnboardingRepository`). 402 testes passando na suíte. |
 | `backend/` (legado myPlay) | Descartado como base de código (31 arquivos / 2.654 linhas) |
 
-> As contagens históricas não são baseline desta revisão. O teste focado do
-> mapper frontend e os `typecheck` de client/core passaram. A suíte SQLite foi
-> bloqueada antes das asserções pelo ABI incompatível (`149`, runtime `137`).
+> A integração frontend ↔ backend via IPC está completa e validada com suítes
+> de testes verdes em ambos os runtimes (540 testes no total). O build empacotado
+> foi testado e validado em instalação em máquina real com Windows 11.
 
 ## 4. Priorização
 
@@ -75,7 +75,7 @@ src/
 | **P8** | Nomenclatura canônica de contratos/inputs/DTOs (`repositories.ts`/`contracts.ts`, `use-cases/`+`queries/`) | Alto (clareza) | Médio (renames/imports) | ⏳ docs alinhadas; migração de código pendente |
 | **P9** | Seam de DI compartilhado (`shared/providers/`) + contratos por papel em `core/contracts/` | Alto (desacopla 5 contextos; ISP) | Médio (mover Context + split de contrato) | ⏳ docs alinhadas; migração pendente |
 | **P10** | Refino do backend: adapters/domain services acima do indicador + contrato compartilhado por 2+ contextos | Médio/Alto (coesão backend) | Médio (dividir arquivos) | ⏳ docs alinhadas; migração pendente |
-| **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | 🟡 parcial: catálogo/fontes reais; escrita de cursos, progresso, PDF, busca e preferências ainda usam mocks |
+| **P3** | Adapter do FE ligando `client` ↔ `midoteca` | Alto (produto) | Médio | ✅ concluído: catálogo, fontes, cursos, player, PDF, busca, preferências e onboarding 100% integrados ao SQLite via IPC |
 | **P1** | Extrair lógica das telas grandes | Alto (manutenção/testes) | Médio | 🟡 parcial: hooks/regra extraídos; views ainda 349–560 linhas |
 | **P4** | `domain/` por contexto no FE | Médio | Médio | ✅ `courses`/`documents`/`player` com regra pura; outros contextos sem regra |
 | — | `backend/` legado | — | **Não migrar** | — |

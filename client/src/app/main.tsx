@@ -14,6 +14,8 @@ import { getMidotecaBridge, requireMidotecaBridge } from '@/platform/desktop';
 import { IpcLibrarySourcesRepository } from '@/modules/sources/infrastructure/ipc/ipc-library-sources.repository';
 import { IpcImportRunner } from '@/modules/sources/infrastructure/ipc/ipc-import-runner';
 import { IpcLibraryRepository } from '@/modules/library/infrastructure/ipc/ipc-library-repository';
+import { IpcPreferencesRepository } from '@/modules/settings/infrastructure/ipc/ipc-preferences.repository';
+import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
 import '@/index.css';
 
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
@@ -28,8 +30,18 @@ const sourcesRepository = runtimeBridge
 const importRunner = runtimeBridge ? new IpcImportRunner(runtimeBridge) : undefined;
 if (sourcesRepository) void sourcesRepository.hydrate();
 
-// No desktop o catálogo (cursos/documentos) vem do kernel; reprodução/PDF/busca
-// continuam no mock delegado até os contratos respectivos serem migrados (P9).
+const preferencesRepository = runtimeBridge
+  ? new IpcPreferencesRepository(runtimeBridge)
+  : mockPreferencesRepository;
+if (preferencesRepository instanceof IpcPreferencesRepository) void preferencesRepository.hydrate();
+
+const onboardingRepository = runtimeBridge
+  ? new IpcOnboardingRepository(runtimeBridge)
+  : mockOnboardingRepository;
+if (onboardingRepository instanceof IpcOnboardingRepository) void onboardingRepository.hydrate();
+
+// No desktop o catálogo (cursos/documentos) e operações persistentes usam o núcleo SQLite;
+// fallback para mock delegado ocorre apenas se o runtime for puramente web/storybook.
 const libraryRepository = runtimeBridge
   ? new IpcLibraryRepository(runtimeBridge, mockRepository)
   : mockRepository;
@@ -38,13 +50,13 @@ if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <LibraryProvider repository={libraryRepository}>
-      <SettingsProvider repository={mockPreferencesRepository}>
+      <SettingsProvider repository={preferencesRepository}>
         <SourcesProvider
           repository={sourcesRepository ?? mockLibrarySourcesRepository}
           runner={importRunner}
           picker={bridge ?? undefined}
         >
-          <OnboardingProvider repository={mockOnboardingRepository}>
+          <OnboardingProvider repository={onboardingRepository}>
             <App />
           </OnboardingProvider>
         </SourcesProvider>
