@@ -27,9 +27,11 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
     // Progresso
     expect(screen.getByText(`${sampleCourse.progress}% concluído`)).toBeInTheDocument();
 
-    // Módulos
-    expect(screen.getByText('Módulo 1: Fundamentos e Arquitetura')).toBeInTheDocument();
-    expect(screen.getByText('Módulo 2: Interface Minimalista e Design System')).toBeInTheDocument();
+    // Módulos (numeração + nome detectado)
+    expect(screen.getByText('Módulo 1 · Módulo 1: Fundamentos e Arquitetura')).toBeInTheDocument();
+    expect(
+      screen.getByText('Módulo 2 · Módulo 2: Interface Minimalista e Design System'),
+    ).toBeInTheDocument();
 
     // Aulas do primeiro módulo
     expect(screen.getByText('1.1 Visão Geral e Comparação com Electron')).toBeInTheDocument();
@@ -144,7 +146,8 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
 
     expect(screen.getByRole('heading', { name: '01 - Fundamentos' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '02 - Prática' })).toBeInTheDocument();
-    expect(screen.getByText('Módulo 01 - Conceitos')).toBeInTheDocument();
+    expect(screen.getByText('Módulo 1 · Módulo 01 - Conceitos')).toBeInTheDocument();
+    expect(screen.getByText('Módulo 2 · Módulo 01 - Projeto')).toBeInTheDocument();
   });
 
   it('distingue módulos de mesmo título em seções diferentes', () => {
@@ -185,6 +188,9 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
 
     expect(screen.getByRole('heading', { name: 'Seção A' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Seção B' })).toBeInTheDocument();
+    // A numeração contínua distingue módulos de mesmo título em seções diferentes.
+    expect(screen.getByRole('heading', { name: 'Módulo 1 · Aulas' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Módulo 2 · Aulas' })).toBeInTheDocument();
     expect(screen.getByText('Aula A')).toBeInTheDocument();
     expect(screen.getByText('Aula B')).toBeInTheDocument();
   });

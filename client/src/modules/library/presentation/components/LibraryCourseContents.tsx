@@ -36,7 +36,8 @@ export const LibraryCourseContents: React.FC<LibraryCourseContentsProps> = ({
   const courseDocuments = (course.documents ?? []).filter(
     (document) => !moduleDocumentIds.has(document.id),
   );
-  const modules: CourseModule[] = course.modules.length
+  const hasRealModules = course.modules.length > 0;
+  const modules: CourseModule[] = hasRealModules
     ? course.modules
     : [
         {
@@ -75,7 +76,7 @@ export const LibraryCourseContents: React.FC<LibraryCourseContentsProps> = ({
           return (
             <details key={module.id} open style={styles.module}>
               <summary style={styles.moduleHeader}>
-                <span>{modules.length > 1 ? `Módulo ${index + 1}` : 'Módulo'}</span>
+                <span>{hasRealModules ? `Módulo ${index + 1} · ${module.title}` : 'Módulo'}</span>
                 {modules.length > 1 && (
                   <span style={styles.moduleCount}>
                     {module.lessons.length + moduleMovies.length} vídeos · {moduleDocuments.length}{' '}

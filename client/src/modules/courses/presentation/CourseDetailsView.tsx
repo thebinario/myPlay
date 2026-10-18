@@ -82,6 +82,19 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         }))
       : [{ id: '__all__', title: null as string | null, modules: course.modules }];
 
+  // Numeração contínua dos módulos ao longo do curso, exibida junto ao nome
+  // detectado (ex.: "Módulo 1 · Módulo 01 - Conceitos").
+  const moduleNumbers = new Map<string, number>();
+  {
+    let counter = 0;
+    for (const group of sectionGroups) {
+      for (const mod of group.modules) {
+        counter += 1;
+        moduleNumbers.set(mod.id, counter);
+      }
+    }
+  }
+
   return (
     <div style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
       {/* Back button */}
@@ -188,7 +201,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#F0F4FC' }}>
-                            {mod.title}
+                            Módulo {moduleNumbers.get(mod.id)} · {mod.title}
                           </h3>
                           <span
                             style={{

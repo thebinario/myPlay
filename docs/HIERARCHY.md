@@ -194,6 +194,10 @@ Concluído no cliente `client/` (consumo em produção):
   - **vários cursos** → mostra a grade de `CourseCard`s (`CoursesGrid`) e o
     clique abre o detalhe do curso. O clique no curso reusa o fluxo já
     existente (navegação aditiva, sem alterar o fluxo por fonte).
+- Módulos são exibidos com **numeração contínua + nome detectado** (ex.:
+  `Módulo 1 · Módulo 01 - Conceitos`), na grade do curso e na listagem da
+  coleção/curso único. A numeração contínua distingue módulos de mesmo título em
+  seções diferentes.
 - `CourseDetailsView` agrupa os módulos **por seção** quando o curso tem
   `sections` (fallback plano quando não tem). Necessário porque módulos de
   seções distintas compartilham o mesmo título (ex.: `Aulas`) na projeção plana

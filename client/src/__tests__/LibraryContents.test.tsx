@@ -60,7 +60,7 @@ describe('conteúdos da biblioteca', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /abrir biblioteca biblioteca de teste/i }));
 
-    expect(screen.getByText('Módulo')).toBeInTheDocument();
+    expect(screen.getByText('Módulo 1 · Módulo compartilhado')).toBeInTheDocument();
     expect(screen.getByText('2 vídeos · 1 PDFs')).toBeInTheDocument();
     expect(screen.getByText('86% concluído')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: 'Progresso do curso' })).toHaveAttribute(
@@ -81,7 +81,7 @@ describe('conteúdos da biblioteca', () => {
     expect(onOpenDocument).toHaveBeenCalledWith(document.id);
   });
 
-  it('numera os módulos quando o curso possui mais de um', () => {
+  it('numera os módulos e exibe o nome detectado quando o curso possui mais de um', () => {
     const course = {
       ...MOCK_COURSES[0],
       modules: MOCK_COURSES[0].modules.slice(0, 2),
@@ -89,7 +89,9 @@ describe('conteúdos da biblioteca', () => {
 
     render(<LibraryCourseContents course={course} onSelectCourse={vi.fn()} />);
 
-    expect(screen.getByText('Módulo 1')).toBeInTheDocument();
-    expect(screen.getByText('Módulo 2')).toBeInTheDocument();
+    expect(screen.getByText('Módulo 1 · Módulo 1: Fundamentos e Arquitetura')).toBeInTheDocument();
+    expect(
+      screen.getByText('Módulo 2 · Módulo 2: Interface Minimalista e Design System'),
+    ).toBeInTheDocument();
   });
 });
