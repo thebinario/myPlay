@@ -30,7 +30,7 @@ arquivos legados de uma vez.
 | --- | --- | --- |
 | **v0.1 — Fundação** | base em evolução contínua | Arquitetura progressiva, testes, Storybook, estado consistente e serviços desacoplados |
 | **v0.5 — Biblioteca local funcional** | produto | Indexação de HDs, catálogo persistente, cursos, player real, leitor PDF e recuperação de fontes |
-| **v1.0 — Lançamento estável** | distribuição | Instalação desktop, onboarding, desempenho, acessibilidade, testes E2E, backup e distribuição |
+| **v1.0 — Lançamento estável** | distribuição | Instalação desktop, onboarding, central de novidades com badge, modal de grandes mudanças, preferências no SQLite, desempenho e recuperação |
 | **v2.0 — Expansão** | pós-MVP | Armazenamento em nuvem, múltiplas fontes de mídia, sincronização opcional, gestão de contas/perfis (Admin/Usuário), controle de acesso a conteúdos, submissão de PDFs para avaliação com notas, edição avançada de PDFs e recursos inteligentes |
 
 ## 2. Estado atual do projeto
@@ -78,7 +78,7 @@ Horizonte aproximado: **32 semanas**.
 | F06 · Player real | S17–S20 | v0.5 |
 | F07 · PDF real | S20–S22 | v0.5 |
 | F08 · Busca e início | S22–S24 | v0.5 |
-| F09 · Configurações e recuperação | S24–S27 | v1.0 |
+| F09 · Configurações, novidades e recuperação | S24–S27 | v1.0 |
 | F10 · QA e performance | S27–S30 | v1.0 |
 | F11 · Distribuição desktop | S30–S32 | v1.0 |
 | F12 · Nuvem opcional | S32+ | v2.0 |
@@ -276,13 +276,25 @@ depender de mocks**.
 
 ### Versão 1.0 — Confiabilidade e distribuição
 
-#### Fase 09 — Onboarding, configurações e recuperação
+#### Fase 09 — Onboarding, configurações, novidades e recuperação
+
+**Histórias de usuário:**
+
+- **Como usuário do projeto:** quero ver um ícone com badge de notificação quando algo novo for feito ou atualizado no projeto, e que a badge desapareça após eu visualizar essas novidades.
+- **Como usuário do projeto:** quando houver uma alteração grande que mude a forma de mexer no produto (nova tela, novo menu ou nova ação), quero ver um modal explicativo ensinando como interagir, com breves descrições e gerado automaticamente a partir das alterações, sem exigir capturas de tela manuais.
 
 **Entregas**
 
 - Primeiro uso guiado sem excesso de etapas.
 - Adicionar, remover e gerenciar fontes de biblioteca.
-- Preferências de Player, PDF, aparência e indexação.
+- Preferências de Player, PDF, aparência e indexação persistidas no SQLite.
+- **Ícone e Badge de Novidades ("O que há de novo"):**
+  - Ícone na interface com indicador visual (badge/notificação) indicando novas atualizações ou recursos disponíveis.
+  - Ao abrir e visualizar o resumo de novidades, a badge é dispensada automaticamente (estado `last_seen_version` persistido no SQLite).
+- **Modal Guiado de Grandes Mudanças / Feature Tour Automatizado (escopo MVP):**
+  - Componente modal reutilizável disparado ao abrir versão com grandes alterações de fluxo ou interface (nova tela, novo menu ou novas ações).
+  - Conteúdo gerado de forma declarativa/automática a partir de um registro de metadados das novidades (título, breve descrição objetiva e ação em destaque), sem dependência de prints/screenshots manuais.
+  - Possibilidade de dispensar ou rever o guia a qualquer momento pelo menu de ajuda/configurações.
 - HD desconectado com catálogo preservado.
 - Reconexão que reconheça a unidade **sem duplicar** conteúdo.
 - Tratamento de permissões e caminhos alterados.
@@ -290,8 +302,7 @@ depender de mocks**.
 - Estados globais de erro, carregamento e indisponibilidade.
 - Exportação e restauração de catálogo e preferências.
 
-**Aceite:** desconectar e reconectar unidades, reiniciar o aplicativo e recuperar
-falhas comuns **sem perda de dados de organização**.
+**Aceite:** desconectar e reconectar unidades, reiniciar o aplicativo, recuperar falhas comuns sem perda de organização, receber indicador visual de novas atualizações (badge dispensável ao visualizar) e ser guiado por modal explicativo ao ocorrerem mudanças estruturais de navegação, telas ou menus.
 
 #### Fase 10 — Qualidade, desempenho e acessibilidade
 
