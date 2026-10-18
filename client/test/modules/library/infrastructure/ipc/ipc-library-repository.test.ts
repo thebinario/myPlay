@@ -176,6 +176,13 @@ function wireCatalog(handlers: Record<string, (params: unknown) => unknown>) {
         ],
       },
     ],
+    sections: [],
+  });
+  handlers['catalog.listCollections'] = () => ({
+    items: [],
+    total: 0,
+    limit: 200,
+    offset: 0,
   });
   handlers['catalog.listDocuments'] = () => ({
     items: [documentSummary('d1', 'Manual.pdf', 'mv2', 42)],
@@ -298,6 +305,42 @@ describe('IpcLibraryRepository', () => {
     expect(calls['progress.saveReading']).toBe(1);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(false);
     expect(repository.getCourseById('c1')?.modules[0].documents?.[0].isRead).toBe(false);
+  });
+
+  it('expõe as coleções fornecidas pelo read model do kernel', async () => {
+    const delegate = new MockLibraryService();
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    const originalTree = handlers['catalog.getCourseTree'];
+    handlers['catalog.getCourseTree'] = (params) => {
+      const tree = originalTree(params) as { course: Record<string, unknown> };
+      return { ...tree, course: { ...tree.course, collectionId: 'col-1' } };
+    };
+    handlers['catalog.listCollections'] = () => ({
+      items: [
+        {
+          id: 'col-1',
+          title: 'Coleção 01 - Tecnologia',
+          sourceId: 'src-1',
+          relativePath: 'Coleção 01 - Tecnologia',
+          titleSource: 'detected',
+          courseCount: 1,
+          updatedAt: '2026-10-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+      limit: 200,
+      offset: 0,
+    });
+
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+
+    const collections = repository.getCollections();
+    expect(collections).toHaveLength(1);
+    expect(collections[0].id).toBe('col-1');
+    expect(collections[0].courses.map((course) => course.id)).toEqual(['c1']);
   });
 
   it('recarrega o snapshot ao receber eventos do kernel', async () => {

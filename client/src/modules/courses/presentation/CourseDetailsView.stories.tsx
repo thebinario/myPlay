@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { CourseDetailsView } from '@/modules/courses/presentation/CourseDetailsView';
 import { MOCK_COURSES } from '@/modules/library/infrastructure/mock-library-repository';
+import { MOCK_COLLECTION_COURSES } from '@/modules/library/infrastructure/mock-collections';
 import { Course } from '@/core/domain/library';
 
 const baseCourse = MOCK_COURSES[0];
@@ -73,5 +74,13 @@ export const FullyCompleted: Story = {
   args: {
     ...defaultArgs,
     course: completedCourse,
+  },
+};
+
+/** Curso com seções: os módulos aparecem agrupados sob cada seção. */
+export const ComSecoes: Story = {
+  args: {
+    ...defaultArgs,
+    course: MOCK_COLLECTION_COURSES.find((course) => course.id === 'course-unico')!,
   },
 };

@@ -39,6 +39,23 @@ export interface CourseModule {
   order: number;
   lessons: Lesson[];
   documents?: Document[];
+  /** Seção à qual o módulo pertence, quando o curso usa `sections`. */
+  sectionId?: string;
+}
+
+/**
+ * Seção de um curso: agrupamento opcional de módulos.
+ *
+ * Estruturas de pasta reais têm profundidade variável (ex.: `Semana 01/Unidade 01/
+ * Aula 01`). O colapso descrito em `docs/HIERARCHY.md` projeta essa variação em
+ * `Curso → Seção → Módulo → Aula`, sem árvore genérica.
+ */
+export interface CourseSection {
+  id: string;
+  courseId: string;
+  title: string;
+  order: number;
+  modules: CourseModule[];
 }
 
 export interface Course {
@@ -47,13 +64,24 @@ export interface Course {
   type: 'course';
   title: string;
   description: string;
+  /** Categoria/área (facet derivada da pasta, ex.: "Programação Front-end"). */
   category: string;
+  /** Plataforma de origem (facet, ex.: "Udemy", "Alura", "Hotmart"). */
+  provider?: string;
+  /** Coleção à qual o curso pertence, quando a fonte organiza por coleções. */
+  collectionId?: string | null;
   coverUrl: string;
   totalDuration: number; // segundos
   pdfCount?: number;
   documents?: Document[];
   progress: number; // 0-100
+  /**
+   * Projeção plana dos módulos para consumidores legados. Quando o curso tem
+   * `sections`, este campo é derivado delas (não é fonte independente).
+   */
   modules: CourseModule[];
+  /** Seções do curso, quando a estrutura de pasta tem agrupamentos. */
+  sections?: CourseSection[];
   tags: string[];
   createdAt: string;
   lastAccessedAt?: string;

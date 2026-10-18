@@ -89,6 +89,7 @@ function courseTree(): CourseTree {
         ],
       },
     ],
+    sections: [],
     documents: [
       {
         id: 'd2',
@@ -143,6 +144,8 @@ describe('mapCourseTree', () => {
     expect(course.description).toBe('');
     expect(course.category).toBe('Engenharia');
     expect(course.tags).toEqual(['x', 'y']);
+    expect(course.collectionId).toBeNull();
+    expect(course.sections).toBeUndefined();
     expect(course.totalDuration).toBe(999);
     expect(course.modules).toHaveLength(1);
     expect(course.modules[0].title).toBe('Módulo A');
@@ -166,6 +169,33 @@ describe('mapCourseTree', () => {
     expect(course.modules[0].lessons[0].isUnavailable).toBe(true);
     expect(course.modules[0].lessons[1].isUnavailable).toBeFalsy();
     expect(course.modules[0].lessons[1].duration).toBe(0);
+  });
+
+  it('projeta seções e collectionId quando o curso pertence a uma coleção', () => {
+    const base = courseTree();
+    const tree: CourseTree = {
+      ...base,
+      course: { ...base.course, collectionId: 'col-1' },
+      sections: [
+        {
+          id: 's1',
+          courseId: 'c1',
+          title: 'Módulo A',
+          sortOrder: 1,
+          sortSource: 'detected',
+          relativePath: 'Modulo A',
+          titleSource: 'detected',
+          modules: base.modules,
+        },
+      ],
+    };
+
+    const course = mapCourseTree(tree, new Map(), new Map());
+
+    expect(course.collectionId).toBe('col-1');
+    expect(course.sections).toHaveLength(1);
+    expect(course.sections?.[0].id).toBe('s1');
+    expect(course.sections?.[0].modules[0].id).toBe('m1');
   });
 });
 

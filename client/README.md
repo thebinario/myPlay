@@ -18,13 +18,24 @@ sem alterar os componentes.
 ## Scripts
 
 ```bash
-npm run dev              # servidor de desenvolvimento (Vite)
+npm run dev              # app desktop (Electron) com HMR do Vite
+npm run dev:web          # apenas o renderer no navegador (Vite, HMR)
 npm run build            # tsc && vite build
 npm test                 # vitest run
 npm run test:watch       # vitest (watch)
 npm run storybook        # catálogo visual (Storybook)
 npm run build-storybook  # build estático do Storybook
 ```
+
+`npm run dev` sobe o servidor do Vite e abre o Electron apontando para ele
+(`MIDOTECA_DEV_URL`): edições em `src/**` recarregam em quente (HMR) e mudanças
+em `electron/**` reiniciam o processo principal automaticamente.
+
+O núcleo carrega `better-sqlite3`, um módulo nativo cujo ABI difere entre Node
+(testes) e Electron (app). O `dev` detecta o ABI, recompila para o Electron só
+quando necessário e restaura o ABI do Node ao encerrar, para não quebrar `npm
+test`. Use `MIDOTECA_SKIP_REBUILD=1` para pular a detecção e
+`MIDOTECA_KEEP_ELECTRON_ABI=1` para manter o build do Electron após sair.
 
 ## Estrutura (resumo)
 

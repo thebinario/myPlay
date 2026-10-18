@@ -8,6 +8,7 @@ import type {
   PdfReadingState,
   SubtitleTrack,
 } from '@/core/domain/library';
+import type { Collection } from '@/core/domain/collection';
 
 /**
  * Contrato do catálogo da biblioteca (cursos, filmes, documentos).
@@ -19,6 +20,11 @@ import type {
 export interface LibraryCatalogRepository {
   /** Retorna todos os itens (ou apenas de um tipo). */
   getItems(type?: ContentType): LibraryItem[];
+  /**
+   * Coleções agregadas fornecidas pelo núcleo (read model). Vazio quando a
+   * biblioteca não organiza cursos em coleções.
+   */
+  getCollections(): Collection[];
   getItemById(id: string): LibraryItem | undefined;
   getCourseById(id: string): Course | undefined;
   getDocumentById(id: string): Document | undefined;

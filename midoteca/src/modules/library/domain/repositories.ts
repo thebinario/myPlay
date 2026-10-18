@@ -1,5 +1,7 @@
 import type { LibrarySource, LibrarySourceStatus, LibraryType } from './entities';
 import type {
+  CollectionSummary,
+  CollectionTree,
   CourseSummary,
   CatalogSearchFilter,
   CatalogSearchHit,
@@ -66,6 +68,8 @@ export interface LibraryRepository {
 export interface LibraryQueryStore {
   listCourses(query: Page & { sourceId?: string }): Paged<CourseSummary>;
   listDocuments(query: Page & { sourceId?: string }): Paged<DocumentSummary>;
+  listCollections(query: Page & { sourceId?: string }): Paged<CollectionSummary>;
+  getCollectionTree(collectionId: string): CollectionTree | null;
   search(text: string, query: Page & { filter?: CatalogSearchFilter }): CatalogSearchHit[];
   getSourceIndexState(sourceId: string): SourceIndexState | null;
 }

@@ -1,5 +1,12 @@
 import type { CourseTree, DocumentSummary, MediaFile } from '@midoteca/core';
-import type { Course, CourseModule, Document, Lesson, Movie } from '@/core/domain/library';
+import type {
+  Course,
+  CourseModule,
+  CourseSection,
+  Document,
+  Lesson,
+  Movie,
+} from '@/core/domain/library';
 
 /**
  * Pure projections from the kernel catalog (`CourseTree`, `DocumentSummary`,
@@ -70,37 +77,48 @@ export function mapCourseTree(
   mediaById: ReadonlyMap<string, MediaFile>,
   sourceRootById: ReadonlyMap<string, string>,
 ): Course {
+  const mapModule = (module: CourseTree['modules'][number]): CourseModule => ({
+    id: module.id,
+    courseId: module.courseId,
+    title: module.title,
+    order: module.sortOrder,
+    ...(module.sectionId ? { sectionId: module.sectionId } : {}),
+    documents: module.documents.map((document) =>
+      mapTreeDocument(document, mediaById, sourceRootById),
+    ),
+    lessons: [...module.lessons]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((lesson): Lesson => {
+        const files = lesson.media
+          .map((link) => mediaById.get(link.mediaFileId))
+          .filter((file): file is MediaFile => file !== undefined);
+        const primary = files.find((file) => file.mediaType === 'video') ?? files[0];
+        const root = primary ? sourceRootById.get(primary.sourceId) : undefined;
+        return {
+          id: lesson.id,
+          moduleId: module.id,
+          title: lesson.title,
+          duration: primary?.durationMs ? Math.round(primary.durationMs / 1000) : 0,
+          completed: false,
+          isUnavailable: primary ? primary.availability === 'missing' : undefined,
+          videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
+          order: lesson.sortOrder,
+          materials: [],
+        };
+      }),
+  });
+
   const modules: CourseModule[] = [...tree.modules]
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((module) => ({
-      id: module.id,
-      courseId: module.courseId,
-      title: module.title,
-      order: module.sortOrder,
-      documents: module.documents.map((document) =>
-        mapTreeDocument(document, mediaById, sourceRootById),
-      ),
-      lessons: [...module.lessons]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((lesson): Lesson => {
-          const files = lesson.media
-            .map((link) => mediaById.get(link.mediaFileId))
-            .filter((file): file is MediaFile => file !== undefined);
-          const primary = files.find((file) => file.mediaType === 'video') ?? files[0];
-          const root = primary ? sourceRootById.get(primary.sourceId) : undefined;
-          return {
-            id: lesson.id,
-            moduleId: module.id,
-            title: lesson.title,
-            duration: primary?.durationMs ? Math.round(primary.durationMs / 1000) : 0,
-            completed: false,
-            isUnavailable: primary ? primary.availability === 'missing' : undefined,
-            videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
-            order: lesson.sortOrder,
-            materials: [],
-          };
-        }),
-    }));
+    .map(mapModule);
+
+  const sections: CourseSection[] = tree.sections.map((section) => ({
+    id: section.id,
+    courseId: section.courseId,
+    title: section.title,
+    order: section.sortOrder,
+    modules: [...section.modules].sort((a, b) => a.sortOrder - b.sortOrder).map(mapModule),
+  }));
 
   return {
     id: tree.course.id,
@@ -109,6 +127,7 @@ export function mapCourseTree(
     title: tree.course.title,
     description: tree.course.description ?? '',
     category: stringField(tree.course.metadata, 'category') ?? '',
+    collectionId: tree.course.collectionId ?? null,
     coverUrl: stringField(tree.course.metadata, 'coverUrl') ?? '',
     totalDuration: tree.totalDurationSeconds,
     pdfCount: tree.pdfCount,
@@ -117,6 +136,7 @@ export function mapCourseTree(
     ),
     progress: tree.completionPercentage,
     modules,
+    sections: sections.length > 0 ? sections : undefined,
     tags: stringArrayField(tree.course.metadata, 'tags'),
     createdAt: tree.course.createdAt,
   };

@@ -60,7 +60,7 @@ describe('name parsing', () => {
 });
 
 describe('organize', () => {
-  it('maps a nested tree into course > module > lesson', () => {
+  it('maps a nested tree into course > section > module > lesson', () => {
     const plan = organize(
       [
         file('Curso A/Modulo 1/01 - Intro.mp4', 'video'),
@@ -76,25 +76,29 @@ describe('organize', () => {
     const course = plan.courses[0];
     expect(course.relativePath).toBe('Curso A');
     expect(course.title).toBe('Curso A');
-    expect(course.modules.map((m) => m.relativePath)).toEqual([
+    expect(course.collectionPath).toBeNull();
+    expect(course.sections).toHaveLength(1);
+    expect(course.sections[0].modules.map((m) => m.relativePath)).toEqual([
       'Curso A/Modulo 1',
       'Curso A/Modulo 2',
     ]);
-    expect(course.modules[0].lessons.map((l) => l.title)).toEqual(['Intro', 'Setup']);
-    expect(course.modules[0].documents.map((d) => d.title)).toEqual(['Apostila']);
+    expect(course.sections[0].modules[0].lessons.map((l) => l.title)).toEqual(['Intro', 'Setup']);
+    expect(course.sections[0].modules[0].documents.map((d) => d.title)).toEqual(['Apostila']);
     expect(course.documents.map((d) => d.title)).toEqual(['Apostila Geral']);
     expect(plan.looseDocuments).toHaveLength(0);
   });
 
-  it('creates an implicit module for videos directly under a course', () => {
+  it('treats a plain sub-folder as a section and collapses the module', () => {
     const plan = organize(
       [file('Curso B/01 - Solto.mp4', 'video'), file('Curso B/Sub/01 - Aninhado.mp4', 'video')],
       { rootLabel: 'HD' },
     );
     const course = plan.courses[0];
-    const titles = course.modules.map((m) => m.title).sort();
-    expect(titles).toContain('Aulas');
-    expect(titles).toContain('Sub');
+    const sectionTitles = course.sections.map((s) => s.title).sort();
+    expect(sectionTitles).toContain('Conteúdo');
+    expect(sectionTitles).toContain('Sub');
+    const sub = course.sections.find((s) => s.title === 'Sub')!;
+    expect(sub.modules.map((m) => m.title)).toContain('Aulas');
   });
 
   it('places root PDFs beside course videos in the implicit module ordered by name', () => {
@@ -108,9 +112,10 @@ describe('organize', () => {
       { rootLabel: 'HD' },
     );
 
-    expect(plan.courses[0].modules).toHaveLength(1);
-    expect(plan.courses[0].modules[0].title).toBe('Aulas');
-    expect(plan.courses[0].modules[0].documents.map((document) => document.title)).toEqual([
+    const section = plan.courses[0].sections[0];
+    expect(section.modules).toHaveLength(1);
+    expect(section.modules[0].title).toBe('Aulas');
+    expect(section.modules[0].documents.map((document) => document.title)).toEqual([
       'primeiro',
       'segundo',
       'terceiro',
@@ -125,10 +130,10 @@ describe('organize', () => {
     expect(plan.courses).toHaveLength(1);
     expect(plan.courses[0].title).toBe('HD Cursos');
     expect(plan.courses[0].relativePath).toBe('');
-    expect(plan.courses[0].modules[0].lessons).toHaveLength(1);
-    expect(plan.courses[0].modules[0].documents.map((document) => document.title)).toEqual([
-      'manual',
-    ]);
+    expect(plan.courses[0].sections[0].modules[0].lessons).toHaveLength(1);
+    expect(
+      plan.courses[0].sections[0].modules[0].documents.map((document) => document.title),
+    ).toEqual(['manual']);
     expect(plan.looseDocuments.map((d) => d.title)).toEqual(['nota']);
   });
 
@@ -148,5 +153,53 @@ describe('organize', () => {
         language: 'pt-br',
       },
     ]);
+  });
+
+  it('derives collections, facets, sections and dedups encodings from real paths', () => {
+    const base =
+      'Coleção 01 - Tecnologia/Programação Front-end/Udemy/Curso 01 - Lógica de Programação';
+    const plan = organize(
+      [
+        file(`${base}/Aulas/Aula 01 - Boas-vindas.webm`, 'video'),
+        file(`${base}/Aulas/Aula 02 - Lógica 720p.mp4`, 'video'),
+        file(`${base}/Aulas/Aula 02 - Lógica 1080p (Cópia).mp4`, 'video'),
+        file(`${base}/Aulas/Apostila.pdf`, 'pdf'),
+        file(`${base}/03 - Ao Vivo/Aula 03 - Vídeo 540p.ts`, 'video'),
+        file(`${base}/03 - Ao Vivo/Apostila 05 - Resumo.pdf`, 'pdf'),
+      ],
+      { rootLabel: 'HD' },
+    );
+
+    expect(plan.collections).toHaveLength(1);
+    const collection = plan.collections[0];
+    expect(collection.relativePath).toBe('Coleção 01 - Tecnologia');
+    expect(collection.courses).toHaveLength(1);
+
+    const course = collection.courses[0];
+    expect(course.title).toBe('Curso 01 - Lógica de Programação');
+    expect(course.collectionPath).toBe('Coleção 01 - Tecnologia');
+    expect(course.category).toBe('Programação Front-end');
+    expect(course.provider).toBe('Udemy');
+    expect(plan.courses[0].relativePath).toBe(course.relativePath);
+
+    const sectionTitles = course.sections.map((s) => s.title).sort();
+    expect(sectionTitles).toEqual(['Ao Vivo', 'Aulas']);
+
+    const aulas = course.sections.find((s) => s.title === 'Aulas')!;
+    const logic = aulas.modules[0].lessons.find((l) => l.videos.length === 2);
+    expect(logic).toBeDefined();
+    expect(aulas.modules[0].documents.map((d) => d.title)).toEqual(['Apostila']);
+
+    const aoVivo = course.sections.find((s) => s.title === 'Ao Vivo')!;
+    expect(aoVivo.modules[0].lessons).toHaveLength(1);
+    expect(aoVivo.modules[0].documents.map((d) => d.title)).toEqual(['Apostila 05 - Resumo']);
+  });
+
+  it('keeps PDF-only folders (no course marker, no videos) as loose documents', () => {
+    const plan = organize([file('Coleção 01/Programação/Udemy/Curso X/SemVideo/nota.pdf', 'pdf')], {
+      rootLabel: 'HD',
+    });
+    expect(plan.courses).toHaveLength(0);
+    expect(plan.looseDocuments.map((d) => d.title)).toEqual(['nota']);
   });
 });

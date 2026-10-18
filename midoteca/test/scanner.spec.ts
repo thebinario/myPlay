@@ -26,6 +26,7 @@ describe('RecursiveFileScanner', () => {
 
   it('classifies supported extensions and ignores the rest', () => {
     expect(classifyExtension('.MP4')).toBe('video');
+    expect(classifyExtension('.ts')).toBe('video');
     expect(classifyExtension('.pdf')).toBe('pdf');
     expect(classifyExtension('.srt')).toBe('subtitle');
     expect(classifyExtension('.txt')).toBeNull();

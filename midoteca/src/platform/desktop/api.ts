@@ -122,6 +122,16 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
         return midoteca.queries.listDocuments(query);
       }
 
+      case 'catalog.listCollections': {
+        const query = params as { limit?: number; offset?: number; sourceId?: string };
+        return midoteca.queries.listCollections(query);
+      }
+
+      case 'catalog.getCollectionTree': {
+        const { collectionId } = params as { collectionId: string };
+        return midoteca.queries.getCollectionTree(collectionId);
+      }
+
       case 'catalog.search': {
         const { text, filter, limit, offset } = params as DesktopParams['catalog.search'];
         return midoteca.queries.search(text, { filter, limit, offset });

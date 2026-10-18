@@ -2,12 +2,16 @@ import type { LibraryQueryStore } from '../../domain/repositories';
 import type {
   CatalogSearchFilter,
   CatalogSearchHit,
+  CollectionSummary,
+  CollectionTree,
   CourseSummary,
   DocumentSummary,
   Page,
   Paged,
   SourceIndexState,
 } from '../../domain/read-models';
+import { listCollections } from '../queries/list-collections';
+import { getCollectionTree } from '../queries/get-collection-tree';
 import { listCourses } from '../queries/list-courses';
 import { listDocuments } from '../queries/list-documents';
 import { search } from '../queries/search';
@@ -28,6 +32,14 @@ export class LibraryQueryService {
 
   listDocuments(query: Page & { sourceId?: string } = {}): Paged<DocumentSummary> {
     return listDocuments(this.store, query);
+  }
+
+  listCollections(query: Page & { sourceId?: string } = {}): Paged<CollectionSummary> {
+    return listCollections(this.store, query);
+  }
+
+  getCollectionTree(collectionId: string): CollectionTree | null {
+    return getCollectionTree(this.store, collectionId);
   }
 
   search(text: string, query: Page & { filter?: CatalogSearchFilter } = {}): CatalogSearchHit[] {

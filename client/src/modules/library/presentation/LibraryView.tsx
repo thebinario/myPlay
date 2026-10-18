@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { LibraryItem, Course, Movie, Document } from '@/core/domain/library';
+import type { Collection } from '@/core/domain/collection';
 import type { LibrarySource } from '@/core/domain/library-source';
 import {
   ArrowLeft,
@@ -13,10 +14,16 @@ import {
 } from 'lucide-react';
 import { LibrarySourceCard } from '@/modules/library/presentation/components/LibrarySourceCard';
 import { LibraryContentsList } from '@/modules/library/presentation/components/LibraryContentsList';
+import { LibraryCourseContents } from '@/modules/library/presentation/components/LibraryCourseContents';
+import { CollectionsGrid } from '@/modules/library/presentation/components/CollectionsGrid';
+import { CoursesGrid } from '@/modules/library/presentation/components/CoursesGrid';
+
+const EMPTY_COLLECTIONS: Collection[] = [];
 
 interface LibraryViewProps {
   items: LibraryItem[];
   sources?: LibrarySource[];
+  collections?: Collection[];
   onSelectCourse: (courseId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
   onOpenMovie?: (movieId: string) => void;
@@ -29,6 +36,7 @@ interface LibraryViewProps {
 export const LibraryView: React.FC<LibraryViewProps> = ({
   items,
   sources,
+  collections,
   onSelectCourse,
   onPlayLesson,
   onOpenMovie,
@@ -40,7 +48,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'course' | 'movie' | 'document'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const selectedSource = sources?.find((source) => source.id === selectedSourceId);
+  const selectedCollection = (collections ?? EMPTY_COLLECTIONS).find(
+    (collection) => collection.id === selectedCollectionId,
+  );
   const visibleSources = sources?.filter((source) => {
     const sourceItems = items.filter((item) => item.sourceId === source.id);
     const matchesTab = activeTab === 'all' || sourceItems.some((item) => item.type === activeTab);
@@ -178,20 +190,69 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             );
           })}
         </div>
-        {visibleSources?.length === 0 ? (
-          <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
+        {selectedCollection ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSelectedCollectionId(null)}
+              style={{
+                background: 'transparent',
+                border: 0,
+                color: '#94A3B8',
+                cursor: 'pointer',
+                padding: 0,
+                marginBottom: 12,
+              }}
+            >
+              <ArrowLeft
+                size={15}
+                style={{ verticalAlign: 'middle', marginRight: 6 }}
+                aria-hidden
+              />
+              Voltar às coleções
+            </button>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#FFFFFF', marginBottom: 20 }}>
+              {selectedCollection.title}
+            </h2>
+            {selectedCollection.courses.length > 1 ? (
+              <CoursesGrid courses={selectedCollection.courses} onSelectCourse={onSelectCourse} />
+            ) : (
+              <LibraryCourseContents
+                course={selectedCollection.courses[0]}
+                onSelectCourse={onSelectCourse}
+                onPlayLesson={onPlayLesson}
+                onOpenDocument={onOpenDocument}
+                onToggleLesson={onToggleLesson}
+                onToggleDocumentRead={onToggleDocumentRead}
+                onOpenMovie={onOpenMovie}
+                onEditCourse={onEditCourse}
+              />
+            )}
+          </>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            {visibleSources?.map((source) => (
-              <LibrarySourceCard key={source.id} source={source} onOpen={setSelectedSourceId} />
-            ))}
-          </div>
+          <>
+            {activeTab === 'all' || activeTab === 'course' ? (
+              <CollectionsGrid
+                collections={collections ?? EMPTY_COLLECTIONS}
+                onOpenCollection={setSelectedCollectionId}
+              />
+            ) : null}
+            {visibleSources?.length === 0 ? (
+              <p style={{ color: '#94A3B8' }}>Nenhuma biblioteca cadastrada.</p>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {visibleSources?.map((source) => (
+                  <LibrarySourceCard key={source.id} source={source} onOpen={setSelectedSourceId} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     );

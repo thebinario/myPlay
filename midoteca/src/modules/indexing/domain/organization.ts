@@ -5,13 +5,23 @@ import type { DiscoveredFile } from './types';
  * discovered files. No IO happens here, which keeps it trivially testable and
  * safe to run against a snapshot of the scan.
  *
- * Model (folder -> course/module/lesson):
- *  - Each top-level directory that contains at least one video becomes a course.
- *  - Within a course, each sub-directory containing videos becomes a module.
- *  - Each video becomes a lesson; PDFs become documents (course- or module-level).
- *  - Files directly at the source root become "loose" documents, except root
- *    videos which form a synthetic course titled after the source.
- *  - Subtitle files are matched to a sibling video by base name (as MediaTracks).
+ * Canonical model:
+ *   Fonte → Coleção → Curso → Seção → Módulo → Aula/Conteúdo
+ *
+ * Detection is path-based and name-aware:
+ *  - A top-level folder named like a collection ("Coleção …") opens a collection.
+ *  - The first folder named like a course ("Curso …") is the course. Folders
+ *    between the collection and the course become facets: the first is the
+ *    category, the last is the provider.
+ *  - Folders after the course are classified as section → module → lesson by
+ *    their names ("Aulas"/"Materiais"/"Semana …" → section, "Módulo"/"Unidade" →
+ *    module, "Aula"/"Episódio"/"Vídeo" → lesson). Missing levels collapse to an
+ *    implicit section ("Conteúdo") and/or module ("Aulas").
+ *  - Multiple encodings of the same lesson (resolution "540p", "(Cópia)") are
+ *    collapsed into a single lesson with several videos.
+ *  - PDFs become documents at module, section or course level. Folders without
+ *    videos keep their PDFs as loose documents.
+ *  - Subtitle files are matched to a sibling video by base name (MediaTracks).
  */
 
 export interface PlannedLesson {
@@ -35,12 +45,30 @@ export interface PlannedModule {
   documents: PlannedDocument[];
 }
 
-export interface PlannedCourse {
+export interface PlannedSection {
   relativePath: string;
   title: string;
   order: number;
   modules: PlannedModule[];
   documents: PlannedDocument[];
+}
+
+export interface PlannedCourse {
+  relativePath: string;
+  title: string;
+  order: number;
+  collectionPath: string | null;
+  category: string | null;
+  provider: string | null;
+  sections: PlannedSection[];
+  documents: PlannedDocument[];
+}
+
+export interface PlannedCollection {
+  relativePath: string;
+  title: string;
+  order: number;
+  courses: PlannedCourse[];
 }
 
 export interface PlannedTrack {
@@ -50,6 +78,7 @@ export interface PlannedTrack {
 }
 
 export interface OrganizePlan {
+  collections: PlannedCollection[];
   courses: PlannedCourse[];
   looseDocuments: PlannedDocument[];
   tracks: PlannedTrack[];
@@ -63,7 +92,13 @@ export interface OrganizeOptions {
 }
 
 const IMPLICIT_MODULE_TITLE = 'Aulas';
+const IMPLICIT_SECTION_TITLE = 'Conteúdo';
 const ROOT_COURSE_RELATIVE_PATH = '';
+
+const COLLECTION_RE = /^cole[cç][ãa]o\b/i;
+const COURSE_RE = /^curso\b/i;
+const MODULE_RE = /^(m[óo]dulo|unidade|module|unit|cap[íi]tulo|chapter)\b/i;
+const LESSON_RE = /^(aula|lesson|epis[óo]dio|episode|v[íi]deo|video)\b/i;
 
 export function organize(files: readonly DiscoveredFile[], options: OrganizeOptions): OrganizePlan {
   const videos = files.filter((f) => f.kind === 'video');
@@ -72,101 +107,391 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
 
   if (options.libraryType === 'movie') {
     return {
+      collections: [],
       courses: [],
       looseDocuments: pdfs.map(toDocument).sort(compareNamed),
       tracks: matchTracks(videos, subtitles),
     };
   }
 
-  const courses = new Map<string, CourseBuilder>();
-
-  const ensureCourse = (key: string, relativePath: string, title: string) => {
-    let builder = courses.get(key);
-    if (!builder) {
-      builder = new CourseBuilder(relativePath, title);
-      courses.set(key, builder);
-    }
-    return builder;
-  };
+  const plan = new PlanBuilder();
 
   const rootVideos = videos.filter((f) => segments(f.relativePath).length === 1);
   if (rootVideos.length > 0) {
-    const builder = ensureCourse(
-      ROOT_COURSE_RELATIVE_PATH,
-      ROOT_COURSE_RELATIVE_PATH,
-      options.rootLabel,
-    );
-    const module = builder.ensureModule(ROOT_COURSE_RELATIVE_PATH, IMPLICIT_MODULE_TITLE);
-    for (const video of rootVideos) module.addVideo(video);
+    const course = plan.ensureCourse({
+      collectionPath: null,
+      coursePath: ROOT_COURSE_RELATIVE_PATH,
+      courseTitle: options.rootLabel,
+      category: null,
+      provider: null,
+    });
+    for (const video of rootVideos) {
+      const fileName = segments(video.relativePath)[segments(video.relativePath).length - 1];
+      course
+        .ensureSection(ROOT_COURSE_RELATIVE_PATH, IMPLICIT_SECTION_TITLE, MAX_ORDER)
+        .ensureModule(ROOT_COURSE_RELATIVE_PATH, IMPLICIT_MODULE_TITLE, MAX_ORDER)
+        .addVideo(video, fileName);
+    }
   }
 
   for (const video of videos) {
-    const parts = segments(video.relativePath);
-    if (parts.length < 2) continue; // handled above
-    const courseSeg = parts[0];
-    const builder = ensureCourse(courseSeg, courseSeg, cleanName(courseSeg).title);
-    if (parts.length === 2) {
-      builder.ensureModule(courseSeg, IMPLICIT_MODULE_TITLE).addVideo(video);
-    } else {
-      const moduleSeg = parts[1];
-      builder.ensureModule(`${courseSeg}/${moduleSeg}`, cleanName(moduleSeg).title).addVideo(video);
-    }
+    if (segments(video.relativePath).length < 2) continue; // root videos handled above
+    const place = placement(video.relativePath);
+    const course = plan.ensureCourse(place);
+    const section = course.ensureSection(place.sectionPath, place.sectionTitle, place.sectionOrder);
+    const module = section.ensureModule(place.modulePath, place.moduleTitle, place.moduleOrder);
+    module.addVideo(video, place.lessonFileName);
   }
 
   const looseDocuments: PlannedDocument[] = [];
 
   for (const pdf of pdfs) {
-    const parts = segments(pdf.relativePath);
-    if (parts.length === 1) {
-      const rootCourse = courses.get(ROOT_COURSE_RELATIVE_PATH);
-      if (rootCourse) {
-        rootCourse.addRootDocument(toDocument(pdf), ROOT_COURSE_RELATIVE_PATH);
-      } else {
+    if (segments(pdf.relativePath).length === 1) {
+      const rootCourse = plan.findCourse(ROOT_COURSE_RELATIVE_PATH);
+      if (!rootCourse) {
         looseDocuments.push(toDocument(pdf));
+      } else if (rootCourse.implicitModuleExists()) {
+        rootCourse
+          .ensureSection(ROOT_COURSE_RELATIVE_PATH, IMPLICIT_SECTION_TITLE, MAX_ORDER)
+          .ensureModule(ROOT_COURSE_RELATIVE_PATH, IMPLICIT_MODULE_TITLE, MAX_ORDER)
+          .addDocument(toDocument(pdf));
+      } else {
+        rootCourse.addCourseDocument(toDocument(pdf));
       }
       continue;
     }
-    const courseSeg = parts[0];
-    const builder = courses.get(courseSeg);
-    if (!builder) {
-      // Directory without videos: its PDFs are loose documents.
+    const place = placement(pdf.relativePath);
+    const course = plan.findCourse(place.coursePath);
+    if (!course) {
       looseDocuments.push(toDocument(pdf));
       continue;
     }
-    if (parts.length === 2) {
-      builder.addRootDocument(toDocument(pdf), courseSeg);
-    } else {
-      const moduleSeg = parts[1];
-      builder
-        .ensureModule(`${courseSeg}/${moduleSeg}`, cleanName(moduleSeg).title)
+    if (place.modulePath !== place.sectionPath) {
+      course
+        .ensureSection(place.sectionPath, place.sectionTitle, place.sectionOrder)
+        .ensureModule(place.modulePath, place.moduleTitle, place.moduleOrder)
         .addDocument(toDocument(pdf));
+    } else if (place.sectionPath !== place.coursePath) {
+      course
+        .ensureSection(place.sectionPath, place.sectionTitle, place.sectionOrder)
+        .ensureModule(place.sectionPath, IMPLICIT_MODULE_TITLE, MAX_ORDER)
+        .addDocument(toDocument(pdf));
+    } else if (course.implicitModuleExists()) {
+      course
+        .ensureSection(place.sectionPath, place.sectionTitle, place.sectionOrder)
+        .ensureModule(place.sectionPath, IMPLICIT_MODULE_TITLE, MAX_ORDER)
+        .addDocument(toDocument(pdf));
+    } else {
+      course.addCourseDocument(toDocument(pdf));
     }
   }
 
-  const tracks = matchTracks(videos, subtitles);
-
   return {
-    courses: [...courses.values()]
-      .map((builder) => builder.build())
-      .sort((a, b) => compareNamed(a, b)),
+    collections: plan.buildCollections(),
+    courses: plan.buildCourses(),
     looseDocuments: looseDocuments.sort(compareNamed),
-    tracks,
+    tracks: matchTracks(videos, subtitles),
   };
 }
 
-class CourseBuilder {
-  private readonly modules = new Map<string, ModuleBuilder>();
-  private readonly documents: PlannedDocument[] = [];
+const MAX_ORDER = Number.MAX_SAFE_INTEGER;
+
+interface Placement {
+  collectionPath: string | null;
+  coursePath: string;
+  courseTitle: string;
+  courseOrder: number;
+  category: string | null;
+  provider: string | null;
+  sectionPath: string;
+  sectionTitle: string;
+  sectionOrder: number;
+  modulePath: string;
+  moduleTitle: string;
+  moduleOrder: number;
+  lessonFileName: string;
+}
+
+/**
+ * Derives the collection/course/section/module placement of a file from its
+ * POSIX relative path. Lesson resolution is intentionally left to the module
+ * builder so several encodings of the same lesson collapse together.
+ */
+function placement(relativePath: string): Placement {
+  const parts = segments(relativePath);
+  const fileName = parts[parts.length - 1];
+  const folders = parts.slice(0, -1);
+
+  const collectionIdx = folders.length > 0 && isCollection(folders[0]) ? 0 : -1;
+  const searchStart = collectionIdx >= 0 ? 1 : 0;
+
+  let courseIdx = -1;
+  for (let i = searchStart; i < folders.length; i += 1) {
+    if (isCourse(folders[i])) {
+      courseIdx = i;
+      break;
+    }
+  }
+  if (courseIdx === -1) {
+    courseIdx = Math.min(searchStart, Math.max(0, folders.length - 1));
+  }
+
+  const collectionPath = collectionIdx >= 0 ? folders[0] : null;
+  const coursePath = folders.slice(0, courseIdx + 1).join('/');
+  const courseParsed = cleanName(folders[courseIdx]);
+  const facets = folders.slice(searchStart, courseIdx);
+  const category = facets.length > 0 ? cleanName(facets[0]).title : null;
+  const provider = facets.length > 1 ? cleanName(facets[facets.length - 1]).title : null;
+
+  const after = folders.slice(courseIdx + 1);
+  const roles = classifyChain(after);
+
+  let sectionPath = coursePath;
+  let sectionTitle = IMPLICIT_SECTION_TITLE;
+  let sectionOrder = MAX_ORDER;
+  if (roles.section >= 0) {
+    sectionPath = `${coursePath}/${after.slice(0, roles.section + 1).join('/')}`;
+    const parsed = cleanName(after[roles.section]);
+    sectionTitle = parsed.title;
+    sectionOrder = parsed.order;
+  }
+
+  let modulePath = sectionPath;
+  let moduleTitle = IMPLICIT_MODULE_TITLE;
+  let moduleOrder = MAX_ORDER;
+  if (roles.module >= 0) {
+    modulePath = `${coursePath}/${after.slice(0, roles.module + 1).join('/')}`;
+    const parsed = cleanName(after[roles.module]);
+    moduleTitle = parsed.title;
+    moduleOrder = parsed.order;
+  }
+
+  return {
+    collectionPath,
+    coursePath,
+    courseTitle: courseParsed.title,
+    courseOrder: courseParsed.order,
+    category,
+    provider,
+    sectionPath,
+    sectionTitle,
+    sectionOrder,
+    modulePath,
+    moduleTitle,
+    moduleOrder,
+    lessonFileName: fileName,
+  };
+}
+
+interface ChainRoles {
+  section: number;
+  module: number;
+}
+
+/** Classifies the folders after a course into section/module indices (-1 = implicit). */
+function classifyChain(folders: readonly string[]): ChainRoles {
+  let index = 0;
+  let section = -1;
+  let module = -1;
+
+  if (index < folders.length && isSection(folders[index])) {
+    section = index;
+    index += 1;
+  }
+  if (index < folders.length && !isLesson(folders[index])) {
+    module = index;
+    index += 1;
+  }
+  return { section, module };
+}
+
+function isCollection(segment: string): boolean {
+  return COLLECTION_RE.test(cleanName(segment).title);
+}
+
+function isCourse(segment: string): boolean {
+  return COURSE_RE.test(cleanName(segment).title);
+}
+
+function isSection(segment: string): boolean {
+  const title = cleanName(segment).title;
+  return !MODULE_RE.test(title) && !LESSON_RE.test(title);
+}
+
+function isLesson(segment: string): boolean {
+  return LESSON_RE.test(cleanName(segment).title);
+}
+
+class PlanBuilder {
+  private readonly collections = new Map<string, CollectionBuilder>();
+  private readonly rootCourses = new Map<string, CourseBuilder>();
+
+  ensureCourse(place: {
+    collectionPath: string | null;
+    coursePath: string;
+    courseTitle: string;
+    category: string | null;
+    provider: string | null;
+  }): CourseBuilder {
+    if (place.collectionPath) {
+      const collection = this.ensureCollection(place.collectionPath);
+      return collection.ensureCourse(place);
+    }
+    let course = this.rootCourses.get(place.coursePath);
+    if (!course) {
+      course = new CourseBuilder(
+        place.coursePath,
+        place.courseTitle,
+        null,
+        place.category,
+        place.provider,
+      );
+      this.rootCourses.set(place.coursePath, course);
+    }
+    return course;
+  }
+
+  findCourse(coursePath: string): CourseBuilder | null {
+    const root = this.rootCourses.get(coursePath);
+    if (root) return root;
+    for (const collection of this.collections.values()) {
+      const course = collection.findCourse(coursePath);
+      if (course) return course;
+    }
+    return null;
+  }
+
+  private ensureCollection(relativePath: string): CollectionBuilder {
+    let collection = this.collections.get(relativePath);
+    if (!collection) {
+      collection = new CollectionBuilder(relativePath, cleanName(relativePath).title);
+      this.collections.set(relativePath, collection);
+    }
+    return collection;
+  }
+
+  buildCollections(): PlannedCollection[] {
+    return [...this.collections.values()]
+      .map((collection) => collection.build())
+      .sort(compareNamed);
+  }
+
+  buildCourses(): PlannedCourse[] {
+    const courses = [
+      ...[...this.rootCourses.values()].map((course) => course.build()),
+      ...[...this.collections.values()].flatMap((collection) =>
+        [...collection.courseBuilders()].map((course) => course.build()),
+      ),
+    ];
+    return courses.sort(compareNamed);
+  }
+}
+
+class CollectionBuilder {
+  private readonly courses = new Map<string, CourseBuilder>();
 
   constructor(
     readonly relativePath: string,
     readonly title: string,
   ) {}
 
-  ensureModule(relativePath: string, title: string): ModuleBuilder {
+  ensureCourse(place: {
+    coursePath: string;
+    courseTitle: string;
+    category: string | null;
+    provider: string | null;
+  }): CourseBuilder {
+    let course = this.courses.get(place.coursePath);
+    if (!course) {
+      course = new CourseBuilder(
+        place.coursePath,
+        place.courseTitle,
+        this.relativePath,
+        place.category,
+        place.provider,
+      );
+      this.courses.set(place.coursePath, course);
+    }
+    return course;
+  }
+
+  findCourse(coursePath: string): CourseBuilder | null {
+    return this.courses.get(coursePath) ?? null;
+  }
+
+  courseBuilders(): CourseBuilder[] {
+    return [...this.courses.values()];
+  }
+
+  build(): PlannedCollection {
+    return {
+      relativePath: this.relativePath,
+      title: this.title,
+      order: cleanName(this.relativePath).order,
+      courses: this.courseBuilders()
+        .map((course) => course.build())
+        .sort(compareNamed),
+    };
+  }
+}
+
+class CourseBuilder {
+  private readonly sections = new Map<string, SectionBuilder>();
+  private readonly documents: PlannedDocument[] = [];
+
+  constructor(
+    readonly relativePath: string,
+    readonly title: string,
+    readonly collectionPath: string | null,
+    readonly category: string | null,
+    readonly provider: string | null,
+  ) {}
+
+  ensureSection(relativePath: string, title: string, order: number): SectionBuilder {
+    let section = this.sections.get(relativePath);
+    if (!section) {
+      section = new SectionBuilder(relativePath, title, order);
+      this.sections.set(relativePath, section);
+    }
+    return section;
+  }
+
+  addCourseDocument(document: PlannedDocument): void {
+    this.documents.push(document);
+  }
+
+  implicitModuleExists(): boolean {
+    return this.sections.get(this.relativePath)?.hasModule(this.relativePath) ?? false;
+  }
+
+  build(): PlannedCourse {
+    return {
+      relativePath: this.relativePath,
+      title: this.title,
+      order: cleanName(this.relativePath).order,
+      collectionPath: this.collectionPath,
+      category: this.category,
+      provider: this.provider,
+      sections: [...this.sections.values()].map((section) => section.build()).sort(compareNamed),
+      documents: this.documents.sort(compareNamed),
+    };
+  }
+}
+
+class SectionBuilder {
+  private readonly modules = new Map<string, ModuleBuilder>();
+  private readonly documents: PlannedDocument[] = [];
+
+  constructor(
+    readonly relativePath: string,
+    readonly title: string,
+    readonly order: number,
+  ) {}
+
+  ensureModule(relativePath: string, title: string, order: number): ModuleBuilder {
     let module = this.modules.get(relativePath);
     if (!module) {
-      module = new ModuleBuilder(relativePath, title);
+      module = new ModuleBuilder(relativePath, title, order);
       this.modules.set(relativePath, module);
     }
     return module;
@@ -176,35 +501,40 @@ class CourseBuilder {
     this.documents.push(document);
   }
 
-  addRootDocument(document: PlannedDocument, implicitModulePath: string): void {
-    const implicitModule = this.modules.get(implicitModulePath);
-    if (implicitModule) implicitModule.addDocument(document);
-    else this.addDocument(document);
+  hasModule(relativePath: string): boolean {
+    return this.modules.has(relativePath);
   }
 
-  build(): PlannedCourse {
-    const modules = [...this.modules.values()].map((module) => module.build()).sort(compareNamed);
+  build(): PlannedSection {
     return {
       relativePath: this.relativePath,
       title: this.title,
-      order: cleanName(this.relativePath).order,
-      modules,
+      order: this.order,
+      modules: [...this.modules.values()].map((module) => module.build()).sort(compareNamed),
       documents: this.documents.sort(compareNamed),
     };
   }
 }
 
 class ModuleBuilder {
-  private readonly videos: DiscoveredFile[] = [];
+  private readonly lessons = new Map<string, LessonBuilder>();
   private readonly documents: PlannedDocument[] = [];
 
   constructor(
     readonly relativePath: string,
     readonly title: string,
+    readonly order: number,
   ) {}
 
-  addVideo(video: DiscoveredFile): void {
-    this.videos.push(video);
+  addVideo(video: DiscoveredFile, fileName: string): void {
+    const key = lessonIdentity(fileName);
+    let lesson = this.lessons.get(key);
+    if (!lesson) {
+      const parsed = cleanName(scrubEncoding(fileName));
+      lesson = new LessonBuilder(video.relativePath, parsed.title, parsed.order);
+      this.lessons.set(key, lesson);
+    }
+    lesson.addVideo(video.relativePath);
   }
 
   addDocument(document: PlannedDocument): void {
@@ -212,23 +542,40 @@ class ModuleBuilder {
   }
 
   build(): PlannedModule {
-    const lessons = this.videos
-      .map((video) => {
-        const parsed = cleanName(video.fileName);
-        return {
-          relativePath: video.relativePath,
-          title: parsed.title,
-          order: parsed.order,
-          videos: [video.relativePath],
-        } satisfies PlannedLesson;
-      })
-      .sort(compareNamed);
     return {
       relativePath: this.relativePath,
       title: this.title,
-      order: cleanName(this.relativePath).order,
-      lessons,
+      order: this.order,
+      lessons: [...this.lessons.values()].map((lesson) => lesson.build()).sort(compareNamed),
       documents: this.documents.sort(compareNamed),
+    };
+  }
+}
+
+class LessonBuilder {
+  private readonly videos: string[] = [];
+
+  constructor(
+    readonly relativePath: string,
+    readonly title: string,
+    readonly order: number,
+  ) {}
+
+  addVideo(relativePath: string): void {
+    this.videos.push(relativePath);
+  }
+
+  build(): PlannedLesson {
+    const videos = [...this.videos].sort((a, b) => {
+      const score = resolutionScore(b) - resolutionScore(a);
+      if (score !== 0) return score;
+      return naturalCompare(a, b);
+    });
+    return {
+      relativePath: this.relativePath,
+      title: this.title,
+      order: this.order,
+      videos,
     };
   }
 }
@@ -299,6 +646,27 @@ export function parseSubtitle(relativePath: string): ParsedSubtitle {
     return { base: match[1], language: match[2].toLowerCase() };
   }
   return { base: withoutExtension, language: null };
+}
+
+/** Removes duplicate-encoding noise ("(Cópia)", resolution tags) from a name. */
+export function scrubEncoding(rawName: string): string {
+  return rawName
+    .replace(/\(\s*c[óo]pia\s*\)/gi, '')
+    .replace(/\b\d{3,4}[pi]\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** Identity used to collapse several encodings of the same lesson. */
+function lessonIdentity(fileName: string): string {
+  return scrubEncoding(stripExtension(fileName)).toLowerCase();
+}
+
+function resolutionScore(relativePath: string): number {
+  const match = relativePath.toLowerCase().match(/(\d{3,4})[pi]\b/);
+  if (match) return Number.parseInt(match[1], 10);
+  if (relativePath.toLowerCase().endsWith('.webm')) return 720;
+  return 0;
 }
 
 function stripExtension(name: string): string {

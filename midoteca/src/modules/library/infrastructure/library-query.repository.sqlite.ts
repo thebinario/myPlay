@@ -2,6 +2,11 @@ import { resolve } from 'node:path';
 import type {
   CatalogSearchFilter,
   CatalogSearchHit,
+  CollectionCourseNode,
+  CollectionModuleNode,
+  CollectionSectionNode,
+  CollectionSummary,
+  CollectionTree,
   CourseSummary,
   DocumentSummary,
   Paged,
@@ -95,6 +100,52 @@ function mapDocumentSummary(row: DocumentSummaryRow): DocumentSummary {
     mediaFileId: row.media_file_id,
     titleSource: row.title_source as TitleSource,
     pageCount: row.page_count,
+  };
+}
+
+interface CollectionSummaryRow {
+  id: string;
+  title: string;
+  source_id: string;
+  relative_path: string;
+  title_source: string;
+  updated_at: string;
+  course_count: number;
+}
+
+interface CollectionRow {
+  id: string;
+  title: string;
+  source_id: string;
+}
+
+interface CourseNodeRow {
+  id: string;
+  title: string;
+  relative_path: string | null;
+  category: string | null;
+  provider: string | null;
+}
+
+interface SectionRow {
+  id: string;
+  title: string;
+}
+
+interface ModuleRow {
+  id: string;
+  title: string;
+}
+
+function mapCollectionSummary(row: CollectionSummaryRow): CollectionSummary {
+  return {
+    id: row.id,
+    title: row.title,
+    sourceId: row.source_id,
+    relativePath: row.relative_path,
+    titleSource: row.title_source as TitleSource,
+    courseCount: row.course_count,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -235,6 +286,116 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
         query.offset,
       ) as CatalogSearchRow[];
     return rows.map(mapCatalogSearchHit);
+  }
+
+  listCollections(query: {
+    limit: number;
+    offset: number;
+    sourceId?: string;
+  }): Paged<CollectionSummary> {
+    const where = query.sourceId ? 'WHERE c.source_id = ?' : '';
+    const params: unknown[] = query.sourceId ? [query.sourceId] : [];
+    const rows = this.db
+      .prepare(
+        `SELECT c.id, c.title, c.source_id, c.relative_path, c.title_source, c.updated_at,
+                (SELECT COUNT(*) FROM courses co WHERE co.collection_id = c.id) AS course_count
+         FROM collections c
+         ${where}
+         ORDER BY c.title COLLATE NOCASE
+         LIMIT ? OFFSET ?`,
+      )
+      .all(...params, query.limit, query.offset) as CollectionSummaryRow[];
+    const total = this.count('collections c', where, params);
+    return {
+      items: rows.map(mapCollectionSummary),
+      total,
+      limit: query.limit,
+      offset: query.offset,
+    };
+  }
+
+  getCollectionTree(collectionId: string): CollectionTree | null {
+    const collection = this.db
+      .prepare(`SELECT id, title, source_id FROM collections WHERE id = ?`)
+      .get(collectionId) as CollectionRow | undefined;
+    if (!collection) return null;
+
+    const courseRows = this.db
+      .prepare(
+        `SELECT id, title, relative_path, category, provider
+         FROM courses WHERE collection_id = ?
+         ORDER BY title COLLATE NOCASE`,
+      )
+      .all(collectionId) as CourseNodeRow[];
+
+    return {
+      id: collection.id,
+      title: collection.title,
+      sourceId: collection.source_id,
+      courses: courseRows.map((course) => this.buildCourseNode(course)),
+    };
+  }
+
+  private buildCourseNode(course: CourseNodeRow): CollectionCourseNode {
+    const sectionRows = this.db
+      .prepare(
+        `SELECT id, title FROM course_sections
+         WHERE course_id = ? ORDER BY sort_order, title COLLATE NOCASE`,
+      )
+      .all(course.id) as SectionRow[];
+
+    const sections: CollectionSectionNode[] = sectionRows.map((section) => {
+      const moduleRows = this.db
+        .prepare(
+          `SELECT id, title FROM course_modules
+           WHERE section_id = ? ORDER BY sort_order, title COLLATE NOCASE`,
+        )
+        .all(section.id) as ModuleRow[];
+      const modules = moduleRows.map((module) => this.buildModuleNode(module));
+      return {
+        id: section.id,
+        title: section.title,
+        modules,
+        documentCount: modules.reduce((sum, module) => sum + module.documentCount, 0),
+      };
+    });
+
+    const lessonCount = sections.reduce(
+      (sum, section) =>
+        sum + section.modules.reduce((count, module) => count + module.lessonCount, 0),
+      0,
+    );
+    const moduleDocuments = sections.reduce((sum, section) => sum + section.documentCount, 0);
+    const courseDocuments = (
+      this.db
+        .prepare(`SELECT COUNT(*) AS count FROM document_links WHERE course_id = ?`)
+        .get(course.id) as { count: number }
+    ).count;
+
+    return {
+      id: course.id,
+      title: course.title,
+      relativePath: course.relative_path,
+      category: course.category,
+      provider: course.provider,
+      sections,
+      lessonCount,
+      documentCount: moduleDocuments + courseDocuments,
+    };
+  }
+
+  private buildModuleNode(module: ModuleRow): CollectionModuleNode {
+    const lessonCount = (
+      this.db
+        .prepare(`SELECT COUNT(*) AS count FROM lessons WHERE module_id = ?`)
+        .get(module.id) as { count: number }
+    ).count;
+    const documentCount = (
+      this.db
+        .prepare(`SELECT COUNT(*) AS count FROM document_links WHERE module_id = ?`)
+        .get(module.id) as { count: number }
+    ).count;
+    return { id: module.id, title: module.title, lessonCount, documentCount };
   }
 
   getSourceIndexState(sourceId: string): SourceIndexState | null {

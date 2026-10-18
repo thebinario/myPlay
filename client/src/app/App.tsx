@@ -38,7 +38,7 @@ export const App: React.FC = () => {
   const documentReturnTab = useRef<NavigationTab>('library');
 
   // Catálogo: fonte única de verdade (repositório + assinatura de mudanças)
-  const { repository, items, courses, movies, documents } = useLibrary();
+  const { repository, items, courses, movies, documents, collections } = useLibrary();
   const docs = documents;
 
   // Fontes + importação (contexto `sources`) e primeiro acesso (contexto `onboarding`).
@@ -317,6 +317,7 @@ export const App: React.FC = () => {
           <LibraryView
             items={items}
             sources={sourcesViewModel.sources}
+            collections={collections}
             onSelectCourse={handleSelectCourse}
             onPlayLesson={handlePlayLesson}
             onOpenMovie={handleOpenMovie}

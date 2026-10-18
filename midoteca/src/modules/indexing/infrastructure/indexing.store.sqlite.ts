@@ -10,10 +10,12 @@ import type {
   MediaIndexRecord,
   MediaInsert,
   MediaTouch,
+  UpsertCollectionInput,
   UpsertCourseInput,
   UpsertDocumentInput,
   UpsertLessonInput,
   UpsertModuleInput,
+  UpsertSectionInput,
   UpsertTitleResult,
 } from '../domain/ports';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
@@ -164,10 +166,22 @@ export class SqliteIndexingStore implements IndexingStore {
       this.db
         .prepare(
           `UPDATE courses
-             SET detected_title = ?, title = ?, title_source = ?, updated_at = ?
+             SET detected_title = ?, title = ?, title_source = ?,
+                 collection_id = COALESCE(?, collection_id),
+                 category = COALESCE(?, category),
+                 provider = COALESCE(?, provider), updated_at = ?
            WHERE id = ?`,
         )
-        .run(input.detectedTitle, resolved.title, resolved.titleSource, nowIso(), existing.id);
+        .run(
+          input.detectedTitle,
+          resolved.title,
+          resolved.titleSource,
+          input.collectionId ?? null,
+          input.category ?? null,
+          input.provider ?? null,
+          nowIso(),
+          existing.id,
+        );
       return {
         id: existing.id,
         title: resolved.title,
@@ -184,8 +198,8 @@ export class SqliteIndexingStore implements IndexingStore {
       .prepare(
         `INSERT INTO courses
            (id, title, description, metadata, source_id, relative_path,
-            detected_title, title_source, created_at, updated_at)
-         VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
+            detected_title, title_source, collection_id, category, provider, created_at, updated_at)
+         VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -194,16 +208,81 @@ export class SqliteIndexingStore implements IndexingStore {
         input.relativePath,
         input.detectedTitle,
         titleSource,
+        input.collectionId ?? null,
+        input.category ?? null,
+        input.provider ?? null,
         now,
         now,
       );
     return { id, title, titleSource, created: true };
   }
 
-  upsertModule(input: UpsertModuleInput): UpsertTitleResult {
+  upsertCollection(input: UpsertCollectionInput): UpsertTitleResult {
     const existing = this.db
       .prepare(
-        `SELECT id, title, title_source, sort_source FROM course_modules
+        `SELECT id, title, title_source FROM collections
+         WHERE source_id = ? AND relative_path = ?`,
+      )
+      .get(input.sourceId, input.relativePath) as TitleRow | undefined;
+
+    if (existing) {
+      const resolved = this.resolveTitle(
+        existing.title,
+        existing.title_source as TitleSource,
+        input.detectedTitle,
+        input.manifestTitle,
+      );
+      this.db
+        .prepare(
+          `UPDATE collections
+             SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, updated_at = ?
+           WHERE id = ?`,
+        )
+        .run(
+          input.detectedTitle,
+          resolved.title,
+          resolved.titleSource,
+          input.sortOrder ?? 0,
+          nowIso(),
+          existing.id,
+        );
+      return {
+        id: existing.id,
+        title: resolved.title,
+        titleSource: resolved.titleSource,
+        created: false,
+      };
+    }
+
+    const id = newId();
+    const now = nowIso();
+    const title = input.manifestTitle?.trim() || input.detectedTitle;
+    const titleSource: TitleSource = input.manifestTitle?.trim() ? 'manifest' : 'detected';
+    this.db
+      .prepare(
+        `INSERT INTO collections
+           (id, source_id, relative_path, title, detected_title, title_source,
+            sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.sourceId,
+        input.relativePath,
+        title,
+        input.detectedTitle,
+        titleSource,
+        input.sortOrder ?? 0,
+        now,
+        now,
+      );
+    return { id, title, titleSource, created: true };
+  }
+
+  upsertSection(input: UpsertSectionInput): UpsertTitleResult {
+    const existing = this.db
+      .prepare(
+        `SELECT id, title, title_source, sort_source FROM course_sections
          WHERE course_id = ? AND relative_path = ?`,
       )
       .get(input.courseId, input.relativePath) as SortableTitleRow | undefined;
@@ -215,11 +294,10 @@ export class SqliteIndexingStore implements IndexingStore {
         input.detectedTitle,
         input.manifestTitle,
       );
-      // A user-defined order is never clobbered by a rescan.
       if (existing.sort_source === 'manual') {
         this.db
           .prepare(
-            `UPDATE course_modules
+            `UPDATE course_sections
                SET detected_title = ?, title = ?, title_source = ?
              WHERE id = ?`,
           )
@@ -227,7 +305,7 @@ export class SqliteIndexingStore implements IndexingStore {
       } else {
         this.db
           .prepare(
-            `UPDATE course_modules
+            `UPDATE course_sections
                SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected'
              WHERE id = ?`,
           )
@@ -252,7 +330,7 @@ export class SqliteIndexingStore implements IndexingStore {
     const titleSource: TitleSource = input.manifestTitle?.trim() ? 'manifest' : 'detected';
     this.db
       .prepare(
-        `INSERT INTO course_modules
+        `INSERT INTO course_sections
            (id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source)
          VALUES (?, ?, ?, ?, 'detected', ?, ?, ?)`,
       )
@@ -264,6 +342,84 @@ export class SqliteIndexingStore implements IndexingStore {
         input.relativePath,
         input.detectedTitle,
         titleSource,
+      );
+    return { id, title, titleSource, created: true };
+  }
+
+  upsertModule(input: UpsertModuleInput): UpsertTitleResult {
+    const existing = this.db
+      .prepare(
+        `SELECT id, title, title_source, sort_source FROM course_modules
+         WHERE course_id = ? AND relative_path = ?`,
+      )
+      .get(input.courseId, input.relativePath) as SortableTitleRow | undefined;
+
+    if (existing) {
+      const resolved = this.resolveTitle(
+        existing.title,
+        existing.title_source as TitleSource,
+        input.detectedTitle,
+        input.manifestTitle,
+      );
+      // A user-defined order is never clobbered by a rescan.
+      if (existing.sort_source === 'manual') {
+        this.db
+          .prepare(
+            `UPDATE course_modules
+               SET detected_title = ?, title = ?, title_source = ?,
+                   section_id = COALESCE(?, section_id)
+             WHERE id = ?`,
+          )
+          .run(
+            input.detectedTitle,
+            resolved.title,
+            resolved.titleSource,
+            input.sectionId ?? null,
+            existing.id,
+          );
+      } else {
+        this.db
+          .prepare(
+            `UPDATE course_modules
+               SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected',
+                   section_id = COALESCE(?, section_id)
+             WHERE id = ?`,
+          )
+          .run(
+            input.detectedTitle,
+            resolved.title,
+            resolved.titleSource,
+            input.sortOrder ?? 0,
+            input.sectionId ?? null,
+            existing.id,
+          );
+      }
+      return {
+        id: existing.id,
+        title: resolved.title,
+        titleSource: resolved.titleSource,
+        created: false,
+      };
+    }
+
+    const id = newId();
+    const title = input.manifestTitle?.trim() || input.detectedTitle;
+    const titleSource: TitleSource = input.manifestTitle?.trim() ? 'manifest' : 'detected';
+    this.db
+      .prepare(
+        `INSERT INTO course_modules
+           (id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source, section_id)
+         VALUES (?, ?, ?, ?, 'detected', ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.courseId,
+        title,
+        input.sortOrder ?? 0,
+        input.relativePath,
+        input.detectedTitle,
+        titleSource,
+        input.sectionId ?? null,
       );
     return { id, title, titleSource, created: true };
   }

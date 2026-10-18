@@ -1,5 +1,6 @@
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
 import type { PlaybackProgress } from '@midoteca/core';
+import type { Collection } from '@/core/domain/collection';
 import type { Course, Document } from '@/core/domain/library';
 import type { ContentType, LibraryItem, SearchFilter, SearchResult } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
@@ -12,6 +13,7 @@ function playbackPositionKey(courseId: string, lessonId: string): string {
 /** IPC-backed catalog snapshot; only operations not yet migrated use the delegate. */
 export class IpcLibraryRepository implements LibraryRepository {
   private items: LibraryItem[] = [];
+  private collections: Collection[] = [];
   private readonly listeners = new Set<() => void>();
   private refreshing: Promise<void> | null = null;
   private detachEvents: (() => void) | null = null;
@@ -46,7 +48,9 @@ export class IpcLibraryRepository implements LibraryRepository {
   private async refresh(): Promise<void> {
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
-      this.items = await loadLibraryCatalog(this.bridge);
+      const snapshot = await loadLibraryCatalog(this.bridge);
+      this.items = snapshot.items;
+      this.collections = snapshot.collections;
       this.playbackPositionsSeconds.clear();
       this.items.flatMap(getDocumentsFromItem).forEach((document) => {
         if (document.readingState) {
@@ -79,6 +83,10 @@ export class IpcLibraryRepository implements LibraryRepository {
   getItems(type: ContentType = 'all'): LibraryItem[] {
     if (type === 'all') return this.items;
     return this.items.filter((item) => item.type === type);
+  }
+
+  getCollections(): Collection[] {
+    return this.collections;
   }
 
   getItemById(id: string): LibraryItem | undefined {

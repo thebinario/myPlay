@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Course, Document, LibraryItem, Movie } from '@/core/domain/library';
+import type { Collection } from '@/core/domain/collection';
 import { mockLibraryService } from '@/modules/library/infrastructure/mock-library-repository';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
 
@@ -42,9 +43,21 @@ export function useLibraryItems(): LibraryItem[] {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/** Coleções agregadas fornecidas pelo núcleo (read model reativo). */
+export function useLibraryCollections(): Collection[] {
+  const repository = useLibraryRepository();
+  const subscribe = useCallback(
+    (listener: () => void) => repository.subscribe(listener),
+    [repository],
+  );
+  const getSnapshot = useCallback(() => repository.getCollections(), [repository]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
 export interface UseLibraryResult {
   repository: LibraryRepository;
   items: LibraryItem[];
+  collections: Collection[];
   courses: Course[];
   movies: Movie[];
   documents: Document[];
@@ -54,14 +67,16 @@ export interface UseLibraryResult {
 export function useLibrary(): UseLibraryResult {
   const repository = useLibraryRepository();
   const items = useLibraryItems();
+  const collections = useLibraryCollections();
   return useMemo(
     () => ({
       repository,
       items,
+      collections,
       courses: items.filter((i): i is Course => i.type === 'course'),
       movies: items.filter((i): i is Movie => i.type === 'movie'),
       documents: items.filter((i): i is Document => i.type === 'document'),
     }),
-    [repository, items],
+    [repository, items, collections],
   );
 }

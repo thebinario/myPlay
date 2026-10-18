@@ -1,4 +1,4 @@
-import type { Course, CourseModule, Lesson, LessonMedia } from './entities';
+import type { Course, CourseModule, CourseSection, Lesson, LessonMedia } from './entities';
 import type { TitleSource } from '../../../core/title-source';
 import type {
   CreateCourse,
@@ -21,12 +21,19 @@ export interface CourseTree {
   /** Completion percentage across the course lessons and linked library PDFs. */
   completionPercentage: number;
   documents: CourseTreeDocument[];
-  modules: Array<
-    CourseModule & {
-      documents: CourseTreeDocument[];
-      lessons: Array<Lesson & { media: LessonMedia[] }>;
-    }
-  >;
+  /** Flat projection of every module (legacy consumers keep working). */
+  modules: CourseTreeModule[];
+  /** Modules grouped by section, when the course is organized into sections. */
+  sections: CourseTreeSection[];
+}
+
+export type CourseTreeModule = CourseModule & {
+  documents: CourseTreeDocument[];
+  lessons: Array<Lesson & { media: LessonMedia[] }>;
+};
+
+export interface CourseTreeSection extends CourseSection {
+  modules: CourseTreeModule[];
 }
 
 /** Read-only document projection included in the course aggregate. */

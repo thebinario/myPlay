@@ -2,6 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { CourseDetailsView } from '@/modules/courses/presentation/CourseDetailsView';
 import { MOCK_COURSES } from '@/modules/library/infrastructure/mock-library-repository';
+import { MOCK_COLLECTION_COURSES } from '@/modules/library/infrastructure/mock-collections';
+import type { Course, CourseModule } from '@/core/domain/library';
 
 describe('MIDOTECA - Tela de Detalhes do Curso', () => {
   const sampleCourse = MOCK_COURSES[0]; // Arquitetura Desktop Moderna com Tauri & React
@@ -133,5 +135,57 @@ describe('MIDOTECA - Tela de Detalhes do Curso', () => {
     fireEvent.click(backButton);
 
     expect(handleBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('agrupa os módulos por seção quando o curso tem seções', () => {
+    const course = MOCK_COLLECTION_COURSES.find((item) => item.id === 'course-unico')!;
+
+    render(<CourseDetailsView course={course} onBack={vi.fn()} onToggleLesson={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: '01 - Fundamentos' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '02 - Prática' })).toBeInTheDocument();
+    expect(screen.getByText('Módulo 01 - Conceitos')).toBeInTheDocument();
+  });
+
+  it('distingue módulos de mesmo título em seções diferentes', () => {
+    const lesson = (moduleId: string, id: string, title: string) => ({
+      id,
+      moduleId,
+      title,
+      duration: 60,
+      completed: false,
+      videoUrl: '',
+      order: 1,
+      materials: [],
+    });
+    const moduleA: CourseModule = {
+      id: 'm-a',
+      courseId: sampleCourse.id,
+      title: 'Aulas',
+      order: 1,
+      lessons: [lesson('m-a', 'l-a', 'Aula A')],
+    };
+    const moduleB: CourseModule = {
+      id: 'm-b',
+      courseId: sampleCourse.id,
+      title: 'Aulas',
+      order: 2,
+      lessons: [lesson('m-b', 'l-b', 'Aula B')],
+    };
+    const grouped: Course = {
+      ...sampleCourse,
+      modules: [moduleA, moduleB],
+      sections: [
+        { id: 's-a', courseId: sampleCourse.id, title: 'Seção A', order: 1, modules: [moduleA] },
+        { id: 's-b', courseId: sampleCourse.id, title: 'Seção B', order: 2, modules: [moduleB] },
+      ],
+    };
+
+    render(<CourseDetailsView course={grouped} onBack={vi.fn()} onToggleLesson={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Seção A' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Seção B' })).toBeInTheDocument();
+    expect(screen.getByText('Aula A')).toBeInTheDocument();
+    expect(screen.getByText('Aula B')).toBeInTheDocument();
   });
 });

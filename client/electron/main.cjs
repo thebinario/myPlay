@@ -111,7 +111,20 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  startKernel();
+  try {
+    startKernel();
+  } catch (error) {
+    const detail =
+      error instanceof Error
+        ? error.cause instanceof Error
+          ? error.cause.message
+          : error.message
+        : String(error);
+    console.error('[main] falha ao iniciar o núcleo:', error);
+    dialog.showErrorBox('Falha ao iniciar o núcleo da Midoteca', detail);
+    app.exit(1);
+    return;
+  }
   protocol.handle(MEDIA_SCHEME, serveLibraryMedia);
 
   if (process.env.MIDOTECA_SMOKE === '1') {

@@ -11,6 +11,11 @@ import {
   ISearchService,
 } from '@/core/domain/library';
 import type { LibraryRepository } from '@/core/ports/libraryRepository';
+import type { Collection } from '@/core/domain/collection';
+import {
+  MOCK_COLLECTIONS,
+  MOCK_COLLECTION_COURSES,
+} from '@/modules/library/infrastructure/mock-collections';
 import { searchLibraryItems } from '@/modules/search/application/search-library-items';
 import {
   STORAGE_VERSION,
@@ -315,7 +320,12 @@ export const MOCK_DOCUMENTS: Document[] = [
   },
 ];
 
-export const MOCK_LIBRARY: LibraryItem[] = [...MOCK_COURSES, ...MOCK_MOVIES, ...MOCK_DOCUMENTS];
+export const MOCK_LIBRARY: LibraryItem[] = [
+  ...MOCK_COURSES,
+  ...MOCK_COLLECTION_COURSES,
+  ...MOCK_MOVIES,
+  ...MOCK_DOCUMENTS,
+];
 
 export class MockLibraryService implements LibraryRepository {
   private items: LibraryItem[] = JSON.parse(JSON.stringify(MOCK_LIBRARY));
@@ -371,6 +381,10 @@ export class MockLibraryService implements LibraryRepository {
   getItems(type: 'all' | 'course' | 'movie' | 'document' = 'all'): LibraryItem[] {
     if (type === 'all') return this.items;
     return this.items.filter((item) => item.type === type);
+  }
+
+  getCollections(): Collection[] {
+    return MOCK_COLLECTIONS;
   }
 
   getItemById(id: string): LibraryItem | undefined {

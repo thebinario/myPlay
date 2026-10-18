@@ -63,3 +63,47 @@ export interface SourceIndexState {
   mediaCount: number;
   courseCount: number;
 }
+
+/** Lightweight collection row for the collections grid. */
+export interface CollectionSummary {
+  id: string;
+  title: string;
+  sourceId: string;
+  relativePath: string;
+  titleSource: TitleSource;
+  courseCount: number;
+  updatedAt: string;
+}
+
+export interface CollectionModuleNode {
+  id: string;
+  title: string;
+  lessonCount: number;
+  documentCount: number;
+}
+
+export interface CollectionSectionNode {
+  id: string;
+  title: string;
+  modules: CollectionModuleNode[];
+  documentCount: number;
+}
+
+export interface CollectionCourseNode {
+  id: string;
+  title: string;
+  relativePath: string | null;
+  category: string | null;
+  provider: string | null;
+  sections: CollectionSectionNode[];
+  lessonCount: number;
+  documentCount: number;
+}
+
+/** Collection → courses → sections → modules tree consumed by the frontend. */
+export interface CollectionTree {
+  id: string;
+  title: string;
+  sourceId: string;
+  courses: CollectionCourseNode[];
+}

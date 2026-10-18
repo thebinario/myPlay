@@ -6,6 +6,8 @@ import type {
   CourseSummary,
   CatalogSearchFilter,
   CatalogSearchHit,
+  CollectionSummary,
+  CollectionTree,
   DocumentSummary,
   LibrarySource,
   Paged,
@@ -45,6 +47,8 @@ export const DESKTOP_METHODS = [
   'indexing.status',
   'catalog.listCourses',
   'catalog.listDocuments',
+  'catalog.listCollections',
+  'catalog.getCollectionTree',
   'catalog.search',
   'catalog.getCourseTree',
   'courses.list',
@@ -90,6 +94,8 @@ export interface DesktopParams {
   'indexing.status': { sourceId: string };
   'catalog.listCourses': PageParams & { sourceId?: string };
   'catalog.listDocuments': PageParams & { sourceId?: string };
+  'catalog.listCollections': PageParams & { sourceId?: string };
+  'catalog.getCollectionTree': { collectionId: string };
   'catalog.search': PageParams & { text: string; filter?: CatalogSearchFilter };
   'catalog.getCourseTree': { courseId: string };
   'courses.list': undefined;
@@ -121,6 +127,8 @@ export interface DesktopResults {
   'indexing.status': SourceIndexState | null;
   'catalog.listCourses': Paged<CourseSummary>;
   'catalog.listDocuments': Paged<DocumentSummary>;
+  'catalog.listCollections': Paged<CollectionSummary>;
+  'catalog.getCollectionTree': CollectionTree | null;
   'catalog.search': CatalogSearchHit[];
   'catalog.getCourseTree': CourseTree | null;
   'courses.list': Course[];

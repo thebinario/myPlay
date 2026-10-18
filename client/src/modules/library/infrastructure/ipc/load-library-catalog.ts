@@ -1,14 +1,22 @@
 import type { CourseTree, MediaFile, ReadingProgress } from '@midoteca/core';
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
-import type { Document, LibraryItem } from '@/core/domain/library';
+import type { Collection } from '@/core/domain/collection';
+import type { Course, CourseModule, Document, LibraryItem } from '@/core/domain/library';
 import {
   mapCourseTree,
   mapDocumentSummary,
   mapStandaloneVideo,
 } from '@/modules/library/infrastructure/ipc/map-catalog';
+import { buildCollections } from '@/modules/library/infrastructure/ipc/load-collections';
+
+/** Catalog snapshot: items plus the collection read model from the kernel. */
+export interface LibraryCatalogSnapshot {
+  items: LibraryItem[];
+  collections: Collection[];
+}
 
 /** Loads the production library projection from the SQLite-backed core. */
-export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<LibraryItem[]> {
+export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<LibraryCatalogSnapshot> {
   const sources = await bridge.invoke('sources.list');
   const roots = new Map(sources.map((source) => [source.id, source.rootPath]));
   const sourceTypes = new Map(sources.map((source) => [source.id, source.libraryType]));
@@ -26,6 +34,9 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
   );
   const documents = await listAllPages((offset) =>
     bridge.invoke('catalog.listDocuments', { limit: 200, offset }),
+  );
+  const collections = await listAllPages((offset) =>
+    bridge.invoke('catalog.listCollections', { limit: 200, offset }),
   );
   const completeTrees = trees.filter(
     (tree): tree is CourseTree =>
@@ -70,10 +81,12 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
       .map((progress) => [progress.documentId, progress]),
   );
 
-  return [
+  const items: LibraryItem[] = [
     ...completeTrees.map((tree) => {
       const course = mapCourseTree(tree, media, roots);
-      const modules = course.modules.map((module) => ({
+      const modules = (
+        course.sections ? course.sections.flatMap((s) => s.modules) : course.modules
+      ).map((module) => ({
         ...module,
         lessons: module.lessons.map((lesson) => ({
           ...lesson,
@@ -86,12 +99,12 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
           applyReadingProgress(document, readingByDocumentId.get(document.id)),
         ),
       }));
+      const withProgress = applyModuleProgress(course, modules);
       const documents = course.documents?.map((document) =>
         applyReadingProgress(document, readingByDocumentId.get(document.id)),
       );
       return {
-        ...course,
-        modules,
+        ...withProgress,
         documents,
         progress: tree.completionPercentage,
       };
@@ -110,6 +123,22 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
       })
       .map((file) => mapStandaloneVideo(file, roots)),
   ];
+
+  return { items, collections: buildCollections(items, collections) };
+}
+
+/** Re-applies playback progress to the section modules (and flat modules). */
+function applyModuleProgress(course: Course, modules: CourseModule[]): Course {
+  if (!course.sections) return { ...course, modules };
+  const byId = new Map(modules.map((module) => [module.id, module]));
+  return {
+    ...course,
+    modules,
+    sections: course.sections.map((section) => ({
+      ...section,
+      modules: section.modules.map((module) => byId.get(module.id) ?? module),
+    })),
+  };
 }
 
 function applyReadingProgress(

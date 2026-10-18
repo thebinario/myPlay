@@ -25,6 +25,8 @@ export interface Course {
   /** Last title derived from the filesystem; null for manual courses. */
   detectedTitle: string | null;
   titleSource: TitleSource;
+  /** Owning collection when the source organizes courses into collections. */
+  collectionId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,6 +44,23 @@ export interface CourseModule {
   sortSource: SortSource;
   relativePath: string | null;
   detectedTitle: string | null;
+  titleSource: TitleSource;
+  /** Owning section when the course is organized into sections. */
+  sectionId?: string | null;
+}
+
+/**
+ * A section groups modules inside a course (hierarchy
+ * `Curso → Seção → Módulo → Aula`). Sections are detected from folders; a course
+ * without explicit groupings uses a single implicit section.
+ */
+export interface CourseSection {
+  id: string;
+  courseId: string;
+  title: string;
+  sortOrder: number;
+  sortSource: SortSource;
+  relativePath: string | null;
   titleSource: TitleSource;
 }
 

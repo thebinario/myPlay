@@ -13,6 +13,7 @@ const VIDEO_EXTENSIONS = new Set([
   '.m4v',
   '.mpg',
   '.mpeg',
+  '.ts',
 ]);
 const PDF_EXTENSIONS = new Set(['.pdf']);
 const SUBTITLE_EXTENSIONS = new Set(['.srt', '.vtt', '.ass', '.ssa']);

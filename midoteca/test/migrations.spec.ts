@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1, 2, 3, 4]);
-      expect(app.migration?.currentVersion).toBe(4);
+      expect(app.migration?.applied).toEqual([1, 2, 3, 4, 5]);
+      expect(app.migration?.currentVersion).toBe(5);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(4);
+      expect(second.migration?.currentVersion).toBe(5);
     } finally {
       second.close();
     }
@@ -64,6 +64,7 @@ describe('database initialization and migrations', () => {
         { id: 2, name: '0002-indexing' },
         { id: 3, name: '0003-course-organization' },
         { id: 4, name: '0004-library-type' },
+        { id: 5, name: '0005-collections' },
       ]);
     } finally {
       app.close();
@@ -82,6 +83,8 @@ describe('database initialization and migrations', () => {
         'media_files',
         'media_tracks',
         'courses',
+        'collections',
+        'course_sections',
         'course_modules',
         'lessons',
         'lesson_media',

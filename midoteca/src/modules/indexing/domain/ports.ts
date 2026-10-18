@@ -39,10 +39,22 @@ export interface UpsertTitleInput {
 
 export interface UpsertCourseInput extends UpsertTitleInput {
   sourceId: string;
+  collectionId?: string | null;
+  category?: string | null;
+  provider?: string | null;
+}
+
+export interface UpsertCollectionInput extends UpsertTitleInput {
+  sourceId: string;
+}
+
+export interface UpsertSectionInput extends UpsertTitleInput {
+  courseId: string;
 }
 
 export interface UpsertModuleInput extends UpsertTitleInput {
   courseId: string;
+  sectionId?: string | null;
 }
 
 export interface UpsertLessonInput extends UpsertTitleInput {
@@ -91,6 +103,8 @@ export interface IndexingStore {
   markMissing(sourceId: string, runToken: string): string[];
 
   upsertCourse(input: UpsertCourseInput): UpsertTitleResult;
+  upsertCollection(input: UpsertCollectionInput): UpsertTitleResult;
+  upsertSection(input: UpsertSectionInput): UpsertTitleResult;
   upsertModule(input: UpsertModuleInput): UpsertTitleResult;
   upsertLesson(input: UpsertLessonInput): UpsertTitleResult;
   linkLessonMedia(lessonId: string, mediaFileId: string, role: LessonMediaRole): void;

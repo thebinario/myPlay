@@ -11,9 +11,10 @@ export interface ApplyOrganizationDependencies {
 }
 
 /**
- * Rebuilds the logical course tree (courses → modules → lessons → documents)
- * from the discovered files and the optional `.midoteca/course.json` manifest,
- * then links subtitle tracks. Everything is written in a single transaction.
+ * Rebuilds the logical course tree (collections → courses → sections → modules →
+ * lessons → documents) from the discovered files and the optional
+ * `.midoteca/course.json` manifest, then links subtitle tracks. Everything is
+ * written in a single transaction.
  */
 export class ApplyOrganization {
   constructor(private readonly deps: ApplyOrganizationDependencies) {}
@@ -41,6 +42,17 @@ export class ApplyOrganization {
     }
 
     store.transaction(() => {
+      const collectionIds = new Map<string, string>();
+      for (const collection of plan.collections) {
+        const result = store.upsertCollection({
+          sourceId,
+          relativePath: collection.relativePath,
+          detectedTitle: collection.title,
+          sortOrder: collection.order,
+        });
+        collectionIds.set(collection.relativePath, result.id);
+      }
+
       for (const course of plan.courses) {
         const manifest = manifests.get(course.relativePath) ?? null;
         const courseResult = store.upsertCourse({
@@ -48,6 +60,11 @@ export class ApplyOrganization {
           relativePath: course.relativePath,
           detectedTitle: course.title,
           manifestTitle: manifest?.course?.title ?? null,
+          collectionId: course.collectionPath
+            ? (collectionIds.get(course.collectionPath) ?? null)
+            : null,
+          category: course.category,
+          provider: course.provider,
         });
         this.deps.events.emit('course:organized', {
           courseId: courseResult.id,
@@ -56,42 +73,52 @@ export class ApplyOrganization {
           created: courseResult.created,
         });
 
-        for (const module of course.modules) {
-          const moduleResult = store.upsertModule({
+        for (const section of course.sections) {
+          const sectionResult = store.upsertSection({
             courseId: courseResult.id,
-            relativePath: module.relativePath,
-            detectedTitle: module.title,
-            manifestTitle: manifest?.modules?.[module.relativePath]?.title ?? null,
-            sortOrder: module.order,
+            relativePath: section.relativePath,
+            detectedTitle: section.title,
+            sortOrder: section.order,
           });
 
-          for (const lesson of module.lessons) {
-            const lessonResult = store.upsertLesson({
-              moduleId: moduleResult.id,
-              relativePath: lesson.relativePath,
-              detectedTitle: lesson.title,
-              manifestTitle: manifest?.lessons?.[lesson.relativePath]?.title ?? null,
-              sortOrder: lesson.order,
+          for (const module of section.modules) {
+            const moduleResult = store.upsertModule({
+              courseId: courseResult.id,
+              sectionId: sectionResult.id,
+              relativePath: module.relativePath,
+              detectedTitle: module.title,
+              manifestTitle: manifest?.modules?.[module.relativePath]?.title ?? null,
+              sortOrder: module.order,
             });
-            for (const videoPath of lesson.videos) {
-              const media = store.findMediaByPath(sourceId, videoPath);
-              if (media) {
-                store.linkLessonMedia(lessonResult.id, media.id, 'primary');
+
+            for (const lesson of module.lessons) {
+              const lessonResult = store.upsertLesson({
+                moduleId: moduleResult.id,
+                relativePath: lesson.relativePath,
+                detectedTitle: lesson.title,
+                manifestTitle: manifest?.lessons?.[lesson.relativePath]?.title ?? null,
+                sortOrder: lesson.order,
+              });
+              for (const videoPath of lesson.videos) {
+                const media = store.findMediaByPath(sourceId, videoPath);
+                if (media) {
+                  store.linkLessonMedia(lessonResult.id, media.id, 'primary');
+                }
               }
             }
-          }
 
-          for (const document of module.documents) {
-            const media = store.findMediaByPath(sourceId, document.relativePath);
-            if (!media) continue;
-            const docResult = store.upsertDocument({
-              mediaFileId: media.id,
-              detectedTitle: document.title,
-            });
-            store.linkDocument({
-              documentId: docResult.id,
-              moduleId: moduleResult.id,
-            });
+            for (const document of module.documents) {
+              const media = store.findMediaByPath(sourceId, document.relativePath);
+              if (!media) continue;
+              const docResult = store.upsertDocument({
+                mediaFileId: media.id,
+                detectedTitle: document.title,
+              });
+              store.linkDocument({
+                documentId: docResult.id,
+                moduleId: moduleResult.id,
+              });
+            }
           }
         }
 
