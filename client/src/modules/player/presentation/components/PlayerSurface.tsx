@@ -24,6 +24,7 @@ export const PlayerSurface: React.FC<PlayerSurfaceProps> = ({ player }) => {
     isLoading,
     hasEnded,
     hasError,
+    errorInfo,
     currentTime,
     status,
     activeSubtitle,
@@ -112,7 +113,7 @@ export const PlayerSurface: React.FC<PlayerSurfaceProps> = ({ player }) => {
         }}
       >
         {hasError ? (
-          <PlayerUnavailableState onReconnect={handleReconnect} />
+          <PlayerUnavailableState errorInfo={errorInfo} onReconnect={handleReconnect} />
         ) : isLoading ? (
           <PlayerLoadingState label={loadingLabel} />
         ) : hasEnded ? (

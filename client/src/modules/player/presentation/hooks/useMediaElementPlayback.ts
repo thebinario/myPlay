@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { clampSeekTime } from '@/modules/player/domain/progress';
+import {
+  classifyPlaybackError,
+  type PlaybackErrorInfo,
+} from '@/modules/player/domain/playback-error';
 
 export type PlayerStatus =
   'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'buffering' | 'seeking' | 'ended' | 'error';
@@ -25,6 +29,7 @@ export interface MediaElementPlayback {
   isSeeking: boolean;
   hasEnded: boolean;
   hasError: boolean;
+  errorInfo: PlaybackErrorInfo | null;
   play: () => void;
   pause: () => void;
   toggle: () => void;
@@ -101,6 +106,9 @@ export function useMediaElementPlayback({
   onProgress,
 }: UseMediaElementPlaybackOptions): MediaElementPlayback {
   const [status, setStatus] = useState<PlayerStatus>(unavailable ? 'error' : 'ready');
+  const [errorInfo, setErrorInfo] = useState<PlaybackErrorInfo | null>(() =>
+    unavailable ? classifyPlaybackError({ isUnavailable: true, url: src }) : null,
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [mediaDuration, setMediaDuration] = useState(fallbackDuration);
@@ -140,9 +148,12 @@ export function useMediaElementPlayback({
     applyRate(video, 1);
 
     if (unavailable) {
+      setErrorInfo(classifyPlaybackError({ isUnavailable: true, url: src }));
       setStatus('error');
       return;
     }
+
+    setErrorInfo(null);
 
     if (fallbackDuration > 0 && initialTimeRef.current >= fallbackDuration) {
       setStatus('ended');
@@ -237,7 +248,38 @@ export function useMediaElementPlayback({
       setStatus('ended');
       onEndedRef.current?.();
     };
-    const onError = () => setStatus('error');
+    const onError = () => {
+      const mediaError = video.error;
+      const initialInfo = classifyPlaybackError({
+        url: src,
+        mediaErrorCode: mediaError?.code,
+        mediaErrorMessage: mediaError?.message,
+      });
+      setErrorInfo(initialInfo);
+      setStatus('error');
+
+      // Se aplicável, verifica no backend/protocolo se o arquivo realmente existe
+      if (typeof fetch === 'function' && src && !src.startsWith('blob:') && !src.startsWith('data:')) {
+        fetch(src, { method: 'HEAD' })
+          .then((res) => {
+            if (res.status === 404 || res.status === 403) {
+              setErrorInfo(classifyPlaybackError({ url: src, httpStatus: res.status }));
+            } else if (res.ok) {
+              setErrorInfo(
+                classifyPlaybackError({
+                  url: src,
+                  mediaErrorCode: mediaError?.code ?? 4,
+                  mediaErrorMessage: mediaError?.message,
+                  httpStatus: res.status,
+                }),
+              );
+            }
+          })
+          .catch(() => {
+            /* ignore network/fetch error */
+          });
+      }
+    };
     const onRateChange = () => setPlaybackRateState(video.playbackRate);
     const onDurationChange = () => {
       if (Number.isFinite(video.duration) && video.duration > 0) setMediaDuration(video.duration);
@@ -317,6 +359,7 @@ export function useMediaElementPlayback({
 
   const retry = useCallback(() => {
     const video = videoRef.current;
+    setErrorInfo(null);
     initialTimeRef.current = currentTimeRef.current;
     setIsPlaying(false);
     setStatus('loading');
@@ -394,6 +437,7 @@ export function useMediaElementPlayback({
       isSeeking,
       hasEnded,
       hasError,
+      errorInfo,
       play,
       pause,
       toggle,
@@ -414,6 +458,7 @@ export function useMediaElementPlayback({
       isSeeking,
       hasEnded,
       hasError,
+      errorInfo,
       play,
       pause,
       toggle,

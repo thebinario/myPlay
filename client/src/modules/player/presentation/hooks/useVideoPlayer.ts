@@ -10,6 +10,7 @@ import {
   nextLessonIndex,
   previousLessonIndex,
 } from '@/modules/player/domain/playlist';
+import type { PlaybackErrorInfo } from '@/modules/player/domain/playback-error';
 
 const DEFAULT_SUBTITLES: SubtitleTrack[] = [
   {
@@ -49,6 +50,7 @@ export interface VideoPlayerState {
   isSeeking: boolean;
   hasEnded: boolean;
   hasError: boolean;
+  errorInfo: PlaybackErrorInfo | null;
   volume: number;
   isMuted: boolean;
   isFullscreen: boolean;
@@ -266,6 +268,7 @@ export function useVideoPlayer({
     isSeeking: playback.isSeeking,
     hasEnded: playback.hasEnded,
     hasError: playback.hasError,
+    errorInfo: playback.errorInfo,
     volume,
     isMuted,
     isFullscreen,
