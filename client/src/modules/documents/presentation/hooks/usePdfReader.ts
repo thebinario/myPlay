@@ -42,11 +42,14 @@ export interface PdfReaderState {
  * Hook de apresentação do leitor de PDF: orquestra pdf.js e a persistência no
  * repositório; as regras de página/zoom/rolagem ficam no domínio do módulo.
  */
-export function usePdfReader(document: Document): PdfReaderState {
+export function usePdfReader(document: Document, initialPage?: number): PdfReaderState {
   const repository = useLibraryRepository();
-  const initialReadingState = normalizeReadingState(
-    repository.getDocumentReadingState(document.id),
-  );
+  const savedReadingState = normalizeReadingState(repository.getDocumentReadingState(document.id));
+  // Abrir a partir de um trecho encontrado na busca começa na página do trecho.
+  const initialReadingState =
+    initialPage && initialPage > 0
+      ? { ...savedReadingState, currentPage: initialPage, relativeScrollPosition: 0 }
+      : savedReadingState;
 
   const [currentPage, setCurrentPage] = useState<number>(initialReadingState.currentPage);
   const [zoom, setZoom] = useState<number>(initialReadingState.zoom);

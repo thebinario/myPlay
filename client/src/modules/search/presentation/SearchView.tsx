@@ -3,12 +3,17 @@ import { useUniversalSearch } from '@/modules/search/presentation/hooks/useUnive
 import { SearchInput } from '@/modules/search/presentation/SearchInput';
 import { SearchFilterTabs } from '@/modules/search/presentation/SearchFilterTabs';
 import { SearchResults } from '@/modules/search/presentation/SearchResults';
+import { ContentHitsSection } from '@/modules/search/presentation/ContentHitsSection';
 
 interface SearchViewProps {
   onOpenCourse: (courseId: string) => void;
   onOpenLesson: (courseId: string, lessonId: string) => void;
   onOpenMovie: (movieId: string) => void;
   onOpenDocument: (docId: string) => void;
+  /** Abre a aula no instante do trecho encontrado (segundos). */
+  onOpenLessonAt?: (courseId: string, lessonId: string, seconds: number) => void;
+  /** Abre o PDF na página do trecho encontrado. */
+  onOpenDocumentAt?: (docId: string, page: number) => void;
   initialQuery?: string;
 }
 
@@ -17,6 +22,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onOpenLesson,
   onOpenMovie,
   onOpenDocument,
+  onOpenLessonAt,
+  onOpenDocumentAt,
   initialQuery = '',
 }) => {
   const search = useUniversalSearch(
@@ -81,6 +88,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
         hasResults={search.hasResults}
         grouped={search.grouped}
         onSelect={search.handleResultClick}
+      />
+
+      <ContentHitsSection
+        query={search.query}
+        onOpenLessonAt={
+          onOpenLessonAt ?? ((courseId, lessonId) => onOpenLesson(courseId, lessonId))
+        }
+        onOpenDocumentAt={onOpenDocumentAt ?? ((docId) => onOpenDocument(docId))}
       />
     </div>
   );

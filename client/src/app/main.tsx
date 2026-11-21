@@ -17,6 +17,8 @@ import { IpcLibraryRepository } from '@/modules/library/infrastructure/ipc/ipc-l
 import { IpcPreferencesRepository } from '@/modules/settings/infrastructure/ipc/ipc-preferences.repository';
 import { IpcDuplicatesRepository } from '@/modules/library/infrastructure/ipc/ipc-duplicates.repository';
 import { DuplicatesProvider } from '@/modules/library/presentation/DuplicatesProvider';
+import { IpcContentSearchRepository } from '@/modules/search/infrastructure/ipc/ipc-content-search.repository';
+import { ContentSearchProvider } from '@/modules/search/presentation/ContentSearchProvider';
 import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
 import '@/index.css';
 
@@ -50,22 +52,27 @@ const libraryRepository = runtimeBridge
 if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate();
 
 const duplicatesRepository = runtimeBridge ? new IpcDuplicatesRepository(runtimeBridge) : undefined;
+const contentSearchRepository = runtimeBridge
+  ? new IpcContentSearchRepository(runtimeBridge)
+  : undefined;
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <LibraryProvider repository={libraryRepository}>
       <DuplicatesProvider repository={duplicatesRepository}>
-        <SettingsProvider repository={preferencesRepository}>
-          <SourcesProvider
-            repository={sourcesRepository ?? mockLibrarySourcesRepository}
-            runner={importRunner}
-            picker={bridge ?? undefined}
-          >
-            <OnboardingProvider repository={onboardingRepository}>
-              <App />
-            </OnboardingProvider>
-          </SourcesProvider>
-        </SettingsProvider>
+        <ContentSearchProvider repository={contentSearchRepository}>
+          <SettingsProvider repository={preferencesRepository}>
+            <SourcesProvider
+              repository={sourcesRepository ?? mockLibrarySourcesRepository}
+              runner={importRunner}
+              picker={bridge ?? undefined}
+            >
+              <OnboardingProvider repository={onboardingRepository}>
+                <App />
+              </OnboardingProvider>
+            </SourcesProvider>
+          </SettingsProvider>
+        </ContentSearchProvider>
       </DuplicatesProvider>
     </LibraryProvider>
   </React.StrictMode>,

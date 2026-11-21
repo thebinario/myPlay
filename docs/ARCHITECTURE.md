@@ -163,6 +163,12 @@ frontend só apresenta e envia o comando explícito
 `platform/fs/file-hasher.ts` e `platform/media/` (ffprobe/ffmpeg). Ver ADR
 [`adr/0007-media-analysis-duplicates.md`](adr/0007-media-analysis-duplicates.md).
 
+**Exemplo aplicado — busca no conteúdo.** O contexto `search` do núcleo
+extrai em segundo plano o texto de PDFs e legendas (job `search.extract-content`),
+divide-o em trechos com página ou tempo e o indexa em FTS5. O frontend só
+consulta `search.content` e navega até a página ou o instante do trecho. Ver ADR
+[`adr/0008-content-search-fts5.md`](adr/0008-content-search-fts5.md).
+
 Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
 regras de negócio duplicadas para o backend sem reescrever módulos não
 relacionados. Os testes do backend cobrem as decisões de negócio; os do
