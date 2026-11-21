@@ -29,7 +29,13 @@ export interface CourseTree {
 
 export type CourseTreeModule = CourseModule & {
   documents: CourseTreeDocument[];
-  lessons: Array<Lesson & { media: LessonMedia[] }>;
+  lessons: Array<
+    Lesson & {
+      media: LessonMedia[];
+      /** Fraction of the media really played (0..1); null when unknown. */
+      watchedRatio: number | null;
+    }
+  >;
 };
 
 export interface CourseTreeSection extends CourseSection {

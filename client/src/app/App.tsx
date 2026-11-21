@@ -237,14 +237,6 @@ export const App: React.FC = () => {
     repository.toggleLessonCompletion(courseId, lessonId);
   };
 
-  const handleCompleteLesson = (courseId: string, lessonId: string) => {
-    const lesson = repository
-      .getCourseById(courseId)
-      ?.modules.flatMap((module) => module.lessons)
-      .find((item) => item.id === lessonId);
-    if (lesson && !lesson.completed) repository.toggleLessonCompletion(courseId, lessonId);
-  };
-
   const handleToggleDocumentRead = (documentId: string) => {
     const state = repository.getDocumentReadingState(documentId);
     repository.saveDocumentReadingState(documentId, {
@@ -369,7 +361,6 @@ export const App: React.FC = () => {
             course={selectedCourse}
             initialLessonId={selectedLessonId}
             onBack={handleBackFromLessonPlayer}
-            onCompleteLesson={(lessonId) => handleCompleteLesson(selectedCourse.id, lessonId)}
             resumeTime={resumeTime}
             autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
             onProgress={handlePlayerProgress}

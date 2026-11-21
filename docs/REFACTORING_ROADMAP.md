@@ -63,6 +63,18 @@ src/
 > de testes verdes em ambos os runtimes (540 testes no total). O build empacotado
 > foi testado e validado em instalação em máquina real com Windows 11.
 
+### 3.1 Dívidas registradas (Fase 1 — cobertura real, 2026-11-21)
+
+- `useMediaElementPlayback.ts` (~470 linhas) e `App.tsx` (~440) seguem acima do
+  limite de referência; a Fase 1 extraiu apenas `WatchSegmentTracker` /
+  `useWatchSegments` e removeu a decisão de conclusão do frontend.
+- `HomeView` filtra cursos "em andamento" no frontend; deveria consumir o read
+  model `catalog.home`.
+- O onboarding grava o estado inicial de forma assíncrona e pode sobrescrever
+  um `settings.set` feito logo após o boot (observado no E2E).
+- 4 testes do núcleo e 2 de integração do client falham no Windows por
+  comparar caminhos com `\` × `/` (pré-existente, sem relação com a Fase 1).
+
 ## 4. Priorização
 
 | Prioridade | Alvo | Impacto | Risco | Situação |

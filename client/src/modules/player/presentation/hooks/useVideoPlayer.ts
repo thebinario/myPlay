@@ -3,6 +3,7 @@ import type { Course, Lesson, SubtitleTrack } from '@/core/domain/library';
 import { useLibraryRepository } from '@/modules/library/presentation/LibraryProvider';
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 import { useAutoHideControls } from '@/modules/player/presentation/hooks/useAutoHideControls';
+import { useWatchSegments } from '@/modules/player/presentation/hooks/useWatchSegments';
 import { formatSeconds } from '@/modules/player/domain/progress';
 import {
   lessonsOf,
@@ -28,7 +29,6 @@ export interface VideoPlayerOptions {
   controlsAutoHideDelayMs?: number;
   resumeTime?: number;
   autoPlay?: boolean;
-  onCompleteLesson?: (lessonId: string) => void;
   onProgress?: (snapshot: { currentTime: number; isPlaying: boolean }) => void;
 }
 
@@ -95,7 +95,6 @@ export function useVideoPlayer({
   controlsAutoHideDelayMs,
   resumeTime,
   autoPlay,
-  onCompleteLesson,
   onProgress,
 }: VideoPlayerOptions): VideoPlayerState {
   const repository = useLibraryRepository();
@@ -135,8 +134,18 @@ export function useVideoPlayer({
     initialTime,
     autoPlay,
     unavailable: isUnavailable,
-    onEnded: () => onCompleteLesson?.(currentLesson.id),
     onProgress,
+  });
+
+  // Encaminha ao backend os trechos realmente reproduzidos; ele decide a
+  // conclusão (seek até o fim não conta como assistido).
+  useWatchSegments({
+    lessonId: currentLesson.id,
+    currentTime: playback.currentTime,
+    isPlaying: playback.status === 'playing',
+    playbackRate: playback.playbackRate,
+    durationSeconds: playback.duration,
+    onSegment: (lessonId, segment) => repository.recordWatchSegment(course.id, lessonId, segment),
   });
 
   const [volume, setVolume] = useState<number>(1);

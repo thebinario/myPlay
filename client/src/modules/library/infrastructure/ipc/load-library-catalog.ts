@@ -91,6 +91,8 @@ export async function loadLibraryCatalog(bridge: MidotecaBridge): Promise<Librar
         lessons: module.lessons.map((lesson) => ({
           ...lesson,
           completed: !!playbackByLessonId.get(lesson.id)?.completedAt,
+          watchedRatio: playbackByLessonId.get(lesson.id)?.watchedRatio ?? null,
+          completionSource: playbackByLessonId.get(lesson.id)?.completionSource ?? null,
           ...(playbackByLessonId.has(lesson.id)
             ? { lastPlaybackPosition: (playbackByLessonId.get(lesson.id)?.positionMs ?? 0) / 1000 }
             : {}),

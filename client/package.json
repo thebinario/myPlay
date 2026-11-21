@@ -27,6 +27,7 @@
     "desktop:rebuild:node": "npm --prefix ../midoteca rebuild better-sqlite3",
     "desktop:start": "npm run desktop:rebuild && electron electron/main.cjs",
     "desktop:start:fast": "electron electron/main.cjs",
+    "desktop:e2e:player": "npm run desktop:core && npm run build && npm run desktop:rebuild && node scripts/e2e-player-coverage.cjs",
     "desktop:smoke": "npm run desktop:rebuild && MIDOTECA_SMOKE=1 electron electron/main.cjs",
     "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start",
     "desktop:stg": "node scripts/desktop-stg.cjs",

@@ -11,6 +11,7 @@ import {
   Code,
   ExternalLink,
 } from 'lucide-react';
+import { LessonWatchBadge } from '@/modules/courses/presentation/LessonWatchBadge';
 import { CourseProgressCard } from './CourseProgressCard';
 
 interface CourseDetailsViewProps {
@@ -296,6 +297,11 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                                   >
                                     {lesson.title}
                                   </span>
+                                  <LessonWatchBadge
+                                    watchedRatio={lesson.watchedRatio}
+                                    completed={lesson.completed}
+                                    completionSource={lesson.completionSource}
+                                  />
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>

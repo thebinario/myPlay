@@ -30,7 +30,10 @@ export interface LibraryCatalogRepository {
   getDocumentById(id: string): Document | undefined;
   /** Persiste um curso editado e notifica os assinantes. */
   saveCourse(course: Course): Course | Promise<Course>;
-  /** Alterna a conclusão de uma aula e recalcula o progresso do curso. */
+  /**
+   * Alterna a conclusão manual de uma aula. Quem decide e registra a conclusão
+   * é o backend; o progresso do curso vem do read model.
+   */
   toggleLessonCompletion(courseId: string, lessonId: string): Course | undefined;
   /**
    * Assina mudanças do catálogo. Retorna a função de cancelamento.
@@ -42,6 +45,15 @@ export interface LibraryCatalogRepository {
 /** Contrato de estado de reprodução (posições e preferências de legenda). */
 export interface PlaybackStateRepository {
   savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void;
+  /**
+   * Encaminha um trecho realmente reproduzido. O backend calcula a cobertura e
+   * decide a conclusão (≥ 90% assistido).
+   */
+  recordWatchSegment(
+    courseId: string,
+    lessonId: string,
+    segment: { fromSeconds: number; toSeconds: number; durationSeconds?: number },
+  ): void;
   getPlaybackPosition(courseId: string, lessonId: string): number;
   saveSubtitlePreference(courseId: string, lessonId: string, subtitleId: string | null): void;
   getSubtitlePreference(courseId: string, lessonId: string): string | null;

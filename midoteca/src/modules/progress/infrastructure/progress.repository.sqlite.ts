@@ -7,9 +7,15 @@ import {
   normalizeOptionalString,
   resolveId,
 } from '../../../core/validation';
-import type { PlaybackProgress, ReadingProgress } from '../domain/entities';
-import type { SavePlaybackProgress, SaveReadingProgress } from '../domain/inputs';
+import {
+  COMPLETION_SOURCES,
+  type CompletionSource,
+  type PlaybackProgress,
+  type ReadingProgress,
+} from '../domain/entities';
+import type { SavePlaybackProgress, SaveReadingProgress, SaveWatchState } from '../domain/inputs';
 import type { ProgressRepository } from '../domain/ports';
+import { WatchCoverage, type WatchInterval } from '../domain/watch-coverage';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
 import { mapSqliteError } from '../../../platform/persistence/sqlite/errors';
 
@@ -22,12 +28,50 @@ function normalizeIso(value: unknown, field: string): string | null {
   return new Date(normalized).toISOString();
 }
 
+function normalizeCompletionSource(value: unknown): CompletionSource | null {
+  if (value === undefined || value === null) return null;
+  if (!COMPLETION_SOURCES.includes(value as CompletionSource)) {
+    throw new ValidationError(
+      `Field "completionSource" must be one of ${COMPLETION_SOURCES.join(', ')}`,
+    );
+  }
+  return value as CompletionSource;
+}
+
+function decodeIntervals(text: string | null): WatchInterval[] {
+  if (!text) return [];
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+    return WatchCoverage.fromIntervals(
+      parsed.filter(
+        (item): item is WatchInterval =>
+          typeof item?.fromMs === 'number' && typeof item?.toMs === 'number',
+      ),
+    ).intervals;
+  } catch {
+    return [];
+  }
+}
+
+function optionalDuration(value: number | null | undefined): number | null {
+  return value === undefined || value === null
+    ? null
+    : assertNonNegativeInteger(Math.round(value), 'durationMs');
+}
+
+const PLAYBACK_COLUMNS = `id, lesson_id, position_ms, duration_ms, watched_ms, watched_intervals,
+         completed_at, completion_source, updated_at`;
+
 interface PlaybackRow {
   id: string;
   lesson_id: string;
   position_ms: number;
   duration_ms: number | null;
+  watched_ms: number;
+  watched_intervals: string | null;
   completed_at: string | null;
+  completion_source: CompletionSource | null;
   updated_at: string;
 }
 
@@ -44,12 +88,17 @@ interface ReadingRow {
 }
 
 function mapPlayback(row: PlaybackRow): PlaybackProgress {
+  const watchedIntervals = decodeIntervals(row.watched_intervals);
   return {
     id: row.id,
     lessonId: row.lesson_id,
     positionMs: row.position_ms,
     durationMs: row.duration_ms,
+    watchedIntervals,
+    watchedMs: row.watched_ms,
+    watchedRatio: WatchCoverage.fromIntervals(watchedIntervals).ratio(row.duration_ms),
     completedAt: row.completed_at,
+    completionSource: row.completed_at ? row.completion_source : null,
     updatedAt: row.updated_at,
   };
 }
@@ -74,30 +123,86 @@ export class SqliteProgressRepository implements ProgressRepository {
   async savePlayback(input: SavePlaybackProgress): Promise<PlaybackProgress> {
     const lessonId = assertNonEmptyString(input.lessonId, 'lessonId');
     const positionMs = assertNonNegativeInteger(input.positionMs, 'positionMs');
-    const durationMs =
-      input.durationMs === undefined || input.durationMs === null
-        ? null
-        : assertNonNegativeInteger(input.durationMs, 'durationMs');
+    const durationMs = optionalDuration(input.durationMs);
     const completedAt = normalizeIso(input.completedAt, 'completedAt');
+    const completionSource = completedAt
+      ? (normalizeCompletionSource(input.completionSource) ?? 'manual')
+      : null;
     const updatedAt = nowIso();
 
     try {
       this.db
         .prepare(
           `INSERT INTO playback_progress
-             (id, lesson_id, position_ms, duration_ms, completed_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)
+             (id, lesson_id, position_ms, duration_ms, completed_at, completion_source, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(lesson_id) DO UPDATE SET
-             position_ms  = excluded.position_ms,
-             duration_ms  = excluded.duration_ms,
-             completed_at = excluded.completed_at,
-             updated_at   = excluded.updated_at`,
+             position_ms       = excluded.position_ms,
+             duration_ms       = excluded.duration_ms,
+             completed_at      = excluded.completed_at,
+             completion_source = excluded.completion_source,
+             updated_at        = excluded.updated_at`,
         )
-        .run(resolveId(input.id, 'id'), lessonId, positionMs, durationMs, completedAt, updatedAt);
+        .run(
+          resolveId(input.id, 'id'),
+          lessonId,
+          positionMs,
+          durationMs,
+          completedAt,
+          completionSource,
+          updatedAt,
+        );
     } catch (error) {
       throw mapSqliteError(error, 'savePlaybackProgress');
     }
 
+    return this.requirePlayback(lessonId);
+  }
+
+  async saveWatchState(input: SaveWatchState): Promise<PlaybackProgress> {
+    const lessonId = assertNonEmptyString(input.lessonId, 'lessonId');
+    const positionMs = assertNonNegativeInteger(Math.round(input.positionMs), 'positionMs');
+    const durationMs = optionalDuration(input.durationMs);
+    const coverage = WatchCoverage.fromIntervals(input.watchedIntervals);
+    const completedAt = normalizeIso(input.completedAt, 'completedAt');
+    const completionSource = completedAt ? normalizeCompletionSource(input.completionSource) : null;
+    const updatedAt = nowIso();
+
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO playback_progress
+             (id, lesson_id, position_ms, duration_ms, watched_ms, watched_intervals,
+              completed_at, completion_source, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(lesson_id) DO UPDATE SET
+             position_ms       = excluded.position_ms,
+             duration_ms       = excluded.duration_ms,
+             watched_ms        = excluded.watched_ms,
+             watched_intervals = excluded.watched_intervals,
+             completed_at      = excluded.completed_at,
+             completion_source = excluded.completion_source,
+             updated_at        = excluded.updated_at`,
+        )
+        .run(
+          resolveId(undefined, 'id'),
+          lessonId,
+          positionMs,
+          durationMs,
+          Math.round(coverage.watchedMs),
+          JSON.stringify(coverage.intervals),
+          completedAt,
+          completionSource,
+          updatedAt,
+        );
+    } catch (error) {
+      throw mapSqliteError(error, 'saveWatchState');
+    }
+
+    return this.requirePlayback(lessonId);
+  }
+
+  private async requirePlayback(lessonId: string): Promise<PlaybackProgress> {
     const saved = await this.getPlayback(lessonId);
     if (!saved) {
       throw new ValidationError('Playback progress was not persisted');
@@ -108,7 +213,7 @@ export class SqliteProgressRepository implements ProgressRepository {
   async getPlayback(lessonId: string): Promise<PlaybackProgress | null> {
     const row = this.db
       .prepare(
-        `SELECT id, lesson_id, position_ms, duration_ms, completed_at, updated_at
+        `SELECT ${PLAYBACK_COLUMNS}
          FROM playback_progress WHERE lesson_id = ?`,
       )
       .get(lessonId) as PlaybackRow | undefined;
