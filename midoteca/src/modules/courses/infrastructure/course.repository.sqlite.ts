@@ -32,6 +32,7 @@ import type {
   CourseRepository,
   CourseTree,
   CourseTreeModule,
+  WatchedElsewhere,
   CourseTreeSection,
   LessonMoveResult,
 } from '../domain/ports';
@@ -187,6 +188,71 @@ function mapTreeDocument(row: CourseTreeDocumentRow): CourseTreeDocument {
 interface WatchedRow {
   watched_ms: number;
   duration_ms: number | null;
+  completed_at?: string | null;
+}
+
+interface ElsewhereRow extends WatchedRow {
+  lesson_id: string;
+  lesson_title: string;
+  course_id: string;
+  course_title: string;
+}
+
+/**
+ * Best already-watched lesson elsewhere whose primary media is the same content
+ * (same sha256 or a perceptual duplicate link) as the given lesson's.
+ */
+const WATCHED_ELSEWHERE_SQL = `
+  WITH self(media_id) AS (
+    SELECT media_file_id FROM lesson_media WHERE lesson_id = ? AND role = 'primary' LIMIT 1
+  ),
+  dup(media_id) AS (
+    SELECT m2.id FROM self
+      JOIN media_files m1 ON m1.id = self.media_id AND m1.sha256 IS NOT NULL
+      JOIN media_files m2 ON m2.sha256 = m1.sha256 AND m2.id != m1.id
+    UNION SELECT dl.media_b FROM self JOIN media_duplicate_links dl ON dl.media_a = self.media_id
+    UNION SELECT dl.media_a FROM self JOIN media_duplicate_links dl ON dl.media_b = self.media_id
+  )
+  SELECT l2.id AS lesson_id, l2.title AS lesson_title, c2.id AS course_id, c2.title AS course_title,
+         p2.watched_ms, p2.duration_ms, p2.completed_at
+    FROM dup
+    JOIN media_files m2 ON m2.id = dup.media_id AND m2.availability = 'available'
+    JOIN lesson_media lm2 ON lm2.media_file_id = m2.id AND lm2.role = 'primary'
+    JOIN lessons l2 ON l2.id = lm2.lesson_id
+    JOIN course_modules cm2 ON cm2.id = l2.module_id
+    JOIN courses c2 ON c2.id = cm2.course_id
+    JOIN playback_progress p2 ON p2.lesson_id = l2.id
+   WHERE p2.completed_at IS NOT NULL OR p2.watched_ms > 0
+   ORDER BY (p2.completed_at IS NOT NULL) DESC, p2.watched_ms DESC
+   LIMIT 1`;
+
+interface PreparedGet {
+  get(...params: unknown[]): unknown;
+}
+
+/** Projects real coverage and the duplicate already watched elsewhere. */
+function readWatchState(
+  lessonId: string,
+  watchedStmt: PreparedGet,
+  elsewhereStmt: PreparedGet,
+): { watchedRatio: number | null; watchedElsewhere: WatchedElsewhere | null } {
+  const own = watchedStmt.get(lessonId) as WatchedRow | undefined;
+  const elsewhere = own?.completed_at
+    ? undefined
+    : (elsewhereStmt.get(lessonId) as ElsewhereRow | undefined);
+  return {
+    watchedRatio: toWatchedRatio(own),
+    watchedElsewhere: elsewhere
+      ? {
+          lessonId: elsewhere.lesson_id,
+          lessonTitle: elsewhere.lesson_title,
+          courseId: elsewhere.course_id,
+          courseTitle: elsewhere.course_title,
+          watchedRatio: toWatchedRatio(elsewhere),
+          completedAt: elsewhere.completed_at ?? null,
+        }
+      : null,
+  };
 }
 
 function toWatchedRatio(row: WatchedRow | undefined): number | null {
@@ -670,8 +736,9 @@ export class SqliteCourseRepository implements CourseRepository {
     // Watched ratio is persisted by the progress module (real coverage, the
     // duration already resolved by the backend); the tree only projects it.
     const watchedStmt = this.db.prepare(
-      `SELECT watched_ms, duration_ms FROM playback_progress WHERE lesson_id = ?`,
+      `SELECT watched_ms, duration_ms, completed_at FROM playback_progress WHERE lesson_id = ?`,
     );
+    const elsewhereStmt = this.db.prepare(WATCHED_ELSEWHERE_SQL);
     const courseDocuments = this.readTreeDocuments('dl.course_id', courseId);
 
     const modules: CourseTreeModule[] = moduleRows.map((moduleRow) => {
@@ -679,7 +746,7 @@ export class SqliteCourseRepository implements CourseRepository {
       const lessons = (lessonStmt.all(moduleRow.id) as LessonRow[]).map((lessonRow) => ({
         ...mapLesson(lessonRow),
         media: (mediaStmt.all(lessonRow.id) as LessonMediaRow[]).map(mapLessonMedia),
-        watchedRatio: toWatchedRatio(watchedStmt.get(lessonRow.id) as WatchedRow | undefined),
+        ...readWatchState(lessonRow.id, watchedStmt, elsewhereStmt),
       }));
       return { ...mapModule(moduleRow), documents, lessons };
     });

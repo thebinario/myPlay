@@ -324,6 +324,67 @@ describe('IpcLibraryRepository', () => {
     });
   });
 
+  it('mostra a aula duplicada já assistida e reaproveita a conclusão pelo backend', async () => {
+    const delegate = new MockLibraryService();
+    const { bridge, handlers, calls } = createFakeBridge();
+    wireCatalog(handlers);
+    const originalTree = handlers['catalog.getCourseTree'];
+    const elsewhere = {
+      lessonId: 'other-lesson',
+      lessonTitle: 'Intro',
+      courseId: 'other-course',
+      courseTitle: 'Curso Antigo',
+      watchedRatio: 0.95,
+      completedAt: '2026-10-01T00:00:00Z',
+    };
+    handlers['catalog.getCourseTree'] = (params) => {
+      const tree = originalTree(params) as {
+        modules: Array<{ lessons: Array<Record<string, unknown>> }>;
+      };
+      tree.modules[0].lessons[0] = { ...tree.modules[0].lessons[0], watchedElsewhere: elsewhere };
+      return tree;
+    };
+    const markDuplicate = vi.fn((params: unknown) => ({
+      id: 'p1',
+      lessonId: (params as { lessonId: string }).lessonId,
+      positionMs: 0,
+      durationMs: 90_000,
+      completedAt: '2026-11-21T00:00:00Z',
+      completionSource: 'duplicate',
+    }));
+    handlers['progress.markDuplicateAsWatched'] = markDuplicate;
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+
+    expect(repository.getCourseById('c1')?.modules[0].lessons[0].watchedElsewhere).toEqual(
+      elsewhere,
+    );
+
+    const before = calls['catalog.listCourses'];
+    repository.markDuplicateAsWatched('c1', 'l1', 'other-lesson');
+    await flush(16);
+
+    expect(markDuplicate).toHaveBeenCalledWith({ lessonId: 'l1', fromLessonId: 'other-lesson' });
+    expect(calls['catalog.listCourses']).toBeGreaterThan(before);
+  });
+
+  it('avisa o núcleo quando a reprodução começa e termina', async () => {
+    const delegate = new MockLibraryService();
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    const signal = vi.fn(() => null);
+    handlers['system.setPlaybackActive'] = signal;
+    const repository = new IpcLibraryRepository(bridge, delegate);
+
+    repository.setPlaybackActive(true);
+    repository.setPlaybackActive(true);
+    repository.setPlaybackActive(false);
+    await flush();
+
+    expect(signal.mock.calls).toEqual([[{ active: true }], [{ active: false }]]);
+  });
+
   it('hidrata o catálogo real a partir do kernel', async () => {
     const delegate = new MockLibraryService();
     const { bridge, handlers, calls } = createFakeBridge();

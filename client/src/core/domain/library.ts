@@ -32,6 +32,15 @@ export interface Lesson {
   watchedRatio?: number | null;
   /** Origem da conclusão definida pelo backend (`watched`, `manual`, ...). */
   completionSource?: 'watched' | 'manual' | 'duplicate' | 'legacy' | null;
+  /** Mesmo conteúdo já assistido em outra aula (detectado pelo backend). */
+  watchedElsewhere?: {
+    lessonId: string;
+    lessonTitle: string;
+    courseId: string;
+    courseTitle: string;
+    watchedRatio: number | null;
+    completedAt: string | null;
+  } | null;
   subtitles?: SubtitleTrack[];
   isUnavailable?: boolean; // Para teste de arquivo indisponível / HD desconectado
 }

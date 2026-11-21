@@ -4,9 +4,11 @@
  * E2E do player com mídia local real no Electron (AGENTS.md §4).
  *
  * Valida que a conclusão de uma aula é decidida pelo backend a partir da
- * cobertura real (≥ 90% reproduzido):
+ * cobertura real (≥ 90% reproduzido) e a detecção de conteúdo duplicado:
  *   1. Pular (seek) até o fim NÃO conclui a aula; o status mostra "Fim do vídeo".
  *   2. Reproduzir continuamente (16x) conclui a aula com `completionSource = watched`.
+ *   3. As duas aulas (cópias do mesmo vídeo) formam um grupo `exact`; a aula não
+ *      vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`).
  *
  * Pré-requisitos: `npm run desktop:core`, `npm run build` e `npm run desktop:rebuild`.
  * Os vídeos de `public/media/videos` são COPIADOS para uma biblioteca temporária;
@@ -59,6 +61,8 @@ async function waitFor(page, predicate, timeoutMs, label) {
 async function dismissOnboarding(page) {
   const skip = page.getByRole('button', { name: 'Configurar depois' });
   if (await skip.isVisible({ timeout: 3_000 }).catch(() => false)) await skip.click();
+  // "Configurar depois" leva à Biblioteca; o curso em andamento fica no Início.
+  await page.getByRole('button', { name: 'Início', exact: true }).click();
 }
 
 /** @param {import('playwright').Page} page */
@@ -163,6 +167,40 @@ async function main() {
       watchedRatio: completed.watchedRatio,
       completionSource: completed.completionSource,
     });
+
+    // ── Cenário 3: as duas aulas são cópias do mesmo vídeo ──────────────────
+    const groups = await waitFor(
+      page,
+      async () => {
+        const found = await invoke(page, 'media.listDuplicateGroups', {});
+        return found.length > 0 ? found : null;
+      },
+      180_000,
+      'análise de duplicatas em segundo plano',
+    );
+    assert(groups.length === 1 && groups[0].kind === 'exact', 'grupo de cópias idênticas esperado');
+    const probed = groups[0].members.every((member) => member.durationMs > 590_000);
+    assert(probed, 'o probe deveria catalogar a duração real do vídeo');
+    console.log('✓ cópias idênticas detectadas e duração catalogada pelo ffprobe');
+
+    await page.reload();
+    await dismissOnboarding(page);
+    await page.getByTestId(`home-course-${courseId}`).click();
+    const notice = page.getByTestId('watched-elsewhere');
+    await notice.waitFor({ timeout: 30_000 });
+    assert(/Já assistido em/.test((await notice.textContent()) ?? ''), 'aviso de duplicata ausente');
+    await notice.getByRole('button', { name: 'Marcar como vista' }).click();
+    const reused = await waitFor(
+      page,
+      async () => {
+        const progress = await invoke(page, 'progress.getPlayback', { lessonId: skipped.id });
+        return progress?.completedAt ? progress : null;
+      },
+      15_000,
+      'conclusão reaproveitada da duplicata',
+    );
+    assert(reused.completionSource === 'duplicate', 'origem deveria ser "duplicate"');
+    console.log('✓ conclusão reaproveitada da aula duplicada');
   } finally {
     await app.close();
     fs.rmSync(base, { recursive: true, force: true });

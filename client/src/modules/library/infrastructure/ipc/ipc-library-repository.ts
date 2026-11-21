@@ -19,6 +19,7 @@ export class IpcLibraryRepository implements LibraryRepository {
   private detachEvents: (() => void) | null = null;
   private readonly readingProgressTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly playbackPositionsSeconds = new Map<string, number>();
+  private playbackActive = false;
 
   constructor(
     private readonly bridge: MidotecaBridge,
@@ -222,6 +223,26 @@ export class IpcLibraryRepository implements LibraryRepository {
       .catch((error: unknown) => {
         console.error('[library] falha ao registrar trecho assistido', error);
       });
+  }
+
+  markDuplicateAsWatched(courseId: string, lessonId: string, fromLessonId: string): void {
+    void this.bridge
+      .invoke('progress.markDuplicateAsWatched', { lessonId, fromLessonId })
+      .then((saved: PlaybackProgress) => {
+        this.applyPlaybackProgress(courseId, saved);
+        return this.refresh();
+      })
+      .catch((error: unknown) => {
+        console.error('[library] falha ao reaproveitar a conclusão da aula duplicada', error);
+      });
+  }
+
+  setPlaybackActive(active: boolean): void {
+    if (this.playbackActive === active) return;
+    this.playbackActive = active;
+    void this.bridge.invoke('system.setPlaybackActive', { active }).catch((error: unknown) => {
+      console.error('[library] falha ao sinalizar reprodução ao núcleo', error);
+    });
   }
 
   private findLesson(courseId: string, lessonId: string) {

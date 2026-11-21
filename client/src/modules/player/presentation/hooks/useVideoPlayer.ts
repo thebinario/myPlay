@@ -137,6 +137,13 @@ export function useVideoPlayer({
     onProgress,
   });
 
+  // Tarefas de fundo (hash, transcrição) recuam enquanto há reprodução.
+  const isActivelyPlaying = playback.status === 'playing';
+  useEffect(() => {
+    repository.setPlaybackActive(isActivelyPlaying);
+  }, [repository, isActivelyPlaying]);
+  useEffect(() => () => repository.setPlaybackActive(false), [repository]);
+
   // Encaminha ao backend os trechos realmente reproduzidos; ele decide a
   // conclusão (seek até o fim não conta como assistido).
   useWatchSegments({

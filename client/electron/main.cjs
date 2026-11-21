@@ -75,7 +75,8 @@ async function serveLibraryMedia(request) {
 }
 
 function startKernel() {
-  midoteca = createMidoteca();
+  // Jobs de fundo (probe, hash, duplicatas) recuam durante a reprodução.
+  midoteca = createMidoteca({ backgroundJobs: process.env.MIDOTECA_SMOKE !== '1' });
   api = createDesktopApi(midoteca);
   for (const name of DESKTOP_EVENTS) {
     midoteca.events.on(name, (payload) => {

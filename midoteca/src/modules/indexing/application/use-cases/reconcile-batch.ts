@@ -42,6 +42,7 @@ export class ReconcileBatch {
             runToken,
           });
           if (changed) {
+            store.invalidateAnalysis(existing.id);
             summary.updated += 1;
             updatedEvents.push({
               mediaId: existing.id,

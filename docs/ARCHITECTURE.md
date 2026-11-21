@@ -153,6 +153,16 @@ catalogada tem prioridade sobre a informada pelo player. `progress.savePlayback`
 guarda apenas o ponto de retomada; uma conclusão enviada pelo renderer é
 ignorada. Ver ADR [`adr/0006-watch-coverage-completion.md`](adr/0006-watch-coverage-completion.md).
 
+**Exemplo aplicado — conteúdo duplicado.** O núcleo analisa as mídias em
+segundo plano (`JobRunner` + job `media.analyze-source`: probe → hash parcial →
+SHA-256 dos candidatos → impressão perceptual dos vídeos de duração parecida),
+agrupa duplicatas (`groupDuplicates`) e expõe os read models
+`media.listDuplicateGroups` e `watchedElsewhere` na árvore do curso. O
+frontend só apresenta e envia o comando explícito
+`progress.markDuplicateAsWatched`. Adapters técnicos ficam em
+`platform/fs/file-hasher.ts` e `platform/media/` (ffprobe/ffmpeg). Ver ADR
+[`adr/0007-media-analysis-duplicates.md`](adr/0007-media-analysis-duplicates.md).
+
 Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
 regras de negócio duplicadas para o backend sem reescrever módulos não
 relacionados. Os testes do backend cobrem as decisões de negócio; os do

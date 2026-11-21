@@ -128,6 +128,21 @@ export class SqliteIndexingStore implements IndexingStore {
       .run(input.relativePath, input.fileSize, input.modifiedAt, input.runToken, nowIso(), id);
   }
 
+  invalidateAnalysis(id: string): void {
+    this.db
+      .prepare(
+        `UPDATE media_files
+           SET analyzed_at = NULL, analysis_error = NULL, partial_hash = NULL,
+               sha256 = NULL, duration_ms = NULL
+         WHERE id = ?`,
+      )
+      .run(id);
+    this.db.prepare(`DELETE FROM media_fingerprints WHERE media_file_id = ?`).run(id);
+    this.db
+      .prepare(`DELETE FROM media_duplicate_links WHERE media_a = ? OR media_b = ?`)
+      .run(id, id);
+  }
+
   markMissing(sourceId: string, runToken: string): string[] {
     const rows = this.db
       .prepare(

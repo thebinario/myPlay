@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { LessonWatchBadge } from '@/modules/courses/presentation/LessonWatchBadge';
+import { WatchedElsewhereNotice } from '@/modules/courses/presentation/WatchedElsewhereNotice';
 import { CourseProgressCard } from './CourseProgressCard';
 
 interface CourseDetailsViewProps {
@@ -20,6 +21,8 @@ interface CourseDetailsViewProps {
   onBack: () => void;
   onToggleLesson: (courseId: string, lessonId: string) => void;
   onPlayLesson?: (courseId: string, lessonId: string) => void;
+  /** Reaproveita a conclusão de uma aula duplicada já assistida (validado no backend). */
+  onMarkDuplicateWatched?: (courseId: string, lessonId: string, fromLessonId: string) => void;
   onOpenMaterial?: (material: Material) => void;
   onOpenDocument?: (documentId: string) => void;
   onToggleDocumentRead?: (documentId: string) => void;
@@ -32,6 +35,7 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
   onBack,
   onToggleLesson,
   onPlayLesson,
+  onMarkDuplicateWatched,
   onOpenMaterial,
   onOpenDocument,
   onToggleDocumentRead,
@@ -302,6 +306,14 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                                     completed={lesson.completed}
                                     completionSource={lesson.completionSource}
                                   />
+                                  {!lesson.completed && lesson.watchedElsewhere && (
+                                    <WatchedElsewhereNotice
+                                      watchedElsewhere={lesson.watchedElsewhere}
+                                      onMarkAsWatched={(fromLessonId) =>
+                                        onMarkDuplicateWatched?.(course.id, lesson.id, fromLessonId)
+                                      }
+                                    />
+                                  )}
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>

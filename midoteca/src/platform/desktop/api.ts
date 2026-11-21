@@ -64,6 +64,12 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
           migrationApplied: midoteca.migration !== null,
         };
 
+      case 'system.setPlaybackActive': {
+        const { active } = params as DesktopParams['system.setPlaybackActive'];
+        midoteca.governor.updateSignals({ playbackActive: active === true });
+        return null;
+      }
+
       case 'sources.list':
         return midoteca.sources.listSources();
 
@@ -189,6 +195,17 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
         return midoteca.watchProgress.recordSegment(
           params as DesktopParams['progress.recordSegment'],
         );
+
+      case 'progress.markDuplicateAsWatched':
+        return midoteca.duplicates.markAsWatched(
+          params as DesktopParams['progress.markDuplicateAsWatched'],
+        );
+
+      case 'media.listDuplicateGroups':
+        return midoteca.duplicates.listGroups();
+
+      case 'media.analysisStatus':
+        return midoteca.duplicates.analysisStatus();
 
       case 'progress.setLessonCompletion':
         return midoteca.watchProgress.setCompletion(

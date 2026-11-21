@@ -14,6 +14,8 @@ export interface SettingsViewProps {
   runtime?: 'development' | 'desktop';
   /** Conteúdo do gerenciamento de fontes, injetado pela composição em `app/`. */
   sourcesSection?: React.ReactNode;
+  /** Conteúdo extra da seção Processamento (ex.: duplicatas), injetado por `app/`. */
+  processingSection?: React.ReactNode;
   librarySummary?: { courses: number; movies: number; documents: number };
   onResetLibrary?: () => void;
   onOpenOnboarding?: () => void;
@@ -29,6 +31,7 @@ const cardStyle: React.CSSProperties = {
 export const SettingsView: React.FC<SettingsViewProps> = ({
   runtime = 'development',
   sourcesSection,
+  processingSection,
   librarySummary = { courses: 0, movies: 0, documents: 0 },
   onResetLibrary,
   onOpenOnboarding,
@@ -82,6 +85,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             preferences={preferences}
             onChange={setPreference}
             showDevelopmentNote={showDevelopmentControls}
+            extraSection={processingSection}
           />
         )}
         {section === 'about' && <AboutSettings librarySummary={librarySummary} />}

@@ -199,6 +199,47 @@ describe('desktop API (RPC surface)', () => {
     expect(lesson?.watchedRatio).toBe(0.25);
   });
 
+  it('exposes duplicate groups, analysis status and reuse of a watched duplicate', async () => {
+    library.write('Curso A/Modulo 1/01 - Intro.mp4', 'same-bytes', FIXED_MTIME);
+    library.write('Curso B/Modulo 1/01 - Intro.mp4', 'same-bytes', FIXED_MTIME);
+    const source = unwrap<{ id: string }>(
+      await api.handle({ method: 'sources.add', params: { rootPath: library.root } }),
+    );
+    unwrap(await api.handle({ method: 'indexing.scan', params: { sourceId: source.id } }));
+    await app.jobRunner.drain();
+
+    const status = unwrap<{ pending: number; analyzed: number }>(
+      await api.handle({ method: 'media.analysisStatus', params: {} }),
+    );
+    expect(status.pending).toBe(0);
+    const groups = unwrap<
+      Array<{ kind: string; members: Array<{ lessons: Array<{ lessonId: string }> }> }>
+    >(await api.handle({ method: 'media.listDuplicateGroups', params: {} }));
+    expect(groups).toHaveLength(1);
+    const [first, second] = groups[0].members.map((member) => member.lessons[0].lessonId);
+
+    unwrap(
+      await api.handle({
+        method: 'progress.setLessonCompletion',
+        params: { lessonId: first, completed: true },
+      }),
+    );
+    const reused = unwrap<{ completionSource: string }>(
+      await api.handle({
+        method: 'progress.markDuplicateAsWatched',
+        params: { lessonId: second, fromLessonId: first },
+      }),
+    );
+    expect(reused.completionSource).toBe('duplicate');
+  });
+
+  it('lets the renderer signal active playback to back off background work', async () => {
+    unwrap(await api.handle({ method: 'system.setPlaybackActive', params: { active: true } }));
+    expect(app.governor.getSignals().playbackActive).toBe(true);
+    unwrap(await api.handle({ method: 'system.setPlaybackActive', params: { active: false } }));
+    expect(app.governor.getSignals().playbackActive).toBe(false);
+  });
+
   it('persists PDF page count discovered by the renderer', async () => {
     const sourceId = await scanFixture();
     const listed = unwrap<{ items: Array<{ id: string; pageCount: number | null }> }>(

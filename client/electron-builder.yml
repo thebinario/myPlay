@@ -11,6 +11,9 @@ files:
 asar: true
 asarUnpack:
   - '**/*.node'
+  # Binários executados por child_process não podem ficar dentro do asar.
+  - '**/ffmpeg-static/**'
+  - '**/ffprobe-static/**'
 win:
   target:
     - target: nsis

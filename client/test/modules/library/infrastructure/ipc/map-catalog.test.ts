@@ -75,6 +75,7 @@ function courseTree(): CourseTree {
             titleSource: 'detected',
             media: [{ lessonId: 'l1', mediaFileId: 'mv1', role: 'primary' }],
             watchedRatio: null,
+            watchedElsewhere: null,
           },
           {
             id: 'l2',
@@ -87,6 +88,7 @@ function courseTree(): CourseTree {
             titleSource: 'detected',
             media: [{ lessonId: 'l2', mediaFileId: 'mv2', role: 'primary' }],
             watchedRatio: null,
+            watchedElsewhere: null,
           },
         ],
       },
