@@ -21,6 +21,8 @@ import { useLibrarySources } from '@/modules/sources/presentation/hooks/useLibra
 import { useImportFlow } from '@/modules/sources/presentation/hooks/useImportFlow';
 import { useOnboarding } from '@/modules/onboarding/presentation/hooks/useOnboarding';
 import { ActivityCenter } from '@/modules/activity/presentation/ActivityCenter';
+import { useActivity } from '@/modules/activity/presentation/ActivityProvider';
+import { useSidebarCollapsed } from '@/modules/home/presentation/hooks/useSidebarCollapsed';
 
 type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
 
@@ -41,6 +43,8 @@ export const App: React.FC = () => {
   const [selectedDocPage, setSelectedDocPage] = useState<number | undefined>(undefined);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const documentReturnTab = useRef<NavigationTab>('library');
+  const sidebar = useSidebarCollapsed();
+  const activity = useActivity();
 
   // Catálogo: fonte única de verdade (repositório + assinatura de mudanças)
   const { repository, items, courses, movies, documents, collections } = useLibrary();
@@ -305,142 +309,155 @@ export const App: React.FC = () => {
       className="app-container"
       style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0D111B' }}
     >
-      <Sidebar currentTab={currentTab} onNavigate={handleNavigate} activity={<ActivityCenter />} />
+      <Sidebar
+        currentTab={currentTab}
+        onNavigate={handleNavigate}
+        collapsed={sidebar.collapsed}
+        onToggleCollapsed={sidebar.toggle}
+        syncing={activity.running > 0}
+      />
 
-      <main className="main-content" style={{ flex: 1, height: '100vh', overflowY: 'auto' }}>
-        {currentTab === 'home' && (
-          <HomeView
-            courses={homeCourses}
-            movies={movies}
-            documents={homeDocuments}
-            onSelectCourse={handleSelectCourse}
-            onOpenMovie={handleOpenMovie}
-            onOpenDocument={handleOpenDocument}
-            onExploreLibrary={() => handleNavigate('library')}
-            onSearchOpen={() => handleNavigate('search')}
-          />
+      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        {currentTab !== 'player' && (
+          <div style={{ position: 'absolute', top: '20px', right: '40px', zIndex: 60 }}>
+            <ActivityCenter />
+          </div>
         )}
+        <main className="main-content" style={{ height: '100vh', overflowY: 'auto' }}>
+          {currentTab === 'home' && (
+            <HomeView
+              courses={homeCourses}
+              movies={movies}
+              documents={homeDocuments}
+              onSelectCourse={handleSelectCourse}
+              onOpenMovie={handleOpenMovie}
+              onOpenDocument={handleOpenDocument}
+              onExploreLibrary={() => handleNavigate('library')}
+              onSearchOpen={() => handleNavigate('search')}
+            />
+          )}
 
-        {currentTab === 'library' && (
-          <LibraryView
-            items={items}
-            sources={sourcesViewModel.sources}
-            collections={collections}
-            onSelectCourse={handleSelectCourse}
-            onPlayLesson={handlePlayLesson}
-            onOpenMovie={handleOpenMovie}
-            onOpenDocument={handleOpenDocument}
-            onToggleLesson={handleToggleLesson}
-            onToggleDocumentRead={handleToggleDocumentRead}
-            onEditCourse={handleEditCourse}
-          />
-        )}
+          {currentTab === 'library' && (
+            <LibraryView
+              items={items}
+              sources={sourcesViewModel.sources}
+              collections={collections}
+              onSelectCourse={handleSelectCourse}
+              onPlayLesson={handlePlayLesson}
+              onOpenMovie={handleOpenMovie}
+              onOpenDocument={handleOpenDocument}
+              onToggleLesson={handleToggleLesson}
+              onToggleDocumentRead={handleToggleDocumentRead}
+              onEditCourse={handleEditCourse}
+            />
+          )}
 
-        {currentTab === 'search' && (
-          <SearchView
-            onOpenCourse={handleSelectCourse}
-            onOpenLesson={handlePlayLesson}
-            onOpenMovie={handleOpenMovie}
-            onOpenDocument={handleOpenDocument}
-            onOpenLessonAt={handlePlayLessonAt}
-            onOpenDocumentAt={handleOpenDocumentAt}
-            renderAssistant={(query) => (
-              <AssistantPanel
-                initialQuestion={query}
-                onOpenLessonAt={handlePlayLessonAt}
-                onOpenDocumentAt={handleOpenDocumentAt}
-              />
-            )}
-          />
-        )}
+          {currentTab === 'search' && (
+            <SearchView
+              onOpenCourse={handleSelectCourse}
+              onOpenLesson={handlePlayLesson}
+              onOpenMovie={handleOpenMovie}
+              onOpenDocument={handleOpenDocument}
+              onOpenLessonAt={handlePlayLessonAt}
+              onOpenDocumentAt={handleOpenDocumentAt}
+              renderAssistant={(query) => (
+                <AssistantPanel
+                  initialQuestion={query}
+                  onOpenLessonAt={handlePlayLessonAt}
+                  onOpenDocumentAt={handleOpenDocumentAt}
+                />
+              )}
+            />
+          )}
 
-        {currentTab === 'course-details' && selectedCourse && (
-          <CourseDetailsView
-            course={selectedCourse}
-            libraryDocuments={docs.filter(
-              (document) => document.sourceId === selectedCourse.sourceId,
-            )}
-            onBack={handleBackToLibrary}
-            onToggleLesson={handleToggleLesson}
-            onMarkDuplicateWatched={(courseId, lessonId, fromLessonId) =>
-              repository.markDuplicateAsWatched(courseId, lessonId, fromLessonId)
-            }
-            onToggleDocumentRead={handleToggleDocumentRead}
-            onPlayLesson={handlePlayLesson}
-            onOpenDocument={handleOpenDocument}
-            onEditCourse={handleEditCourse}
-          />
-        )}
+          {currentTab === 'course-details' && selectedCourse && (
+            <CourseDetailsView
+              course={selectedCourse}
+              libraryDocuments={docs.filter(
+                (document) => document.sourceId === selectedCourse.sourceId,
+              )}
+              onBack={handleBackToLibrary}
+              onToggleLesson={handleToggleLesson}
+              onMarkDuplicateWatched={(courseId, lessonId, fromLessonId) =>
+                repository.markDuplicateAsWatched(courseId, lessonId, fromLessonId)
+              }
+              onToggleDocumentRead={handleToggleDocumentRead}
+              onPlayLesson={handlePlayLesson}
+              onOpenDocument={handleOpenDocument}
+              onEditCourse={handleEditCourse}
+            />
+          )}
 
-        {currentTab === 'editor' && selectedCourse && (
-          <CourseEditorView
-            initialCourse={selectedCourse}
-            libraryDocuments={docs.filter(
-              (document) => document.sourceId === selectedCourse.sourceId,
-            )}
-            onSave={handleSaveEditedCourse}
-            onBack={() => setCurrentTab('course-details')}
-          />
-        )}
+          {currentTab === 'editor' && selectedCourse && (
+            <CourseEditorView
+              initialCourse={selectedCourse}
+              libraryDocuments={docs.filter(
+                (document) => document.sourceId === selectedCourse.sourceId,
+              )}
+              onSave={handleSaveEditedCourse}
+              onBack={() => setCurrentTab('course-details')}
+            />
+          )}
 
-        {/* Player para aulas de cursos */}
-        {currentTab === 'player' && selectedCourse && selectedLessonId && (
-          <VideoPlayerView
-            course={selectedCourse}
-            initialLessonId={selectedLessonId}
-            onBack={handleBackFromLessonPlayer}
-            resumeTime={resumeTime}
-            autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
-            onProgress={handlePlayerProgress}
-          />
-        )}
+          {/* Player para aulas de cursos */}
+          {currentTab === 'player' && selectedCourse && selectedLessonId && (
+            <VideoPlayerView
+              course={selectedCourse}
+              initialLessonId={selectedLessonId}
+              onBack={handleBackFromLessonPlayer}
+              resumeTime={resumeTime}
+              autoPlay={session?.kind === 'lesson' ? session.isPlaying : false}
+              onProgress={handlePlayerProgress}
+            />
+          )}
 
-        {/* Player para filmes standalone */}
-        {currentTab === 'player' && selectedMovie && !selectedCourse && (
-          <MoviePlayerView
-            movie={selectedMovie}
-            onBack={handleBackFromMoviePlayer}
-            resumeTime={resumeTime}
-            autoPlay={session?.kind === 'movie' ? session.isPlaying : false}
-            onProgress={handlePlayerProgress}
-          />
-        )}
+          {/* Player para filmes standalone */}
+          {currentTab === 'player' && selectedMovie && !selectedCourse && (
+            <MoviePlayerView
+              movie={selectedMovie}
+              onBack={handleBackFromMoviePlayer}
+              resumeTime={resumeTime}
+              autoPlay={session?.kind === 'movie' ? session.isPlaying : false}
+              onProgress={handlePlayerProgress}
+            />
+          )}
 
-        {currentTab === 'pdf-viewer' && selectedDoc && (
-          <PdfViewer
-            key={`${selectedDoc.id}:${selectedDocPage ?? ''}`}
-            document={selectedDoc}
-            onBack={handleBackFromDocument}
-            initialPage={selectedDocPage}
-          />
-        )}
+          {currentTab === 'pdf-viewer' && selectedDoc && (
+            <PdfViewer
+              key={`${selectedDoc.id}:${selectedDocPage ?? ''}`}
+              document={selectedDoc}
+              onBack={handleBackFromDocument}
+              initialPage={selectedDocPage}
+            />
+          )}
 
-        {currentTab === 'settings' && (
-          <SettingsView
-            runtime="desktop"
-            sourcesSection={
-              <LibrarySourcesPanel
-                viewModel={sourcesViewModel}
-                importFlow={importFlow}
-                runtime="production"
-              />
-            }
-            librarySummary={{
-              courses: courses.length,
-              movies: movies.length,
-              documents: docs.length,
-            }}
-            onResetLibrary={handleResetLibrary}
-            onOpenOnboarding={() => setShowOnboarding(true)}
-            processingSection={
-              <>
-                <LocalAiPanel />
-                <DuplicateGroupsPanel />
-              </>
-            }
-          />
-        )}
-      </main>
+          {currentTab === 'settings' && (
+            <SettingsView
+              runtime="desktop"
+              sourcesSection={
+                <LibrarySourcesPanel
+                  viewModel={sourcesViewModel}
+                  importFlow={importFlow}
+                  runtime="production"
+                />
+              }
+              librarySummary={{
+                courses: courses.length,
+                movies: movies.length,
+                documents: docs.length,
+              }}
+              onResetLibrary={handleResetLibrary}
+              onOpenOnboarding={() => setShowOnboarding(true)}
+              processingSection={
+                <>
+                  <LocalAiPanel />
+                  <DuplicateGroupsPanel />
+                </>
+              }
+            />
+          )}
+        </main>
+      </div>
 
       {showMiniPlayer && miniLesson && (
         <MiniPlayer

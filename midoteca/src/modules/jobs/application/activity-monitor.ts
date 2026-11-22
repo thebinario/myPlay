@@ -5,9 +5,13 @@ import {
   activityKindOf,
   describeActivity,
   progressPercent,
+  recordFinished,
+  shouldRecordFinished,
   sortActivities,
+  ACTIVITY_HISTORY_LIMIT,
   type ActivityItem,
   type ActivityKind,
+  type ActivityOutcome,
   type ActivityProgress,
   type ActivitySnapshot,
 } from '../domain/activity';
@@ -26,6 +30,8 @@ export interface ActivityMonitorOptions {
   throttleMs?: number;
   /** Queued jobs listed in the snapshot. Default 50. */
   queueLimit?: number;
+  /** Finished processes kept for the panel (in memory). Default 5. */
+  historyLimit?: number;
 }
 
 interface RunningEntry {
@@ -35,6 +41,11 @@ interface RunningEntry {
   progress: ActivityProgress | null;
   detail: string | null;
   startedAt: string;
+}
+
+interface FinishedEntry extends RunningEntry {
+  status: 'completed' | 'failed';
+  finishedAt: string;
 }
 
 function sourceIdOf(job: Job): string | null {
@@ -49,6 +60,8 @@ function sourceIdOf(job: Job): string | null {
  */
 export class ActivityMonitor implements JobObserver {
   private readonly running = new Map<string, RunningEntry>();
+  /** Newest first; resolved into items (with names) at snapshot time. */
+  private history: FinishedEntry[] = [];
   private readonly names = new Map<string, string | null>();
   private readonly detach: Array<() => void> = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -75,9 +88,9 @@ export class ActivityMonitor implements JobObserver {
         entry.detail = currentPath;
         this.changed();
       }),
-      events.on('index:completed', ({ sourceId }) => this.finishScan(sourceId)),
-      events.on('index:failed', ({ sourceId }) => this.finishScan(sourceId)),
-      events.on('index:paused', ({ sourceId }) => this.finishScan(sourceId)),
+      events.on('index:completed', ({ sourceId }) => this.finishScan(sourceId, 'completed')),
+      events.on('index:failed', ({ sourceId }) => this.finishScan(sourceId, 'failed')),
+      events.on('index:paused', ({ sourceId }) => this.finishScan(sourceId, 'requeued')),
       events.on('source:added', ({ sourceId }) => this.names.delete(sourceId)),
     );
   }
@@ -102,9 +115,8 @@ export class ActivityMonitor implements JobObserver {
     this.changed();
   }
 
-  jobFinished(job: Job): void {
-    this.running.delete(job.id);
-    this.changed();
+  jobFinished(job: Job, outcome: ActivityOutcome): void {
+    this.finish(job.id, outcome);
   }
 
   async snapshot(): Promise<ActivitySnapshot> {
@@ -127,10 +139,17 @@ export class ActivityMonitor implements JobObserver {
         ),
       ),
     );
+    const recent = await Promise.all(
+      this.history.map(async (entry) => ({
+        ...(await this.toItem(entry, entry.status)),
+        finishedAt: entry.finishedAt,
+      })),
+    );
     return {
       items: sortActivities([...running, ...queued]),
       running: running.length,
       queued: queued.length,
+      recent,
     };
   }
 
@@ -141,8 +160,30 @@ export class ActivityMonitor implements JobObserver {
     for (const off of this.detach.splice(0)) off();
   }
 
-  private finishScan(sourceId: string): void {
-    if (this.running.delete(this.scanId(sourceId))) this.changed();
+  private finishScan(sourceId: string, outcome: ActivityOutcome): void {
+    this.finish(this.scanId(sourceId), outcome);
+  }
+
+  /** Leaves the running list; completed/failed work enters the history. */
+  private finish(id: string, outcome: ActivityOutcome): void {
+    const entry = this.running.get(id);
+    if (!entry) return;
+    this.running.delete(id);
+    if (outcome !== 'requeued' && shouldRecordFinished(entry.progress)) {
+      const finished: FinishedEntry = {
+        ...entry,
+        // History ids must not collide with a later run of the same scan.
+        id: `${entry.id}@${Date.now()}`,
+        status: outcome,
+        finishedAt: new Date().toISOString(),
+      };
+      this.history = recordFinished(
+        this.history,
+        finished,
+        this.options.historyLimit ?? ACTIVITY_HISTORY_LIMIT,
+      );
+    }
+    this.changed();
   }
 
   private scanId(sourceId: string): string {
@@ -161,6 +202,7 @@ export class ActivityMonitor implements JobObserver {
       percent: progressPercent(entry.progress),
       detail: entry.detail,
       startedAt: entry.startedAt,
+      finishedAt: null,
     };
   }
 

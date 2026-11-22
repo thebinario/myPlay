@@ -13,7 +13,10 @@ export type ActivityKind =
   | 'embeddings'
   | 'other';
 
-export type ActivityStatus = 'running' | 'queued';
+export type ActivityStatus = 'running' | 'queued' | 'completed' | 'failed';
+
+/** How a finished piece of work ended; `requeued` (retry/interruption) is not history. */
+export type ActivityOutcome = 'completed' | 'failed' | 'requeued';
 
 /** Units processed so far; `total` is null when the amount is unknown. */
 export interface ActivityProgress {
@@ -33,13 +36,21 @@ export interface ActivityItem {
   /** What is being processed right now (e.g. a file name). */
   detail: string | null;
   startedAt: string;
+  /** Set only for `completed`/`failed` history entries. */
+  finishedAt: string | null;
 }
 
 export interface ActivitySnapshot {
+  /** Running first, then queued. */
   items: ActivityItem[];
   running: number;
   queued: number;
+  /** Latest finished (completed/failed) work, newest first. */
+  recent: ActivityItem[];
 }
+
+/** How many finished processes the activity panel keeps. */
+export const ACTIVITY_HISTORY_LIMIT = 5;
 
 const KIND_BY_JOB_TYPE: Record<string, ActivityKind> = {
   'media.analyze-source': 'media-analysis',
@@ -50,13 +61,13 @@ const KIND_BY_JOB_TYPE: Record<string, ActivityKind> = {
 };
 
 const LABELS: Record<ActivityKind, string> = {
-  scan: 'Analisando biblioteca',
-  'media-analysis': 'Analisando mídias',
-  'media-check': 'Verificando vídeos',
-  transcription: 'Transcrevendo vídeos',
-  'content-extraction': 'Indexando textos',
-  embeddings: 'Preparando busca inteligente',
-  other: 'Processando',
+  scan: 'Atualizando biblioteca',
+  'media-analysis': 'Análise de mídia',
+  'media-check': 'Verificação de vídeos',
+  transcription: 'Transcrição',
+  'content-extraction': 'Indexação de documentos',
+  embeddings: 'Busca inteligente',
+  other: 'Processamento',
 };
 
 export function activityKindOf(jobType: string): ActivityKind {
@@ -65,7 +76,21 @@ export function activityKindOf(jobType: string): ActivityKind {
 
 /** Human label in pt-BR, suffixed with the library name when there is one. */
 export function describeActivity(kind: ActivityKind, sourceName: string | null): string {
-  return sourceName ? `${LABELS[kind]} — ${sourceName}` : LABELS[kind];
+  return sourceName ? `${LABELS[kind]} · ${sourceName}` : LABELS[kind];
+}
+
+/** Work that ended with nothing to process (total 0) is not worth showing. */
+export function shouldRecordFinished(progress: ActivityProgress | null): boolean {
+  return !(progress && progress.total === 0);
+}
+
+/** Prepends a finished entry, keeping only the newest `limit`. */
+export function recordFinished<T extends { id: string }>(
+  history: readonly T[],
+  item: T,
+  limit: number = ACTIVITY_HISTORY_LIMIT,
+): T[] {
+  return [item, ...history.filter((entry) => entry.id !== item.id)].slice(0, limit);
 }
 
 export function progressPercent(progress: ActivityProgress | null): number | null {

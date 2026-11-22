@@ -17,6 +17,26 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ## [Unreleased]
 
+### Alterado
+
+- **Nova barra lateral** (fiel ao protótipo): marca "Midoteca", Início,
+  Biblioteca e Pesquisa (com o atalho `Ctrl K`), e no rodapé Configurações,
+  "Recolher menu" e "Minha conta". O item atual fica em fundo neutro com uma
+  marca branca na borda. Recolhida, mostra só os ícones, com o nome no tooltip;
+  a escolha é lembrada entre aberturas do app. "Minha conta" indica
+  "Sincronizado" ou "Atualizando…" (quando o núcleo está processando) e mostra a
+  versão do app no tooltip.
+- **Atividade virou um menu suspenso** no canto superior direito: botão redondo
+  que gira enquanto há trabalho e abre o painel "Atividade" com o que está em
+  andamento (com percentual), a fila e os últimos processos encerrados
+  ("Concluído · há 2 min", "Falhou · há 1 h"). O núcleo guarda os últimos 5
+  processos (escaneamentos e jobs) e passa a nomeá-los como "Transcrição ·
+  Cursos", "Atualizando biblioteca · Cursos" etc.; trabalho sem nada a
+  processar não entra no histórico.
+- **Ícone próprio do app** (selo lilás com livro aberto, o mesmo da barra
+  lateral) na janela, na barra de tarefas e no instalador, no lugar do ícone
+  padrão do Electron.
+
 ### Corrigido
 
 - **Ordem do catálogo:** cursos, coleções, seções, módulos e aulas seguem a

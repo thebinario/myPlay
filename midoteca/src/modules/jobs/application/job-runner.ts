@@ -23,7 +23,8 @@ export interface JobProgressReport {
 export interface JobObserver {
   jobStarted(job: Job): void;
   jobProgress(job: Job, progress: JobProgressReport): void;
-  jobFinished(job: Job): void;
+  /** `requeued` = it will run again (retry or interruption), not a final outcome. */
+  jobFinished(job: Job, outcome: 'completed' | 'failed' | 'requeued'): void;
 }
 
 export interface JobContext {
@@ -164,6 +165,7 @@ export class JobRunner {
     const { observer } = this.options;
     observer?.jobStarted(running);
     let checkpoint = job.checkpoint;
+    let outcome: 'completed' | 'failed' | 'requeued' = 'requeued';
     try {
       await handler({
         job: running,
@@ -183,15 +185,17 @@ export class JobRunner {
         },
       });
       await this.options.jobs.update(job.id, { status: 'completed', checkpoint });
+      outcome = 'completed';
     } catch (error) {
       const attempts = job.attempts + 1;
       const status = attempts >= this.maxAttempts ? 'failed' : 'pending';
       await this.options.jobs.update(job.id, { status, checkpoint });
+      outcome = status === 'failed' ? 'failed' : 'requeued';
       if (status === 'failed') {
         console.error(`[jobs] ${job.type} falhou após ${attempts} tentativas`, error);
       }
     } finally {
-      observer?.jobFinished(running);
+      observer?.jobFinished(running, outcome);
     }
     return true;
   }

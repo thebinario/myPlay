@@ -442,7 +442,7 @@ describe('desktop API — atividade em segundo plano', () => {
       const snapshot = unwrap<{ items: unknown[]; running: number; queued: number }>(
         await api.handle({ method: 'activity.list' }),
       );
-      expect(snapshot).toEqual({ items: [], running: 0, queued: 0 });
+      expect(snapshot).toEqual({ items: [], running: 0, queued: 0, recent: [] });
       const { DESKTOP_EVENTS, DESKTOP_METHODS } = await import('../src/index');
       expect(DESKTOP_METHODS).toContain('activity.list');
       expect(DESKTOP_EVENTS).toContain('activity:changed');
