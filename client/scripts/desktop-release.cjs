@@ -1,9 +1,11 @@
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
+const { createNpmRunner } = require('./npm-runner.cjs');
 const { prepareDesktopRelease } = require('./prepare-desktop-release.cjs');
 const { verifyDesktopRelease } = require('./verify-desktop-release.cjs');
 
 const clientRoot = path.resolve(__dirname, '..');
+const runNpm = createNpmRunner();
 
 function releaseOptions() {
   const args = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -18,16 +20,6 @@ function releaseOptions() {
     throw new Error('O canal beta exige -beta.N; stable exige versão X.Y.Z.');
   }
   return { version, channel };
-}
-
-function runNpm(args, cwd, capture = false) {
-  const cli = process.env.npm_execpath;
-  if (!cli) throw new Error('Execute pela entrada npm run desktop:release.');
-  return execFileSync(process.execPath, [cli, ...args], {
-    cwd,
-    encoding: 'utf8',
-    stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
-  });
 }
 
 async function main() {

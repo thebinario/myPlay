@@ -3,6 +3,7 @@ const { createHash } = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { MAX_CAPTURED_OUTPUT } = require('./npm-runner.cjs');
 
 function packagedExecutable(artifacts) {
   if (process.platform === 'win32') return path.join(artifacts, 'win-unpacked/Midoteca.exe');
@@ -28,6 +29,7 @@ function verifyDesktopRelease({ clientRoot, version, channel, electronVersion })
     const result = spawnSync(packagedExecutable(artifacts), [], {
       env,
       encoding: 'utf8',
+      maxBuffer: MAX_CAPTURED_OUTPUT,
       timeout: 60_000,
       windowsHide: true,
     });

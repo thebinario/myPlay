@@ -55,11 +55,10 @@ function prepareDesktopRelease({ clientRoot, version, runNpm }) {
       recursive: true,
     });
   }
-  runNpm(
-    ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'],
-    appStage,
-  );
-  runNpm(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], appStage);
+  // `npm install` (e não `ci`): o lock copiado do client não descreve as
+  // dependências opcionais por plataforma embutidas no tarball do núcleo, e o
+  // `npm ci` rejeitaria esse lock. A versão dos pacotes continua vindo do lock.
+  runNpm(['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], appStage);
   if (fs.lstatSync(path.join(appStage, 'node_modules/@midoteca/core')).isSymbolicLink()) {
     throw new Error('O pacote de distribuição não pode depender de um symlink para o núcleo.');
   }
