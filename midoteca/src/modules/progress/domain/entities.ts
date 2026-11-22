@@ -1,3 +1,21 @@
+import type { WatchInterval } from './watch-coverage';
+
+/**
+ * Who decided that a lesson is complete:
+ * - `watched`: the backend, from real coverage (≥ 90% played).
+ * - `manual`: the person marked it explicitly.
+ * - `duplicate`: the person reused the completion of an identical media.
+ * - `legacy`: completed before coverage tracking existed (schema < 6).
+ */
+export type CompletionSource = 'watched' | 'manual' | 'duplicate' | 'legacy';
+
+export const COMPLETION_SOURCES: readonly CompletionSource[] = [
+  'watched',
+  'manual',
+  'duplicate',
+  'legacy',
+];
+
 /**
  * Playback progress is keyed by *lesson*, not by media file. Re-encodes,
  * remounts or file moves therefore never lose the user's position.
@@ -9,8 +27,16 @@ export interface PlaybackProgress {
   positionMs: number;
   /** Total duration in milliseconds, when known. */
   durationMs: number | null;
+  /** Spans of media time really played (seeking adds nothing). */
+  watchedIntervals: WatchInterval[];
+  /** Total media time really played, in milliseconds. */
+  watchedMs: number;
+  /** watchedMs / durationMs (0..1), or null while the duration is unknown. */
+  watchedRatio: number | null;
   /** Set when the lesson is marked complete; null while in progress. */
   completedAt: string | null;
+  /** Origin of the completion; null while not completed. */
+  completionSource: CompletionSource | null;
   updatedAt: string;
 }
 

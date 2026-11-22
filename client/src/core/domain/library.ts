@@ -28,6 +28,10 @@ export interface Lesson {
   order: number;
   materials: Material[];
   lastPlaybackPosition?: number; // segundos
+  /** Fração da mídia realmente assistida (0..1), calculada pelo backend. */
+  watchedRatio?: number | null;
+  /** Origem da conclusão definida pelo backend (`watched`, `manual`, ...). */
+  completionSource?: 'watched' | 'manual' | 'duplicate' | 'legacy' | null;
   subtitles?: SubtitleTrack[];
   isUnavailable?: boolean; // Para teste de arquivo indisponível / HD desconectado
 }

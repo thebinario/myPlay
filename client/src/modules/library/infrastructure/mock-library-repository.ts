@@ -422,6 +422,9 @@ export class MockLibraryService implements LibraryRepository {
     return updated;
   }
 
+  /** Modo demonstração: sem backend, a conclusão só muda manualmente. */
+  recordWatchSegment(): void {}
+
   private replaceItem(item: LibraryItem): void {
     const index = this.items.findIndex((i) => i.id === item.id);
     if (index >= 0) {

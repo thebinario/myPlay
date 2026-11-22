@@ -44,10 +44,10 @@ validada em máquina real com Windows 11.
 | Área | Estado verificado | Próximo objetivo | Evidência |
 | --- | --- | --- | --- |
 | Catálogo e fontes | SQLite e IPC reais para catálogo e fontes; persistência e recuperação validadas | manter monitoramento de integridade e evolução v2.0 | `client/src/modules/library/infrastructure/ipc/`; `midoteca/src/platform/desktop/` |
-| Indexação | Varredura real no núcleo com descoberta incremental de vídeos, cursos e PDFs | refinamento de performance para diretórios gigantes | `midoteca/src/modules/indexing/` |
+| Indexação | Varredura real no núcleo com descoberta incremental de vídeos, cursos e PDFs. **Pendente da F04:** detecção de duplicatas por conteúdo (hash) e probe de duração — o job `HASH_MEDIA` existe só como nome e não há executor de jobs | executor de jobs, probe e duplicatas (v2.0, fase 2 do plano de IA/duplicatas) | `midoteca/src/modules/indexing/` |
 | Cursos e materiais | Organização hierárquica (curso/módulo/aula/documento), reordenação persistente | expansão para recursos colaborativos (v2.0) | `midoteca/src/modules/courses/` |
 | Métricas do curso | Duração, contagem de PDFs e percentuais consolidados no read model do SQLite | manter cache e integridade | `CourseTree` e `SqliteCourseRepository` |
-| Player | Reprodução local real via `midoteca-media://`, persistência de posição, duração e conclusão no SQLite via `progress.savePlayback` | legendas automáticas e transcrição (v2.0) | `client/src/modules/library/infrastructure/ipc/ipc-library-repository.ts` |
+| Player | Reprodução local real via `midoteca-media://`; posição via `progress.savePlayback`; **conclusão decidida pelo backend por cobertura real (≥ 90% reproduzido, seek não conta)** via `progress.recordSegment` | legendas automáticas e transcrição (v2.0) | `midoteca/src/modules/progress/`; `client/scripts/e2e-player-coverage.cjs` |
 | Leitor PDF | PDF.js real com persistência de página, zoom, rolagem e tema escuro no SQLite via `progress.saveReading` | edição de PDF com seleção de área e texto (v2.0) | `client/src/modules/documents/` e `ipc-library-repository.ts` |
 | Busca e Início | Busca unificada e tela inicial conectadas a consultas nativas reais no SQLite | busca semântica / IA (v2.0) | `catalog.search`; `catalog.home` |
 | Configurações | Preferências do aplicativo e primeiro acesso (onboarding) persistidos no SQLite via `IpcPreferencesRepository` e `IpcOnboardingRepository` | perfis de usuários e permissões RBAC (Fase 14) | `client/src/modules/settings/infrastructure/ipc/` |

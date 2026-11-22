@@ -8,7 +8,6 @@ interface VideoPlayerViewProps {
   course: Course;
   initialLessonId: string;
   onBack: () => void;
-  onCompleteLesson?: (lessonId: string) => void;
   /** Tempo de inatividade antes de ocultar os controles durante a reprodução (ms). */
   controlsAutoHideDelayMs?: number;
   /** Posição de retomada (sobrepõe o progresso persistido), em segundos. */
@@ -23,7 +22,6 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
   course,
   initialLessonId,
   onBack,
-  onCompleteLesson,
   controlsAutoHideDelayMs,
   resumeTime,
   autoPlay,
@@ -35,14 +33,15 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({
     controlsAutoHideDelayMs,
     resumeTime,
     autoPlay,
-    onCompleteLesson,
     onProgress,
   });
 
   const statusLabel = player.hasError
     ? 'Indisponível'
     : player.hasEnded
-      ? 'Concluída'
+      ? player.currentLesson.completed
+        ? 'Concluída'
+        : 'Fim do vídeo'
       : player.isLoading
         ? 'Carregando'
         : player.isBuffering

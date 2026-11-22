@@ -116,6 +116,21 @@ npm run build       # tsc && vite build
 npm run storybook   # catálogo visual
 ```
 
+### 6.1 E2E do player no Electron (mídia local real)
+
+`npm run desktop:e2e:player` (em `client/`) compila o núcleo e o renderer,
+reconstrói o `better-sqlite3` para o Electron e executa
+`scripts/e2e-player-coverage.cjs` com Playwright (`_electron`). O script copia
+um vídeo de `public/media/videos` para uma biblioteca temporária (os originais
+nunca são alterados), usa `MIDOTECA_DATA_DIR` isolado e valida:
+
+1. seek até o fim **não** conclui a aula e o status mostra "Fim do vídeo";
+2. reprodução contínua (16x) conclui com `completionSource = 'watched'` e
+   cobertura ≥ 90%, decidida pelo backend.
+
+Depois do E2E, rode `npm run desktop:rebuild:node` para voltar o binário nativo
+ao Node antes da suíte do núcleo.
+
 ## 7. Testes de caracterização (legado)
 
 Ao tocar código legado (ex.: sobras do CRA em `client/src/legacy/` e

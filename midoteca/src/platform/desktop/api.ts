@@ -178,9 +178,21 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
         return midoteca.progress.getPlayback(lessonId);
       }
 
-      case 'progress.savePlayback':
-        return midoteca.progress.savePlayback(
-          params as Parameters<Midoteca['progress']['savePlayback']>[0],
+      case 'progress.savePlayback': {
+        // Completion is decided by the backend; only the resume point is kept.
+        const { lessonId, positionMs, durationMs } =
+          params as DesktopParams['progress.savePlayback'];
+        return midoteca.watchProgress.savePosition({ lessonId, positionMs, durationMs });
+      }
+
+      case 'progress.recordSegment':
+        return midoteca.watchProgress.recordSegment(
+          params as DesktopParams['progress.recordSegment'],
+        );
+
+      case 'progress.setLessonCompletion':
+        return midoteca.watchProgress.setCompletion(
+          params as DesktopParams['progress.setLessonCompletion'],
         );
 
       case 'progress.getReading': {

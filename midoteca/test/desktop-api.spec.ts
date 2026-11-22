@@ -123,6 +123,82 @@ describe('desktop API (RPC surface)', () => {
     expect(reading.zoom).toBe(1.25);
   });
 
+  async function firstLessonId(): Promise<string> {
+    const sourceId = await scanFixture();
+    const courses = unwrap<{ items: Array<{ id: string }> }>(
+      await api.handle({ method: 'catalog.listCourses', params: { sourceId } }),
+    );
+    const tree = unwrap<{ modules: Array<{ lessons: Array<{ id: string }> }> }>(
+      await api.handle({
+        method: 'catalog.getCourseTree',
+        params: { courseId: courses.items[0].id },
+      }),
+    );
+    return tree.modules[0].lessons[0].id;
+  }
+
+  it('ignores a completion sent by the renderer through savePlayback', async () => {
+    const lessonId = await firstLessonId();
+    const saved = unwrap<{ completedAt: string | null }>(
+      await api.handle({
+        method: 'progress.savePlayback',
+        params: {
+          lessonId,
+          positionMs: 60_000,
+          durationMs: 60_000,
+          completedAt: '2026-10-15T12:00:00.000Z',
+        },
+      }),
+    );
+    expect(saved.completedAt).toBeNull();
+  });
+
+  it('decides completion in the backend from recorded segments', async () => {
+    const lessonId = await firstLessonId();
+    let last: { completedAt: string | null; watchedRatio: number | null } | null = null;
+    for (let from = 0; from < 54_000; from += 9_000) {
+      last = unwrap(
+        await api.handle({
+          method: 'progress.recordSegment',
+          params: { lessonId, fromMs: from, toMs: from + 9_000, durationMs: 60_000 },
+        }),
+      );
+    }
+    expect(last?.watchedRatio).toBeCloseTo(0.9);
+    expect(last?.completedAt).not.toBeNull();
+
+    const cleared = unwrap<{ completedAt: string | null }>(
+      await api.handle({
+        method: 'progress.setLessonCompletion',
+        params: { lessonId, completed: false },
+      }),
+    );
+    expect(cleared.completedAt).toBeNull();
+  });
+
+  it('exposes the watched ratio per lesson in the course tree', async () => {
+    const lessonId = await firstLessonId();
+    unwrap(
+      await api.handle({
+        method: 'progress.recordSegment',
+        params: { lessonId, fromMs: 0, toMs: 15_000, durationMs: 60_000 },
+      }),
+    );
+    const courses = unwrap<{ items: Array<{ id: string }> }>(
+      await api.handle({ method: 'catalog.listCourses', params: {} }),
+    );
+    const tree = unwrap<{
+      modules: Array<{ lessons: Array<{ id: string; watchedRatio: number | null }> }>;
+    }>(
+      await api.handle({
+        method: 'catalog.getCourseTree',
+        params: { courseId: courses.items[0].id },
+      }),
+    );
+    const lesson = tree.modules[0].lessons.find((item) => item.id === lessonId);
+    expect(lesson?.watchedRatio).toBe(0.25);
+  });
+
   it('persists PDF page count discovered by the renderer', async () => {
     const sourceId = await scanFixture();
     const listed = unwrap<{ items: Array<{ id: string; pageCount: number | null }> }>(

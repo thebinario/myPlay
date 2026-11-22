@@ -1,4 +1,10 @@
 export * from './domain/entities';
 export * from './domain/inputs';
 export * from './domain/ports';
+export * from './domain/watch-coverage';
+export * from './domain/completion-policy';
+export * from './application/dto';
+export * from './application/watch-progress.service';
+export { MAX_SEGMENT_MS } from './application/use-cases/record-playback-segment';
 export * from './infrastructure/progress.repository.sqlite';
+export * from './infrastructure/lesson-media-durations.sqlite';

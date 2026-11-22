@@ -241,9 +241,87 @@ describe('IpcLibraryRepository', () => {
       lessonId: 'l1',
       positionMs: 18_000,
       durationMs: 90_000,
-      completedAt: null,
     });
     expect(repository.getPlaybackPosition('c1', 'l1')).toBe(18);
+  });
+
+  it('encaminha trechos assistidos ao backend, que decide a conclusão', async () => {
+    const delegate = new MockLibraryService();
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    let completedAt: string | null = null;
+    handlers['progress.getPlayback'] = () => ({
+      id: 'p1',
+      lessonId: 'l1',
+      positionMs: 81_000,
+      durationMs: 90_000,
+      watchedRatio: completedAt ? 0.9 : 0.8,
+      completionSource: completedAt ? 'watched' : null,
+      completedAt,
+      updatedAt: '2026-10-16T20:00:00.000Z',
+    });
+    const recordSegment = vi.fn((params: unknown) => {
+      completedAt = '2026-10-16T21:00:00.000Z';
+      return {
+        id: 'p1',
+        lessonId: (params as { lessonId: string }).lessonId,
+        positionMs: 81_000,
+        durationMs: 90_000,
+        watchedRatio: 0.9,
+        completionSource: 'watched',
+        completedAt,
+        updatedAt: '2026-10-16T21:00:00.000Z',
+      };
+    });
+    handlers['progress.recordSegment'] = recordSegment;
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+    expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(false);
+    expect(repository.getCourseById('c1')?.modules[0].lessons[0].watchedRatio).toBe(0.8);
+
+    repository.recordWatchSegment('c1', 'l1', { fromSeconds: 72, toSeconds: 81.4 });
+    await flush(16);
+
+    expect(recordSegment).toHaveBeenCalledWith({
+      lessonId: 'l1',
+      fromMs: 72_000,
+      toMs: 81_400,
+      durationMs: 90_000,
+    });
+    const lesson = repository.getCourseById('c1')?.modules[0].lessons[0];
+    expect(lesson?.completed).toBe(true);
+    expect(lesson?.completionSource).toBe('watched');
+  });
+
+  it('repassa a duração informada pelo elemento de mídia quando o catálogo não a conhece', async () => {
+    const delegate = new MockLibraryService();
+    const { bridge, handlers } = createFakeBridge();
+    wireCatalog(handlers);
+    const recordSegment = vi.fn((params: unknown) => ({
+      id: 'p1',
+      ...(params as object),
+      positionMs: 10_000,
+      completedAt: null,
+    }));
+    handlers['progress.recordSegment'] = recordSegment;
+    const repository = new IpcLibraryRepository(bridge, delegate);
+    repository.hydrate();
+    await flush();
+
+    repository.recordWatchSegment('c1', 'l1', {
+      fromSeconds: 0,
+      toSeconds: 10,
+      durationSeconds: 596.48,
+    });
+    await flush();
+
+    expect(recordSegment).toHaveBeenCalledWith({
+      lessonId: 'l1',
+      fromMs: 0,
+      toMs: 10_000,
+      durationMs: 596_480,
+    });
   });
 
   it('hidrata o catálogo real a partir do kernel', async () => {
@@ -260,9 +338,16 @@ describe('IpcLibraryRepository', () => {
       completedAt: playbackCompletedAt,
       updatedAt: '2026-10-16T20:00:00.000Z',
     });
-    handlers['progress.savePlayback'] = (params) => {
-      playbackCompletedAt = (params as { completedAt: string | null }).completedAt;
-      return params;
+    handlers['progress.setLessonCompletion'] = (params) => {
+      const { lessonId, completed } = params as { lessonId: string; completed: boolean };
+      playbackCompletedAt = completed ? '2026-10-16T21:00:00.000Z' : null;
+      return {
+        id: 'p1',
+        lessonId,
+        positionMs: 90_000,
+        durationMs: 90_000,
+        completedAt: playbackCompletedAt,
+      };
     };
     handlers['progress.getReading'] = () => ({
       id: 'r1',
@@ -301,7 +386,8 @@ describe('IpcLibraryRepository', () => {
     });
     await flush();
 
-    expect(calls['progress.savePlayback']).toBe(1);
+    expect(calls['progress.setLessonCompletion']).toBe(1);
+    expect(calls['progress.savePlayback']).toBeUndefined();
     expect(calls['progress.saveReading']).toBe(1);
     expect(repository.getCourseById('c1')?.modules[0].lessons[0].completed).toBe(false);
     expect(repository.getCourseById('c1')?.modules[0].documents?.[0].isRead).toBe(false);

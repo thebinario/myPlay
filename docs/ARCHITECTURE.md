@@ -143,6 +143,16 @@ presentation ──► application ──► domain ◄── infrastructure
   e exponha o contrato necessário; não a resolva com regra dentro de componente,
   hook, mock de produção ou adapter do frontend.
 
+**Exemplo aplicado — conclusão de aulas (cobertura real).** O player só
+encaminha os trechos realmente reproduzidos (`WatchSegmentTracker` →
+`progress.recordSegment`). O backend (`midoteca/src/modules/progress/`) junta os
+trechos no objeto de valor `WatchCoverage`, aplica `CompletionPolicy` (≥ 90% da
+duração realmente reproduzida; seek não conta) e grava `completedAt` com
+`completionSource` (`watched` | `manual` | `duplicate` | `legacy`). A duração
+catalogada tem prioridade sobre a informada pelo player. `progress.savePlayback`
+guarda apenas o ponto de retomada; uma conclusão enviada pelo renderer é
+ignorada. Ver ADR [`adr/0006-watch-coverage-completion.md`](adr/0006-watch-coverage-completion.md).
+
 Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
 regras de negócio duplicadas para o backend sem reescrever módulos não
 relacionados. Os testes do backend cobrem as decisões de negócio; os do

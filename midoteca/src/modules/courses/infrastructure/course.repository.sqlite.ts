@@ -184,6 +184,16 @@ function mapTreeDocument(row: CourseTreeDocumentRow): CourseTreeDocument {
   };
 }
 
+interface WatchedRow {
+  watched_ms: number;
+  duration_ms: number | null;
+}
+
+function toWatchedRatio(row: WatchedRow | undefined): number | null {
+  if (!row || !row.duration_ms || row.duration_ms <= 0) return null;
+  return Math.min(1, row.watched_ms / row.duration_ms);
+}
+
 export class SqliteCourseRepository implements CourseRepository {
   constructor(private readonly db: SqliteDatabase) {}
 
@@ -657,6 +667,11 @@ export class SqliteCourseRepository implements CourseRepository {
       `SELECT lesson_id, media_file_id, role FROM lesson_media
        WHERE lesson_id = ? ORDER BY role, media_file_id`,
     );
+    // Watched ratio is persisted by the progress module (real coverage, the
+    // duration already resolved by the backend); the tree only projects it.
+    const watchedStmt = this.db.prepare(
+      `SELECT watched_ms, duration_ms FROM playback_progress WHERE lesson_id = ?`,
+    );
     const courseDocuments = this.readTreeDocuments('dl.course_id', courseId);
 
     const modules: CourseTreeModule[] = moduleRows.map((moduleRow) => {
@@ -664,6 +679,7 @@ export class SqliteCourseRepository implements CourseRepository {
       const lessons = (lessonStmt.all(moduleRow.id) as LessonRow[]).map((lessonRow) => ({
         ...mapLesson(lessonRow),
         media: (mediaStmt.all(lessonRow.id) as LessonMediaRow[]).map(mapLessonMedia),
+        watchedRatio: toWatchedRatio(watchedStmt.get(lessonRow.id) as WatchedRow | undefined),
       }));
       return { ...mapModule(moduleRow), documents, lessons };
     });

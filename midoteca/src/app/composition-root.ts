@@ -19,7 +19,13 @@ import {
   type LibraryRepository,
 } from '../modules/library';
 import { SqliteMediaRepository, type MediaRepository } from '../modules/media';
-import { SqliteProgressRepository, type ProgressRepository } from '../modules/progress';
+import { nowIso } from '../core/clock';
+import {
+  SqliteLessonMediaDurations,
+  SqliteProgressRepository,
+  WatchProgressService,
+  type ProgressRepository,
+} from '../modules/progress';
 import { SqliteSettingsRepository, type SettingsRepository } from '../modules/settings';
 import { TypedEventBus } from '../platform/events/typed-event-bus';
 import { FsManifestLoader } from '../platform/fs/manifest-loader';
@@ -53,6 +59,8 @@ export interface Midoteca {
   readonly courses: CourseRepository;
   readonly documents: DocumentRepository;
   readonly progress: ProgressRepository;
+  /** Playback coverage and completion use cases (backend decides completion). */
+  readonly watchProgress: WatchProgressService;
   readonly jobs: JobRepository;
   readonly settings: SettingsRepository;
   readonly migration: MigrationResult | null;
@@ -103,6 +111,12 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
   const queries = new LibraryQueryService(new SqliteLibraryQueryStore(database));
   const courses = new SqliteCourseRepository(database);
   const documents = new SqliteDocumentRepository(database);
+  const progress = new SqliteProgressRepository(database);
+  const watchProgress = new WatchProgressService({
+    progress,
+    durations: new SqliteLessonMediaDurations(database),
+    now: nowIso,
+  });
 
   return {
     database,
@@ -110,7 +124,8 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     media: new SqliteMediaRepository(database),
     courses,
     documents,
-    progress: new SqliteProgressRepository(database),
+    progress,
+    watchProgress,
     jobs: new SqliteJobRepository(database),
     settings: new SqliteSettingsRepository(database),
     migration,

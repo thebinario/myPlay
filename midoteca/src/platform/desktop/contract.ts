@@ -17,8 +17,10 @@ import type { MediaFile, MediaTrack } from '../../modules/media';
 import type {
   PlaybackProgress,
   ReadingProgress,
-  SavePlaybackProgress,
+  RecordPlaybackSegmentInput,
+  SavePlaybackPositionInput,
   SaveReadingProgress,
+  SetLessonCompletionInput,
 } from '../../modules/progress';
 import type { AppSetting } from '../../modules/settings';
 import type { LibraryType } from '../../modules/library';
@@ -60,6 +62,8 @@ export const DESKTOP_METHODS = [
   'media.listTracks',
   'progress.getPlayback',
   'progress.savePlayback',
+  'progress.recordSegment',
+  'progress.setLessonCompletion',
   'progress.getReading',
   'progress.saveReading',
   'settings.get',
@@ -106,7 +110,10 @@ export interface DesktopParams {
   'media.listBySource': { sourceId: string };
   'media.listTracks': { mediaFileId: string };
   'progress.getPlayback': { lessonId: string };
-  'progress.savePlayback': SavePlaybackProgress;
+  /** Resume position only; completion sent by the renderer is ignored. */
+  'progress.savePlayback': SavePlaybackPositionInput & { completedAt?: string | null };
+  'progress.recordSegment': RecordPlaybackSegmentInput;
+  'progress.setLessonCompletion': SetLessonCompletionInput;
   'progress.getReading': { documentId: string };
   'progress.saveReading': SaveReadingProgress;
   'settings.get': { key: string };
@@ -140,6 +147,8 @@ export interface DesktopResults {
   'media.listTracks': MediaTrack[];
   'progress.getPlayback': PlaybackProgress | null;
   'progress.savePlayback': PlaybackProgress;
+  'progress.recordSegment': PlaybackProgress;
+  'progress.setLessonCompletion': PlaybackProgress;
   'progress.getReading': ReadingProgress | null;
   'progress.saveReading': ReadingProgress;
   'settings.get': AppSetting | null;

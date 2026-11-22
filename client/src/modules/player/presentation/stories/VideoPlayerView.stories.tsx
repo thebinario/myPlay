@@ -71,7 +71,27 @@ const endedCourse: Course = {
   title: 'Curso com aula finalizada',
   modules: mockCourse.modules.map((module) => ({
     ...module,
-    lessons: module.lessons.map((lesson) => ({ ...lesson, lastPlaybackPosition: lesson.duration })),
+    lessons: module.lessons.map((lesson) => ({
+      ...lesson,
+      completed: false,
+      watchedRatio: 0.05,
+      lastPlaybackPosition: lesson.duration,
+    })),
+  })),
+};
+
+/** Aula que chegou ao fim e que o backend confirmou como assistida (≥ 90%). */
+const endedWatchedCourse: Course = {
+  ...endedCourse,
+  id: 'course-ended-watched',
+  modules: endedCourse.modules.map((module) => ({
+    ...module,
+    lessons: module.lessons.map((lesson) => ({
+      ...lesson,
+      completed: true,
+      completionSource: 'watched' as const,
+      watchedRatio: 0.96,
+    })),
   })),
 };
 
@@ -95,7 +115,6 @@ const meta: Meta<typeof VideoPlayerView> = {
     course: { control: false },
     initialLessonId: { control: { type: 'text' } },
     onBack: { action: 'back' },
-    onCompleteLesson: { action: 'complete-lesson' },
     controlsAutoHideDelayMs: { control: { type: 'number' } },
   },
 };
@@ -186,9 +205,22 @@ export const Seeking: Story = {
   },
 };
 
-/** Fim da aula com opções de replay / próxima. */
+/**
+ * Fim do vídeo alcançado por busca, sem assistir: o backend não concluiu a
+ * aula, então o status não diz "Concluída".
+ */
 export const Ended: Story = {
   args: { ...baseArgs, course: endedCourse },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByTestId('player-ended')).toBeTruthy();
+    await expect(canvas.getByTestId('player-status').textContent).toBe('Fim do vídeo');
+  },
+};
+
+/** Fim da aula realmente assistida: conclusão confirmada pelo backend. */
+export const EndedWatched: Story = {
+  args: { ...baseArgs, course: endedWatchedCourse },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByTestId('player-ended')).toBeTruthy();

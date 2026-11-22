@@ -98,10 +98,6 @@ export class IpcLibraryRepository implements LibraryRepository {
     return item?.type === 'course' ? item : undefined;
   }
 
-  private replaceCatalogItem(item: LibraryItem): void {
-    this.items = this.items.map((current) => (current.id === item.id ? item : current));
-  }
-
   getDocumentById(id: string) {
     return this.items.flatMap(getDocumentsFromItem).find((document) => document.id === id);
   }
@@ -172,73 +168,66 @@ export class IpcLibraryRepository implements LibraryRepository {
 
   toggleLessonCompletion(courseId: string, lessonId: string) {
     const course = this.getCourseById(courseId);
-    const target = course?.modules
-      .flatMap((module) => module.lessons)
-      .find((lesson) => lesson.id === lessonId);
+    const target = this.findLesson(courseId, lessonId);
     if (!course || !target) return undefined;
 
-    const completed = !target.completed;
-    const modules = course.modules.map((module) => ({
-      ...module,
-      lessons: module.lessons.map((lesson) =>
-        lesson.id === lessonId ? { ...lesson, completed } : lesson,
-      ),
-    }));
-    const updated = {
-      ...course,
-      modules,
-    };
-    this.replaceCatalogItem(updated);
-    this.emit();
-    this.persistPlaybackProgress(
-      courseId,
-      lessonId,
-      this.getPlaybackPosition(courseId, lessonId),
-      target.duration,
-      completed,
-      true,
-    );
-    return updated;
+    void this.bridge
+      .invoke('progress.setLessonCompletion', { lessonId, completed: !target.completed })
+      .then((saved: PlaybackProgress) => {
+        this.applyPlaybackProgress(courseId, saved);
+        return this.refresh();
+      })
+      .catch((error: unknown) => {
+        console.error('[library] falha ao alterar a conclusão da aula', error);
+      });
+    return course;
   }
 
   savePlaybackPosition(courseId: string, lessonId: string, positionSeconds: number): void {
-    const course = this.getCourseById(courseId);
-    const lesson = course?.modules
-      .flatMap((module) => module.lessons)
-      .find((item) => item.id === lessonId);
-    if (lesson) {
-      this.persistPlaybackProgress(
-        courseId,
-        lessonId,
-        positionSeconds,
-        lesson.duration,
-        lesson.completed,
-      );
-    }
-  }
-
-  private persistPlaybackProgress(
-    courseId: string,
-    lessonId: string,
-    positionSeconds: number,
-    durationSeconds: number,
-    completed: boolean,
-    refreshAfterSave = false,
-  ): void {
+    const lesson = this.findLesson(courseId, lessonId);
+    if (!lesson) return;
     void this.bridge
       .invoke('progress.savePlayback', {
         lessonId,
         positionMs: Math.round(positionSeconds * 1000),
-        durationMs: durationSeconds > 0 ? Math.round(durationSeconds * 1000) : null,
-        completedAt: completed ? new Date().toISOString() : null,
+        durationMs: lesson.duration > 0 ? Math.round(lesson.duration * 1000) : null,
       })
-      .then((saved: PlaybackProgress) => {
-        this.applyPlaybackProgress(courseId, saved);
-        return refreshAfterSave ? this.refresh() : undefined;
-      })
+      .then((saved: PlaybackProgress) => this.applyPlaybackProgress(courseId, saved))
       .catch((error: unknown) => {
         console.error('[library] falha ao salvar progresso da aula', error);
       });
+  }
+
+  recordWatchSegment(
+    courseId: string,
+    lessonId: string,
+    segment: { fromSeconds: number; toSeconds: number; durationSeconds?: number },
+  ): void {
+    const lesson = this.findLesson(courseId, lessonId);
+    if (!lesson) return;
+    const durationSeconds = segment.durationSeconds ?? lesson.duration;
+    void this.bridge
+      .invoke('progress.recordSegment', {
+        lessonId,
+        fromMs: Math.round(segment.fromSeconds * 1000),
+        toMs: Math.round(segment.toSeconds * 1000),
+        durationMs: durationSeconds > 0 ? Math.round(durationSeconds * 1000) : null,
+      })
+      .then((saved: PlaybackProgress) => {
+        // A conclusão é decidida pelo backend; o catálogo só é recarregado
+        // quando ela muda, para não re-renderizar a tela a cada trecho.
+        if (!!saved.completedAt !== lesson.completed) return this.refresh();
+        return undefined;
+      })
+      .catch((error: unknown) => {
+        console.error('[library] falha ao registrar trecho assistido', error);
+      });
+  }
+
+  private findLesson(courseId: string, lessonId: string) {
+    return this.getCourseById(courseId)
+      ?.modules.flatMap((module) => module.lessons)
+      .find((lesson) => lesson.id === lessonId);
   }
 
   getPlaybackPosition(courseId: string, lessonId: string): number {
