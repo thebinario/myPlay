@@ -8,7 +8,9 @@ import {
 describe('player/domain — playback-error', () => {
   describe('extractFileFormat', () => {
     it('extrai extensão de URLs midoteca-media', () => {
-      expect(extractFileFormat('midoteca-media://localhost/Users/user/Videos/aula.mkv')).toBe('MKV');
+      expect(extractFileFormat('midoteca-media://localhost/Users/user/Videos/aula.mkv')).toBe(
+        'MKV',
+      );
       expect(extractFileFormat('midoteca-media://localhost/C:/Cursos/aula-02.avi')).toBe('AVI');
       expect(extractFileFormat('midoteca-media://localhost/media/video.mp4')).toBe('MP4');
       expect(extractFileFormat('midoteca-media://localhost/media/video.webm')).toBe('WEBM');

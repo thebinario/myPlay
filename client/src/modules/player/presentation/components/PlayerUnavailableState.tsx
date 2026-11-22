@@ -14,8 +14,7 @@ export const PlayerUnavailableState: React.FC<PlayerUnavailableStateProps> = ({
   const isUnsupported = errorInfo?.kind === 'unsupported_format';
   const isCorrupted = errorInfo?.kind === 'corrupted';
 
-  const title =
-    errorInfo?.title ?? 'Arquivo indisponível ou HD desconectado';
+  const title = errorInfo?.title ?? 'Arquivo indisponível ou HD desconectado';
 
   const message =
     errorInfo?.message ??
@@ -51,15 +50,23 @@ export const PlayerUnavailableState: React.FC<PlayerUnavailableStateProps> = ({
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <h3 style={{ color: '#F87171', fontSize: '16px', fontWeight: 600, margin: 0 }}>
-          {title}
-        </h3>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
+        <h3 style={{ color: '#F87171', fontSize: '16px', fontWeight: 600, margin: 0 }}>{title}</h3>
         {format && (
           <span
             style={{
               display: 'inline-block',
-              backgroundColor: isUnsupported ? 'rgba(239, 68, 68, 0.2)' : 'rgba(165, 148, 255, 0.15)',
+              backgroundColor: isUnsupported
+                ? 'rgba(239, 68, 68, 0.2)'
+                : 'rgba(165, 148, 255, 0.15)',
               color: isUnsupported ? '#FCA5A5' : '#C4B5FD',
               border: `1px solid ${isUnsupported ? 'rgba(239, 68, 68, 0.4)' : 'rgba(165, 148, 255, 0.3)'}`,
               borderRadius: '4px',
@@ -74,9 +81,7 @@ export const PlayerUnavailableState: React.FC<PlayerUnavailableStateProps> = ({
         )}
       </div>
 
-      <p style={{ color: '#94A3B8', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
-        {message}
-      </p>
+      <p style={{ color: '#94A3B8', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>{message}</p>
 
       {suggestion && (
         <p

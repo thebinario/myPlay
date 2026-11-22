@@ -63,7 +63,10 @@ export const SourceContents: React.FC<SourceContentsProps> = ({
   }
 
   if (singleCourse) {
-    sections.push({ key: 'single-course', node: <LibraryContentsList items={items} {...listProps} /> });
+    sections.push({
+      key: 'single-course',
+      node: <LibraryContentsList items={items} {...listProps} />,
+    });
   } else {
     if (looseCourses.length > 0) {
       sections.push({

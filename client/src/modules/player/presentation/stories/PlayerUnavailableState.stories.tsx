@@ -31,7 +31,8 @@ export const UnsupportedFormat: Story = {
       kind: 'unsupported_format',
       format: 'MKV',
       title: 'Formato de vídeo não suportado',
-      message: 'O formato .mkv ou o codec deste vídeo não é compatível nativamente com o reprodutor.',
+      message:
+        'O formato .mkv ou o codec deste vídeo não é compatível nativamente com o reprodutor.',
       suggestion: 'Recomendamos converter o arquivo para MP4 (H.264/AAC) ou WebM para assistir.',
     },
     onReconnect: () => {},
@@ -45,7 +46,8 @@ export const UnsupportedAviFormat: Story = {
       kind: 'unsupported_format',
       format: 'AVI',
       title: 'Formato de vídeo não suportado',
-      message: 'O formato .avi ou o codec deste vídeo não é compatível nativamente com o reprodutor.',
+      message:
+        'O formato .avi ou o codec deste vídeo não é compatível nativamente com o reprodutor.',
       suggestion: 'Recomendamos converter o arquivo para MP4 (H.264/AAC) ou WebM para assistir.',
     },
     onReconnect: () => {},
@@ -59,8 +61,10 @@ export const CorruptedFile: Story = {
       kind: 'corrupted',
       format: 'MP4',
       title: 'Arquivo corrompido ou danificado',
-      message: 'Ocorreu uma falha ao decodificar os dados do vídeo. O arquivo pode estar corrompido, incompleto ou danificado durante a transferência.',
-      suggestion: 'Verifique se o arquivo original abre em outros players ou tente copiar novamente o arquivo.',
+      message:
+        'Ocorreu uma falha ao decodificar os dados do vídeo. O arquivo pode estar corrompido, incompleto ou danificado durante a transferência.',
+      suggestion:
+        'Verifique se o arquivo original abre em outros players ou tente copiar novamente o arquivo.',
     },
     onReconnect: () => {},
   },

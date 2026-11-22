@@ -259,7 +259,12 @@ export function useMediaElementPlayback({
       setStatus('error');
 
       // Se aplicável, verifica no backend/protocolo se o arquivo realmente existe
-      if (typeof fetch === 'function' && src && !src.startsWith('blob:') && !src.startsWith('data:')) {
+      if (
+        typeof fetch === 'function' &&
+        src &&
+        !src.startsWith('blob:') &&
+        !src.startsWith('data:')
+      ) {
         fetch(src, { method: 'HEAD' })
           .then((res) => {
             if (res.status === 404 || res.status === 403) {

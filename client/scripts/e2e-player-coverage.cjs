@@ -54,10 +54,22 @@ function prepareLibrary() {
   fs.mkdirSync(speechDir, { recursive: true });
   const ffmpeg = require(require.resolve('ffmpeg-static', { paths: [CORE] }));
   require('node:child_process').execFileSync(ffmpeg, [
-    '-v', 'error', '-y',
-    '-f', 'lavfi', '-i', 'color=c=navy:s=640x360:r=24',
-    '-i', SPEECH_WAV,
-    '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
+    '-v',
+    'error',
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'color=c=navy:s=640x360:r=24',
+    '-i',
+    SPEECH_WAV,
+    '-shortest',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
     path.join(speechDir, '01 - Aula falada.mp4'),
   ]);
   return { base, dataDir, library };
@@ -105,12 +117,13 @@ async function openLesson(page, courseId, lessonTitle) {
   await page.getByTestId('player-video').waitFor();
   await waitFor(
     page,
-    () => page.evaluate(() => {
-      const video = /** @type {HTMLVideoElement | null} */ (
-        document.querySelector('[data-testid="player-video"]')
-      );
-      return !!video && video.readyState >= 2 && video.duration > 0;
-    }),
+    () =>
+      page.evaluate(() => {
+        const video = /** @type {HTMLVideoElement | null} */ (
+          document.querySelector('[data-testid="player-video"]')
+        );
+        return !!video && video.readyState >= 2 && video.duration > 0;
+      }),
     30_000,
     'metadados do vídeo',
   );
@@ -213,7 +226,10 @@ async function main() {
     await page.getByTestId(`home-course-${courseId}`).click();
     const notice = page.getByTestId('watched-elsewhere');
     await notice.waitFor({ timeout: 30_000 });
-    assert(/Já assistido em/.test((await notice.textContent()) ?? ''), 'aviso de duplicata ausente');
+    assert(
+      /Já assistido em/.test((await notice.textContent()) ?? ''),
+      'aviso de duplicata ausente',
+    );
     await notice.getByRole('button', { name: 'Marcar como vista' }).click();
     const reused = await waitFor(
       page,
@@ -279,7 +295,10 @@ async function main() {
     );
     await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
     await page.getByLabel('Campo de pesquisa').fill('ambiente de producao');
-    await page.getByRole('button', { name: /Aula falada · / }).first().click();
+    await page
+      .getByRole('button', { name: /Aula falada · / })
+      .first()
+      .click();
     await page.getByTestId('player-video').waitFor();
     await page.getByRole('button', { name: /legendas e idiomas \(cc\)/i }).click();
     await page.getByText('Português (gerada automaticamente)').click();

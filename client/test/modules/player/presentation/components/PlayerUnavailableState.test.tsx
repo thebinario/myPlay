@@ -21,7 +21,9 @@ describe('PlayerUnavailableState', () => {
     expect(screen.getByTestId('player-error')).toBeInTheDocument();
     expect(screen.getByText('Formato de vídeo não suportado')).toBeInTheDocument();
     expect(screen.getByText('MKV')).toBeInTheDocument();
-    expect(screen.getByText(/O formato \.mkv ou o codec deste vídeo não é compatível/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/O formato \.mkv ou o codec deste vídeo não é compatível/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/converter para MP4 ou WebM/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
 
