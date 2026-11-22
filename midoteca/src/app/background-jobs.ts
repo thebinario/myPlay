@@ -152,14 +152,29 @@ export function createBackgroundJobs(deps: BackgroundJobsDependencies): JobRunne
 
   deps.events.on('index:completed', ({ sourceId }) => {
     if (inspector) runner.track(schedulePlayabilityCheck(deps.jobs));
-    runner.track(scheduleSourceJob(deps.jobs, MEDIA_ANALYZE_SOURCE_JOB, sourceId));
-    runner.track(scheduleSourceJob(deps.jobs, SEARCH_EXTRACT_CONTENT_JOB, sourceId, -2));
-    if (transcription) {
-      runner.track(scheduleSourceJob(deps.jobs, MEDIA_TRANSCRIBE_SOURCE_JOB, sourceId, -5));
-    }
+    runner.track(
+      scheduleSourceProcessing(deps.jobs, sourceId, { transcription: Boolean(transcription) }),
+    );
   });
 
   return runner;
+}
+
+/**
+ * Per-library processing (duplicate analysis, text extraction and, when local
+ * AI exists, transcription). Deduplicated, and each job only touches what is
+ * still pending, so scheduling it again is cheap.
+ */
+export async function scheduleSourceProcessing(
+  jobs: JobRepository,
+  sourceId: string,
+  options: { transcription: boolean },
+): Promise<void> {
+  await scheduleSourceJob(jobs, MEDIA_ANALYZE_SOURCE_JOB, sourceId);
+  await scheduleSourceJob(jobs, SEARCH_EXTRACT_CONTENT_JOB, sourceId, -2);
+  if (options.transcription) {
+    await scheduleSourceJob(jobs, MEDIA_TRANSCRIBE_SOURCE_JOB, sourceId, -5);
+  }
 }
 
 /** Enqueues the playability check once (high priority: it is cheap and user-visible). */

@@ -33,7 +33,13 @@ import {
 } from '../modules/media';
 import { AssistantService, type LlmClient } from '../modules/assistant';
 import { createLocalAi, type LocalAi } from './local-ai';
-import { createBackgroundJobs, schedulePlayabilityCheck, type MediaTools } from './background-jobs';
+import { SqliteLessonTitleLookup } from '../modules/courses/infrastructure/lesson-title.lookup.sqlite';
+import {
+  createBackgroundJobs,
+  schedulePlayabilityCheck,
+  scheduleSourceProcessing,
+  type MediaTools,
+} from './background-jobs';
 import { ActivityMonitor } from '../modules/jobs/application/activity-monitor';
 import { fileNameOf } from '../core/file-name';
 import {
@@ -134,6 +140,12 @@ export interface Midoteca {
   readonly activity: ActivityMonitor;
   /** Queues the playability check of videos not verified yet (e.g. older libraries). */
   checkPlayability(): Promise<void>;
+  /**
+   * Re-queues the background processing of every library (playability, duplicate
+   * analysis, text extraction, transcription). Runs on start-up, so libraries
+   * indexed before a feature existed — or whose queue was lost — catch up.
+   */
+  resumeProcessing(): Promise<void>;
   /** Duplicate-content read model and explicit reuse of completions. */
   readonly duplicates: DuplicatesService;
   /** Full-text search over PDF/subtitle/transcript text (FTS5). */
@@ -201,6 +213,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
   const activity = new ActivityMonitor({
     jobs,
     events,
+    subjectNames: new SqliteLessonTitleLookup(database),
     sourceNames: {
       nameOf: async (sourceId) => {
         const source = await library.findSourceById(sourceId);
@@ -236,10 +249,24 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
       inspector: options.mediaTools?.inspector ?? new FfprobeMediaInspector(),
     },
   });
+  const resumeProcessing = async (): Promise<void> => {
+    if (readonly) return;
+    const work = (async () => {
+      await schedulePlayabilityCheck(jobs);
+      const sources = await library.listSources();
+      for (const source of sources.filter((item) => item.status !== 'offline')) {
+        await scheduleSourceProcessing(jobs, source.id, {
+          transcription: Boolean(localAi.tools.transcription),
+        });
+      }
+    })();
+    jobRunner.track(work);
+    await work;
+  };
   if (options.backgroundJobs && !readonly) {
     jobRunner.start();
-    // Libraries indexed before playability existed are verified in the background.
-    jobRunner.track(schedulePlayabilityCheck(jobs));
+    // Libraries indexed before a feature existed catch up in the background.
+    void resumeProcessing().catch(() => undefined);
   }
   const duplicates = new DuplicatesService({
     reads: new SqliteDuplicateReadStore(database),
@@ -268,6 +295,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     queries,
     jobRunner,
     activity,
+    resumeProcessing,
     checkPlayability: async () => {
       if (readonly) return;
       const enqueue = schedulePlayabilityCheck(jobs);

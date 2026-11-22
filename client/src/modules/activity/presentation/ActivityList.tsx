@@ -85,7 +85,7 @@ function ActivityRow({ item, now }: { item: ActivityItemView; now: number }) {
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
-          title={item.detail ?? item.label}
+          title={running && item.detail ? item.detail : item.label}
           style={{
             fontSize: '14px',
             fontWeight: 600,
@@ -101,6 +101,28 @@ function ActivityRow({ item, now }: { item: ActivityItemView; now: number }) {
           {subtitle(item, now)}
         </div>
         {running && <ActivityProgress percent={item.percent} label={item.label} />}
+        {item.status === 'failed' && item.detail && (
+          <div
+            title={item.detail}
+            style={{
+              marginTop: '6px',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(248, 113, 113, 0.08)',
+              color: '#FCA5A5',
+              fontSize: '12px',
+              lineHeight: 1.4,
+              wordBreak: 'break-word',
+              userSelect: 'text',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {item.detail}
+          </div>
+        )}
       </div>
     </li>
   );

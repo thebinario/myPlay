@@ -19,18 +19,35 @@ export interface JobProgressReport {
   detail?: string | null;
 }
 
+/** One unit of a job (e.g. a video) that reached a final state. */
+export interface JobItemReport {
+  /** Catalog id of what was processed (e.g. a media file), to resolve its name. */
+  subjectId: string | null;
+  /** Shown when the subject has no better name (e.g. the file name). */
+  fallbackName: string;
+  outcome: 'completed' | 'failed';
+  /** Why it failed (the real error message), for diagnosis. */
+  error?: string | null;
+}
+
 /** Lifecycle hooks for whoever shows background work (activity monitor). */
 export interface JobObserver {
   jobStarted(job: Job): void;
   jobProgress(job: Job, progress: JobProgressReport): void;
-  /** `requeued` = it will run again (retry or interruption), not a final outcome. */
-  jobFinished(job: Job, outcome: 'completed' | 'failed' | 'requeued'): void;
+  jobItem(job: Job, item: JobItemReport): void;
+  /**
+   * `requeued` = it will run again (retry or interruption), not a final outcome.
+   * `error` carries the failure message.
+   */
+  jobFinished(job: Job, outcome: 'completed' | 'failed' | 'requeued', error?: string): void;
 }
 
 export interface JobContext {
   job: Job;
   /** Publishes progress for the activity panel (not persisted). */
   reportProgress(progress: JobProgressReport): void;
+  /** Publishes the final state of one unit of work (activity history). */
+  reportItem(item: JobItemReport): void;
   /** Persists progress so a retry/restart resumes from here. */
   saveCheckpoint(checkpoint: JsonObject): Promise<void>;
   /** Call between units of work: honours pause and playback back-off. */
@@ -166,11 +183,13 @@ export class JobRunner {
     observer?.jobStarted(running);
     let checkpoint = job.checkpoint;
     let outcome: 'completed' | 'failed' | 'requeued' = 'requeued';
+    let failure: string | undefined;
     try {
       await handler({
         job: running,
         signal: this.controller.signal,
         reportProgress: (progress) => observer?.jobProgress(running, progress),
+        reportItem: (item) => observer?.jobItem(running, item),
         saveCheckpoint: async (next) => {
           checkpoint = next;
           await this.options.jobs.update(job.id, { checkpoint: next });
@@ -191,11 +210,12 @@ export class JobRunner {
       const status = attempts >= this.maxAttempts ? 'failed' : 'pending';
       await this.options.jobs.update(job.id, { status, checkpoint });
       outcome = status === 'failed' ? 'failed' : 'requeued';
+      failure = error instanceof Error ? error.message : String(error);
       if (status === 'failed') {
         console.error(`[jobs] ${job.type} falhou após ${attempts} tentativas`, error);
       }
     } finally {
-      observer?.jobFinished(running, outcome);
+      observer?.jobFinished(running, outcome, failure);
     }
     return true;
   }

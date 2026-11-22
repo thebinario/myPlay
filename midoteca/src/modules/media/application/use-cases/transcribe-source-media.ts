@@ -1,4 +1,4 @@
-import { fileNameOf } from '../../../../core/file-name';
+import { fileNameOf, fileStemOf } from '../../../../core/file-name';
 import {
   shiftSegments,
   transcriptionWindows,
@@ -18,6 +18,13 @@ export interface TranscriptionPacing {
   waitForIdle(): Promise<void>;
   /** Publishes progress to the activity panel. */
   reportProgress?(progress: { done: number; total: number | null; detail: string | null }): void;
+  /** Final state of each video, for the activity history (with the failure reason). */
+  reportItem?(item: {
+    subjectId: string | null;
+    fallbackName: string;
+    outcome: 'completed' | 'failed';
+    error?: string | null;
+  }): void;
   signal?: AbortSignal;
 }
 
@@ -58,9 +65,17 @@ export class TranscribeSourceMedia {
           candidate.processedMs === 0
             ? await store.findTranscribedTwin(candidate.mediaFileId)
             : null;
+        const report = (outcome: 'completed' | 'failed', error?: string) =>
+          pacing.reportItem?.({
+            subjectId: candidate.mediaFileId,
+            fallbackName: fileStemOf(candidate.absolutePath),
+            outcome,
+            error: error ?? null,
+          });
         if (twin) {
           await store.copyFrom(twin, candidate);
           transcribed += 1;
+          report('completed');
           continue;
         }
 
@@ -83,11 +98,15 @@ export class TranscribeSourceMedia {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          if (await store.noteError(candidate.mediaFileId, message)) continue;
+          if (await store.noteError(candidate.mediaFileId, message)) {
+            report('failed', message);
+            continue;
+          }
           throw error;
         }
         await store.complete(candidate.mediaFileId);
         transcribed += 1;
+        report('completed');
       }
     }
   }

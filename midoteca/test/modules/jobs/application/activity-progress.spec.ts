@@ -64,6 +64,56 @@ describe('progresso dos jobs no painel de atividade (SQLite + arquivos reais)', 
     expect(extraction.at(-1)?.done).toBe(extraction.at(-1)?.total);
   });
 
+  it('o histórico mostra cada aula transcrita pelo título da aula', async () => {
+    library.write('Curso A/Modulo 1/01 - Boas-vindas.mp4', 'video-1');
+    const source = await app.sources.addSource({ rootPath: library.root });
+    await app.indexer.runScan({ sourceId: source.id });
+    await app.jobRunner.drain();
+
+    const lessonTitle = (
+      app.database.prepare('SELECT title FROM lessons LIMIT 1').get() as { title: string }
+    ).title;
+    const recent = (await app.activity.snapshot()).recent;
+    expect(recent).toContainEqual(
+      expect.objectContaining({
+        kind: 'transcription',
+        status: 'completed',
+        label: `Transcrição · ${lessonTitle}`,
+      }),
+    );
+    expect(recent.map((item) => item.label)).not.toContain(
+      `Transcrição · ${source.displayName ?? ''}`,
+    );
+  });
+
+  it('uma aula que não pôde ser transcrita aparece como falha, com o motivo', async () => {
+    await app.jobRunner.stop();
+    app.close();
+    app = createMidoteca({
+      databaseFile: temp.file,
+      mediaTools: { prober, sampler },
+      aiTools: {
+        audio: {
+          decodeWindow: async () => {
+            throw new Error('Áudio ilegível: stream truncado');
+          },
+        },
+        transcriber,
+      },
+    });
+    library.write('Curso A/Modulo 1/01 - Quebrado.mp4', 'video-1');
+    const source = await app.sources.addSource({ rootPath: library.root });
+    await app.indexer.runScan({ sourceId: source.id });
+    await app.jobRunner.drain();
+
+    const failed = (await app.activity.snapshot()).recent.filter(
+      (item) => item.kind === 'transcription' && item.status === 'failed',
+    );
+    expect(failed).toHaveLength(1);
+    expect(failed[0].label).toMatch(/^Transcrição · /);
+    expect(failed[0].detail).toBe('Áudio ilegível: stream truncado');
+  });
+
   it('expõe o retrato da atividade, vazio quando nada está rodando', async () => {
     await expect(app.activity.snapshot()).resolves.toEqual({
       items: [],

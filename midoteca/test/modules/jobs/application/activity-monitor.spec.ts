@@ -28,6 +28,7 @@ describe('ActivityMonitor (JobRunner + SQLite)', () => {
       jobs: app.jobs,
       events,
       sourceNames: { nameOf: async (id) => (id === 'src-1' ? 'Cursos' : null) },
+      subjectNames: { nameOf: async (id) => (id === 'media-1' ? 'Boas-vindas' : null) },
       throttleMs: 0,
     });
     runner = new JobRunner({
@@ -115,6 +116,7 @@ describe('ActivityMonitor (JobRunner + SQLite)', () => {
     expect(after.recent[0]).toMatchObject({
       kind: 'scan',
       status: 'failed',
+      detail: 'HD removido',
       label: 'Atualizando biblioteca · Cursos',
     });
   });
@@ -132,6 +134,7 @@ describe('ActivityMonitor (JobRunner + SQLite)', () => {
       kind: 'media-analysis',
       status: 'failed',
       label: 'Análise de mídia · Cursos',
+      detail: 'boom',
     });
     expect(Date.parse(after.recent[0].finishedAt!)).not.toBeNaN();
   });
@@ -158,6 +161,55 @@ describe('ActivityMonitor (JobRunner + SQLite)', () => {
       await vi.waitFor(() =>
         expect(last).toMatchObject({ recent: [expect.objectContaining({ status: 'completed' })] }),
       );
+    });
+
+    it('registra cada aula processada pelo nome, no lugar do job da biblioteca', async () => {
+      runner.register('media.transcribe-source', async (context) => {
+        context.reportItem({
+          subjectId: 'media-1',
+          fallbackName: '01 - Intro',
+          outcome: 'completed',
+        });
+        context.reportItem({
+          subjectId: 'media-2',
+          fallbackName: '02 - Setup',
+          outcome: 'failed',
+          error: 'Invalid data found when processing input',
+        });
+      });
+      await app.jobs.enqueue({ type: 'media.transcribe-source', payload: { sourceId: 'src-1' } });
+      await runner.drain();
+
+      const after = await monitor.snapshot();
+      expect(after.recent.map((item) => [item.label, item.status])).toEqual([
+        ['Transcrição · 02 - Setup', 'failed'],
+        ['Transcrição · Boas-vindas', 'completed'],
+      ]);
+      expect(after.recent.every((item) => item.finishedAt !== null)).toBe(true);
+      expect(after.recent[0].detail).toBe('Invalid data found when processing input');
+      expect(after.recent[1].detail).toBeNull();
+    });
+
+    it('registra a falha do job mesmo quando ele já tinha informado aulas', async () => {
+      runner.register('media.transcribe-source', async (context) => {
+        // Como no caso de uso real: a aula concluída não volta nas novas tentativas.
+        if (context.job.attempts === 1) {
+          context.reportItem({
+            subjectId: 'media-1',
+            fallbackName: '01 - Intro',
+            outcome: 'completed',
+          });
+        }
+        throw new Error('modelo indisponível');
+      });
+      await app.jobs.enqueue({ type: 'media.transcribe-source', payload: { sourceId: 'src-1' } });
+      await runner.drain();
+
+      const recent = (await monitor.snapshot()).recent;
+      const labels = recent.map((item) => [item.label, item.status]);
+      expect(labels).toContainEqual(['Transcrição · Cursos', 'failed']);
+      expect(recent.find((item) => item.status === 'failed')?.detail).toBe('modelo indisponível');
+      expect(labels.filter(([label]) => label === 'Transcrição · Boas-vindas')).toHaveLength(1);
     });
 
     it('não registra job que não tinha nada a processar', async () => {

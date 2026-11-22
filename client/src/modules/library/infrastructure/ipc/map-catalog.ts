@@ -104,6 +104,8 @@ export function mapCourseTree(
           isUnavailable: primary ? primary.availability === 'missing' : undefined,
           playability: primary?.playability ?? null,
           playabilityReason: primary?.playabilityReason ?? null,
+          transcription: primary?.transcription ?? null,
+          transcriptionError: primary?.transcriptionError ?? null,
           videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
           order: lesson.sortOrder,
           materials: [],
