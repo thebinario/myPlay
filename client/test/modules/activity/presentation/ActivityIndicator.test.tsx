@@ -81,6 +81,45 @@ describe('ActivityIndicator — menu suspenso de atividade', () => {
     expect(within(rows[0]).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '62');
   });
 
+  it('mostra o motivo de cada falha, para diagnóstico', () => {
+    const dialog = open({
+      ...busy,
+      recent: [
+        {
+          ...base,
+          id: 'job-9:media-9@1',
+          kind: 'transcription',
+          status: 'failed',
+          label: 'Transcrição · Boas-vindas',
+          detail: 'Áudio ilegível: stream truncado',
+          finishedAt: ago(5 * MIN),
+        },
+      ],
+    });
+    const row = within(dialog).getByText('Transcrição · Boas-vindas').closest('li')!;
+    const reason = within(row).getByText('Áudio ilegível: stream truncado');
+    expect(reason).toHaveAttribute('title', 'Áudio ilegível: stream truncado');
+    expect(row).toHaveTextContent('Falhou · há 5 min');
+  });
+
+  it('não mostra o arquivo atual como motivo em processos concluídos', () => {
+    const dialog = open({
+      ...idle,
+      recent: [
+        {
+          ...base,
+          id: 'ok@1',
+          kind: 'transcription',
+          status: 'completed',
+          label: 'Transcrição · Boas-vindas',
+          detail: 'resto de progresso',
+          finishedAt: ago(MIN),
+        },
+      ],
+    });
+    expect(dialog).not.toHaveTextContent('resto de progresso');
+  });
+
   it('abre e fecha pelo clique e fecha com Esc', () => {
     open(busy);
     const toggle = screen.getByRole('button', { name: /atividade/i });

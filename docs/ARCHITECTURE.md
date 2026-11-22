@@ -326,7 +326,7 @@ midoteca/src/
 │   ├── jobs/       domain/{entities,ports,inputs,activity}.ts · infrastructure/job.repository.sqlite.ts
 │   │               application/{job-runner,activity-monitor}.ts   # fila persistida + painel de atividade
 │   │               # activity.ts: read model (rótulo pt-BR, % e ordem decididos no núcleo);
-│   │               # ActivityMonitor observa o JobRunner e os eventos index:* e publica activity:changed
+│   │               # ActivityMonitor observa o JobRunner (incl. reportItem por aula, com o erro) e os eventos index:* e publica activity:changed
 │   │               # (em andamento, fila e os últimos 5 encerrados — histórico em memória da sessão)
 │   ├── settings/   domain/{entities,repositories}.ts · infrastructure/settings.repository.sqlite.ts
 │   └── search/     domain/contracts.ts     # SearchRepository (reservado, Fase 2)

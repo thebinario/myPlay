@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LessonWatchBadge } from '@/modules/courses/presentation/LessonWatchBadge';
 import { LessonMediaIssueBadge } from '@/modules/courses/presentation/LessonMediaIssueBadge';
+import { LessonTranscriptBadge } from '@/modules/courses/presentation/LessonTranscriptBadge';
 import { WatchedElsewhereNotice } from '@/modules/courses/presentation/WatchedElsewhereNotice';
 import { CourseProgressCard } from './CourseProgressCard';
 
@@ -310,6 +311,10 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                                   <LessonMediaIssueBadge
                                     playability={lesson.playability}
                                     reason={lesson.playabilityReason}
+                                  />
+                                  <LessonTranscriptBadge
+                                    transcription={lesson.transcription}
+                                    error={lesson.transcriptionError}
                                   />
                                   {!lesson.completed && lesson.watchedElsewhere && (
                                     <WatchedElsewhereNotice

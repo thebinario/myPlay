@@ -1,5 +1,6 @@
 import { nowIso } from '../../../core/clock';
 import type { MediaPlayability } from '../domain/playability';
+import { transcriptionStateOf } from '../domain/transcription';
 import { NotFoundError, ValidationError } from '../../../core/errors';
 import { decodeObject, encodeJson } from '../../../core/json-codec';
 import {
@@ -55,6 +56,8 @@ interface MediaRow {
   availability: string;
   playability: string | null;
   playability_reason: string | null;
+  transcript_status: string | null;
+  transcript_error: string | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
@@ -82,6 +85,8 @@ function mapMedia(row: MediaRow): MediaFile {
     availability: row.availability as MediaAvailability,
     playability: row.playability as MediaPlayability | null,
     playabilityReason: row.playability_reason,
+    transcription: transcriptionStateOf(row.transcript_status),
+    transcriptionError: row.transcript_status === 'failed' ? row.transcript_error : null,
     lastSeenAt: row.last_seen_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -100,10 +105,12 @@ function mapTrack(row: TrackRow): MediaTrack {
 }
 
 const MEDIA_SELECT = `
-  SELECT id, source_id, relative_path, media_type, file_size, duration_ms,
-         modified_at, sha256, availability, playability, playability_reason,
-         last_seen_at, created_at, updated_at
-  FROM media_files
+  SELECT m.id, m.source_id, m.relative_path, m.media_type, m.file_size, m.duration_ms,
+         m.modified_at, m.sha256, m.availability, m.playability, m.playability_reason,
+         t.status AS transcript_status, t.error AS transcript_error,
+         m.last_seen_at, m.created_at, m.updated_at
+  FROM media_files m
+  LEFT JOIN media_transcripts t ON t.media_file_id = m.id
 `;
 
 const TRACK_SELECT = `
@@ -130,6 +137,8 @@ export class SqliteMediaRepository implements MediaRepository {
         : 'unverified',
       playability: null,
       playabilityReason: null,
+      transcription: null,
+      transcriptionError: null,
       lastSeenAt: normalizeIso(input.lastSeenAt, 'lastSeenAt'),
       createdAt: now,
       updatedAt: now,
@@ -164,7 +173,7 @@ export class SqliteMediaRepository implements MediaRepository {
   }
 
   async findById(id: string): Promise<MediaFile | null> {
-    const row = this.db.prepare(`${MEDIA_SELECT} WHERE id = ?`).get(id) as MediaRow | undefined;
+    const row = this.db.prepare(`${MEDIA_SELECT} WHERE m.id = ?`).get(id) as MediaRow | undefined;
     return row ? mapMedia(row) : null;
   }
 
@@ -173,14 +182,14 @@ export class SqliteMediaRepository implements MediaRepository {
     relativePath: string,
   ): Promise<MediaFile | null> {
     const row = this.db
-      .prepare(`${MEDIA_SELECT} WHERE source_id = ? AND relative_path = ?`)
+      .prepare(`${MEDIA_SELECT} WHERE m.source_id = ? AND m.relative_path = ?`)
       .get(sourceId, relativePath) as MediaRow | undefined;
     return row ? mapMedia(row) : null;
   }
 
   async listBySource(sourceId: string): Promise<MediaFile[]> {
     const rows = this.db
-      .prepare(`${MEDIA_SELECT} WHERE source_id = ? ORDER BY relative_path`)
+      .prepare(`${MEDIA_SELECT} WHERE m.source_id = ? ORDER BY m.relative_path`)
       .all(sourceId) as MediaRow[];
     return rows.map(mapMedia);
   }
@@ -188,7 +197,7 @@ export class SqliteMediaRepository implements MediaRepository {
   async findBySha256(sha256: string): Promise<MediaFile[]> {
     const digest = normalizeSha256(sha256);
     if (digest === null) return [];
-    const rows = this.db.prepare(`${MEDIA_SELECT} WHERE sha256 = ?`).all(digest) as MediaRow[];
+    const rows = this.db.prepare(`${MEDIA_SELECT} WHERE m.sha256 = ?`).all(digest) as MediaRow[];
     return rows.map(mapMedia);
   }
 

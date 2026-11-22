@@ -1,6 +1,7 @@
 import type { MediaType } from '../../../core/domain/media-type';
 import type { JsonObject } from '../../../core/json';
 import type { MediaPlayability } from './playability';
+import type { MediaTranscriptionState } from './transcription';
 
 /**
  * Whether the file is currently reachable. A missing file downgrades to
@@ -31,6 +32,10 @@ export interface MediaFile {
   playability: MediaPlayability | null;
   /** Why it is not playable (ffprobe message or offending codec/container). */
   playabilityReason: string | null;
+  /** Local transcription state (null = not transcribed, e.g. it has subtitles). */
+  transcription: MediaTranscriptionState | null;
+  /** Why the transcription failed (only when `transcription` is `failed`). */
+  transcriptionError: string | null;
   /** ISO time this row was last observed by a successful scan; null if never. */
   lastSeenAt: string | null;
   createdAt: string;

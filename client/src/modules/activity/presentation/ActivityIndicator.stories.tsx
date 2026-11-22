@@ -34,13 +34,13 @@ const recentFive: ActivitySnapshotView = {
     item({
       id: 'a',
       kind: 'transcription',
-      label: 'Transcrição · Cursos',
+      label: 'Transcrição · Boas-vindas',
       finishedAt: minutesAgo(2),
     }),
     item({
       id: 'b',
       kind: 'media-analysis',
-      label: 'Análise de mídia · Cursos',
+      label: 'Transcrição · 01 - Introdução',
       finishedAt: minutesAgo(3),
     }),
     item({
@@ -53,7 +53,8 @@ const recentFive: ActivitySnapshotView = {
       id: 'd',
       kind: 'scan',
       status: 'failed',
-      label: 'Atualizando biblioteca · HD externo',
+      label: 'Transcrição · 02 - Configurando o ambiente',
+      detail: 'Áudio ilegível: Invalid data found when processing input',
       finishedAt: minutesAgo(60),
     }),
   ],
@@ -116,7 +117,7 @@ export const IdleOpen: Story = {
   },
 };
 
-/** Fiel ao protótipo: "Últimos 5 processos", em andamento com 62%, concluídos e uma falha. */
+/** Fiel ao protótipo: "Últimos 5 processos", aulas concluídas e uma falha com o motivo. */
 export const RecentProcesses: Story = {
   args: { snapshot: recentFive },
   play: async ({ canvasElement }) => {
@@ -125,6 +126,7 @@ export const RecentProcesses: Story = {
     await expect(dialog).toHaveTextContent('Em andamento · 62%');
     await expect(dialog).toHaveTextContent('Concluído · há 2 min');
     await expect(dialog).toHaveTextContent('Falhou · há 1 h');
+    await expect(dialog).toHaveTextContent('Áudio ilegível: Invalid data found');
   },
 };
 

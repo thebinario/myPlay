@@ -15,17 +15,24 @@ import {
   type ActivityProgress,
   type ActivitySnapshot,
 } from '../domain/activity';
-import type { JobObserver, JobProgressReport } from './job-runner';
+import type { JobItemReport, JobObserver, JobProgressReport } from './job-runner';
 
 /** Resolves the display name of a library source (null when unknown). */
 export interface SourceNameLookup {
   nameOf(sourceId: string): Promise<string | null>;
 }
 
+/** Resolves what a processed item is called in the catalog (e.g. the lesson title). */
+export interface SubjectNameLookup {
+  nameOf(subjectId: string): Promise<string | null>;
+}
+
 export interface ActivityMonitorOptions {
   jobs: JobRepository;
   events: EventBus;
   sourceNames: SourceNameLookup;
+  /** Names of items reported by jobs; without it the fallback name is shown. */
+  subjectNames?: SubjectNameLookup;
   /** Coalesces bursts of changes into one event. Default 250 ms. */
   throttleMs?: number;
   /** Queued jobs listed in the snapshot. Default 50. */
@@ -41,11 +48,15 @@ interface RunningEntry {
   progress: ActivityProgress | null;
   detail: string | null;
   startedAt: string;
+  /** The job already published its items; a successful end adds nothing. */
+  reportedItems?: boolean;
 }
 
 interface FinishedEntry extends RunningEntry {
   status: 'completed' | 'failed';
   finishedAt: string;
+  /** Set for item entries: named after the item instead of the library. */
+  subject?: { id: string | null; fallbackName: string };
 }
 
 function sourceIdOf(job: Job): string | null {
@@ -63,6 +74,8 @@ export class ActivityMonitor implements JobObserver {
   /** Newest first; resolved into items (with names) at snapshot time. */
   private history: FinishedEntry[] = [];
   private readonly names = new Map<string, string | null>();
+  private readonly subjectNames = new Map<string, string | null>();
+  private sequence = 0;
   private readonly detach: Array<() => void> = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
@@ -89,7 +102,9 @@ export class ActivityMonitor implements JobObserver {
         this.changed();
       }),
       events.on('index:completed', ({ sourceId }) => this.finishScan(sourceId, 'completed')),
-      events.on('index:failed', ({ sourceId }) => this.finishScan(sourceId, 'failed')),
+      events.on('index:failed', ({ sourceId, message }) =>
+        this.finishScan(sourceId, 'failed', message),
+      ),
       events.on('index:paused', ({ sourceId }) => this.finishScan(sourceId, 'requeued')),
       events.on('source:added', ({ sourceId }) => this.names.delete(sourceId)),
     );
@@ -115,8 +130,25 @@ export class ActivityMonitor implements JobObserver {
     this.changed();
   }
 
-  jobFinished(job: Job, outcome: ActivityOutcome): void {
-    this.finish(job.id, outcome);
+  jobItem(job: Job, item: JobItemReport): void {
+    const entry = this.running.get(job.id);
+    if (entry) entry.reportedItems = true;
+    this.record({
+      id: `${job.id}:${item.subjectId ?? item.fallbackName}`,
+      kind: entry?.kind ?? activityKindOf(job.type),
+      sourceId: entry?.sourceId ?? sourceIdOf(job),
+      progress: null,
+      detail: item.outcome === 'failed' ? (item.error ?? null) : null,
+      startedAt: entry?.startedAt ?? new Date().toISOString(),
+      status: item.outcome,
+      finishedAt: new Date().toISOString(),
+      subject: { id: item.subjectId, fallbackName: item.fallbackName },
+    });
+    this.changed();
+  }
+
+  jobFinished(job: Job, outcome: ActivityOutcome, error?: string): void {
+    this.finish(job.id, outcome, error);
   }
 
   async snapshot(): Promise<ActivitySnapshot> {
@@ -160,43 +192,59 @@ export class ActivityMonitor implements JobObserver {
     for (const off of this.detach.splice(0)) off();
   }
 
-  private finishScan(sourceId: string, outcome: ActivityOutcome): void {
-    this.finish(this.scanId(sourceId), outcome);
+  private finishScan(sourceId: string, outcome: ActivityOutcome, error?: string): void {
+    this.finish(this.scanId(sourceId), outcome, error);
   }
 
-  /** Leaves the running list; completed/failed work enters the history. */
-  private finish(id: string, outcome: ActivityOutcome): void {
+  /**
+   * Leaves the running list; completed/failed work enters the history. A job
+   * that published its items is represented by them, unless the job failed.
+   */
+  private finish(id: string, outcome: ActivityOutcome, error?: string): void {
     const entry = this.running.get(id);
     if (!entry) return;
     this.running.delete(id);
-    if (outcome !== 'requeued' && shouldRecordFinished(entry.progress)) {
-      const finished: FinishedEntry = {
+    const representedByItems = entry.reportedItems && outcome === 'completed';
+    if (outcome !== 'requeued' && !representedByItems && shouldRecordFinished(entry.progress)) {
+      this.record({
         ...entry,
-        // History ids must not collide with a later run of the same scan.
-        id: `${entry.id}@${Date.now()}`,
+        detail: outcome === 'failed' ? (error ?? null) : null,
         status: outcome,
         finishedAt: new Date().toISOString(),
-      };
-      this.history = recordFinished(
-        this.history,
-        finished,
-        this.options.historyLimit ?? ACTIVITY_HISTORY_LIMIT,
-      );
+      });
     }
     this.changed();
+  }
+
+  private record(entry: FinishedEntry): void {
+    this.sequence += 1;
+    this.history = recordFinished(
+      this.history,
+      // History ids must not collide with a later run of the same work.
+      { ...entry, id: `${entry.id}@${this.sequence}` },
+      this.options.historyLimit ?? ACTIVITY_HISTORY_LIMIT,
+    );
   }
 
   private scanId(sourceId: string): string {
     return `scan:${sourceId}`;
   }
 
-  private async toItem(entry: RunningEntry, status: ActivityItem['status']): Promise<ActivityItem> {
-    const sourceName = entry.sourceId ? await this.nameOf(entry.sourceId) : null;
+  private async toItem(
+    entry: RunningEntry | FinishedEntry,
+    status: ActivityItem['status'],
+  ): Promise<ActivityItem> {
+    const subject = 'subject' in entry ? entry.subject : undefined;
+    const name = subject
+      ? ((await this.subjectNameOf(subject.id)) ?? subject.fallbackName)
+      : entry.sourceId
+        ? await this.nameOf(entry.sourceId)
+        : null;
     return {
       id: entry.id,
       kind: entry.kind,
       status,
-      label: describeActivity(entry.kind, sourceName),
+      label: describeActivity(entry.kind, name),
       sourceId: entry.sourceId,
       progress: entry.progress ? { ...entry.progress } : null,
       percent: progressPercent(entry.progress),
@@ -212,6 +260,15 @@ export class ActivityMonitor implements JobObserver {
       this.names.set(sourceId, name);
     }
     return this.names.get(sourceId) ?? null;
+  }
+
+  private async subjectNameOf(subjectId: string | null): Promise<string | null> {
+    const lookup = this.options.subjectNames;
+    if (!subjectId || !lookup) return null;
+    if (!this.subjectNames.has(subjectId)) {
+      this.subjectNames.set(subjectId, await lookup.nameOf(subjectId).catch(() => null));
+    }
+    return this.subjectNames.get(subjectId) ?? null;
   }
 
   /** Trailing throttle: one `activity:changed` per window with the latest state. */

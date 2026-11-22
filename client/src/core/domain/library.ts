@@ -46,6 +46,10 @@ export interface Lesson {
   /** Veredito do núcleo (ffprobe) sobre o arquivo; null = ainda não verificado. */
   playability?: 'playable' | 'unsupported' | 'damaged' | null;
   playabilityReason?: string | null;
+  /** Estado da transcrição local decidido no núcleo (null = não transcrita). */
+  transcription?: 'transcribing' | 'transcribed' | 'failed' | null;
+  /** Motivo da falha da transcrição, para diagnóstico. */
+  transcriptionError?: string | null;
 }
 
 export interface CourseModule {

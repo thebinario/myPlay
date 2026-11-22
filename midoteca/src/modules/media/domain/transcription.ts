@@ -58,6 +58,20 @@ export interface Transcriber {
   transcribe(audio: Float32Array, options: { language: string }): Promise<Cue[]>;
 }
 
+/** Where a video stands in local transcription, as the catalog shows it. */
+export type MediaTranscriptionState = 'transcribing' | 'transcribed' | 'failed';
+
+const STATE_BY_STATUS: Record<string, MediaTranscriptionState> = {
+  in_progress: 'transcribing',
+  done: 'transcribed',
+  failed: 'failed',
+};
+
+/** Maps the persisted transcript status; unknown/absent → not transcribed (null). */
+export function transcriptionStateOf(status: string | null): MediaTranscriptionState | null {
+  return status ? (STATE_BY_STATUS[status] ?? null) : null;
+}
+
 export interface TranscriptionCandidate {
   mediaFileId: string;
   sourceId: string;

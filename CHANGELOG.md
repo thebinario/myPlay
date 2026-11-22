@@ -39,6 +39,21 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ### Corrigido
 
+- **Processamento parado em bibliotecas antigas:** a análise de duplicados, a
+  extração de texto (busca) e a transcrição só eram agendadas ao fim de um
+  escaneamento, então bibliotecas indexadas antes dessas funções ficavam com
+  "0 analisados" e tudo na fila para sempre (e os modelos de IA nunca eram
+  baixados). Agora o núcleo retoma esse processamento de cada biblioteca ao
+  abrir o app; cada etapa só processa o que ainda está pendente.
+- **Histórico de atividade por aula, com o motivo das falhas:** o menu
+  "Atividade" passa a mostrar cada aula transcrita pelo título ("Transcrição ·
+  Boas-vindas"), no lugar de uma linha genérica por biblioteca. Aulas, jobs e
+  escaneamentos que falharam mostram a mensagem real do erro (ex.: "Áudio
+  ilegível: Invalid data found…"), para diagnóstico.
+- **Selo de transcrição na lista de aulas:** cada aula mostra "Transcrita",
+  "Transcrevendo…" ou "Falha na transcrição" (com o motivo no tooltip), lido do
+  estado persistido pelo núcleo — o diagnóstico sobrevive ao fechar o app.
+
 - **Ordem do catálogo:** cursos, coleções, seções, módulos e aulas seguem a
   numeração do nome: "Módulo 2" vem antes de "Módulo 10", e itens sem número
   ("Bônus", "Extras") vão para o fim da lista. A comparação ignora acentos e
