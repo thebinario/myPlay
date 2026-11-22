@@ -14,6 +14,13 @@ asarUnpack:
   # Binários executados por child_process não podem ficar dentro do asar.
   - '**/ffmpeg-static/**'
   - '**/ffprobe-static/**'
+  # IA local: onnxruntime (DLLs ao lado do .node) e sharp/libvips usados pelo transformers.js.
+  - '**/onnxruntime-node/**'
+  - '**/sharp/**'
+  - '**/@img/**'
+  # Assistente local: binários pré-compilados do llama.cpp.
+  - '**/node-llama-cpp/**'
+  - '**/@node-llama-cpp/**'
 win:
   target:
     - target: nsis

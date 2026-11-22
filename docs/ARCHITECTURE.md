@@ -169,6 +169,24 @@ divide-o em trechos com página ou tempo e o indexa em FTS5. O frontend só
 consulta `search.content` e navega até a página ou o instante do trecho. Ver ADR
 [`adr/0008-content-search-fts5.md`](adr/0008-content-search-fts5.md).
 
+**Exemplo aplicado — IA local e legendas.** A transcrição (Whisper via
+transformers.js) é um adapter de `platform/ai/` atrás da porta `Transcriber`;
+o caso de uso `TranscribeSourceMedia` (contexto `media`) decide o que
+transcrever, em janelas com checkpoint, e reaproveita duplicatas. As legendas
+chegam ao player já interpretadas pelo backend (`subtitles.forLesson`); o
+frontend só escolhe o trecho do instante atual. `Cue`/`SubtitleReader` vivem no
+kernel compartilhado (`core/domain/subtitles.ts`) e o parser SRT/VTT em
+`platform/text/`, porque dois contextos os usam. Ver ADR
+[`adr/0009-local-ai-transcription.md`](adr/0009-local-ai-transcription.md).
+
+**Exemplo aplicado — assistente (RAG).** O contexto `assistant` do núcleo só
+conhece portas (`ContextRetriever`, `LlmClient`); a recuperação híbrida
+(`RetrieveContext`, BM25 + vetores + RRF) vive em `search`, e os modelos locais
+(E5 via transformers.js, Qwen via node-llama-cpp) em `platform/ai/`. O
+frontend envia a pergunta, exibe os tokens recebidos por eventos e abre as
+citações; não recupera nem gera nada. Ver ADR
+[`adr/0010-local-rag-assistant.md`](adr/0010-local-rag-assistant.md).
+
 Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
 regras de negócio duplicadas para o backend sem reescrever módulos não
 relacionados. Os testes do backend cobrem as decisões de negócio; os do

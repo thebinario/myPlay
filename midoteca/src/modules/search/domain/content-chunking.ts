@@ -1,3 +1,7 @@
+import type { Cue } from '../../../core/domain/subtitles';
+
+export type { Cue };
+
 /**
  * Splits extracted text into searchable chunks that keep their location
  * (PDF page or subtitle time range), so a hit can open the exact point.
@@ -10,12 +14,6 @@ export interface PageChunk {
 }
 
 export interface TimedChunk {
-  startMs: number;
-  endMs: number;
-  text: string;
-}
-
-export interface Cue {
   startMs: number;
   endMs: number;
   text: string;

@@ -6,6 +6,8 @@ import type { JobRepository } from '../domain/ports';
 export interface JobPacer {
   waitWhilePaused(): Promise<void>;
   throttle(): Promise<void>;
+  /** Waits until no media is playing (heavy work). Defaults to the pause wait. */
+  waitWhilePlaybackActive?(): Promise<void>;
 }
 
 export interface JobContext {
@@ -14,6 +16,8 @@ export interface JobContext {
   saveCheckpoint(checkpoint: JsonObject): Promise<void>;
   /** Call between units of work: honours pause and playback back-off. */
   yieldToPlayback(): Promise<void>;
+  /** For heavy work: waits until playback stops (and honours pause). */
+  waitForIdle(): Promise<void>;
   /** Aborted when the runner stops. */
   signal: AbortSignal;
 }
@@ -148,6 +152,10 @@ export class JobRunner {
         yieldToPlayback: async () => {
           await this.options.governor.waitWhilePaused();
           await this.options.governor.throttle();
+        },
+        waitForIdle: async () => {
+          const { governor } = this.options;
+          await (governor.waitWhilePlaybackActive?.() ?? governor.waitWhilePaused());
         },
       });
       await this.options.jobs.update(job.id, { status: 'completed', checkpoint });

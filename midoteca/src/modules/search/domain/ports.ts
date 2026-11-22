@@ -1,4 +1,5 @@
-import type { Cue, PageChunk, TimedChunk } from './content-chunking';
+import type { Cue, SubtitleReader } from '../../../core/domain/subtitles';
+import type { PageChunk, TimedChunk } from './content-chunking';
 
 export type ContentSourceKind = 'pdf' | 'subtitle' | 'transcript';
 
@@ -7,9 +8,11 @@ export interface DocumentTextExtractor {
   extractPages(absolutePath: string): Promise<string[]>;
 }
 
-/** Reads subtitle cues from a file (SRT/VTT). Never writes. */
-export interface SubtitleReader {
-  readCues(absolutePath: string): Promise<Cue[]>;
+export type { SubtitleReader };
+
+/** Reads the stored transcript of a media file as cues. */
+export interface TranscriptCueReader {
+  readCues(mediaFileId: string): Promise<Cue[]>;
 }
 
 /** A document or subtitle whose text still has to be (re)indexed. */
@@ -68,3 +71,49 @@ export interface ContentIndexStore {
 }
 
 export type { PageChunk, TimedChunk };
+
+/** Where the assistant may look for sources. */
+export interface RetrievalScope {
+  courseId?: string;
+  lessonId?: string;
+  documentId?: string;
+}
+
+/** Turns text into vectors (local model). Passages and queries may differ. */
+export interface Embedder {
+  readonly modelId: string;
+  /**
+   * Minimum cosine similarity for a vector-only match (no keyword match) to be
+   * considered relevant. Model-dependent; defaults to 0.3.
+   */
+  readonly minSimilarity?: number;
+  embedPassages(texts: string[]): Promise<Float32Array[]>;
+  embedQuery(text: string): Promise<Float32Array>;
+}
+
+export interface EmbeddingStore {
+  /** Chunks without a vector for `model`. */
+  listUnembedded(model: string, limit: number): Promise<Array<{ chunkId: number; text: string }>>;
+  save(model: string, vectors: Array<{ chunkId: number; vector: Float32Array }>): Promise<void>;
+}
+
+export interface VectorMatch {
+  chunkId: number;
+  score: number;
+}
+
+export interface VectorIndex {
+  search(
+    model: string,
+    query: Float32Array,
+    k: number,
+    allowedChunkIds: Set<number> | null,
+  ): Promise<VectorMatch[]>;
+}
+
+/** Ranked chunk ids and hydrated hits, for hybrid retrieval. */
+export interface RetrievalStore {
+  rankByKeywords(ftsQuery: string, limit: number, scope: RetrievalScope): Promise<number[]>;
+  chunkIdsInScope(scope: RetrievalScope): Promise<Set<number> | null>;
+  hitsByIds(chunkIds: number[]): Promise<ContentHit[]>;
+}

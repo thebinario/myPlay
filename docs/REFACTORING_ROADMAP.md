@@ -85,6 +85,25 @@ src/
   (`watchedElsewhere`) não segue vínculos transitivos, ao contrário de
   `media.listDuplicateGroups`.
 
+### 3.3 Dívidas registradas (Fase 4 — transcrição local, 2026-11-21)
+
+- Extração de features do Whisper roda na thread JS do processo principal;
+  avaliar `worker_threads`/`utilityProcess` se o IPC ficar lento.
+- Integridade dos modelos baixados delegada ao transformers.js (sem sha256
+  próprio).
+- O transformers.js 4.x não detecta o idioma; o padrão é português
+  (`ai.transcription.language`) e não há UI para trocá-lo ainda.
+- A seleção de legenda continua salva no repositório mockado do frontend
+  (`saveSubtitlePreference`), não no SQLite.
+
+### 3.4 Dívidas registradas (Fase 5 — assistente, 2026-11-21)
+
+- Eventos `assistant:*` adicionados ao `LibraryEvent` do contexto `indexing`
+  (barramento de fato da aplicação); mover para `platform/events`.
+- `minSimilarity` do E5 (0,845) calibrado com poucas frases; validar com um
+  conjunto maior de perguntas reais da biblioteca.
+- Atalho do assistente no player (escopo da aula) ainda não exposto na UI.
+
 ## 4. Priorização
 
 | Prioridade | Alvo | Impacto | Risco | Situação |

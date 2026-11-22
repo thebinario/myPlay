@@ -19,6 +19,12 @@ import { IpcDuplicatesRepository } from '@/modules/library/infrastructure/ipc/ip
 import { DuplicatesProvider } from '@/modules/library/presentation/DuplicatesProvider';
 import { IpcContentSearchRepository } from '@/modules/search/infrastructure/ipc/ipc-content-search.repository';
 import { ContentSearchProvider } from '@/modules/search/presentation/ContentSearchProvider';
+import { IpcSubtitlesRepository } from '@/modules/player/infrastructure/ipc/ipc-subtitles.repository';
+import { SubtitlesProvider } from '@/modules/player/presentation/providers/SubtitlesProvider';
+import { IpcLocalAiRepository } from '@/modules/settings/infrastructure/ipc/ipc-local-ai.repository';
+import { LocalAiProvider } from '@/modules/settings/presentation/providers/LocalAiProvider';
+import { IpcAssistantRepository } from '@/modules/assistant/infrastructure/ipc/ipc-assistant.repository';
+import { AssistantProvider } from '@/modules/assistant/presentation/AssistantProvider';
 import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
 import '@/index.css';
 
@@ -52,6 +58,9 @@ const libraryRepository = runtimeBridge
 if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate();
 
 const duplicatesRepository = runtimeBridge ? new IpcDuplicatesRepository(runtimeBridge) : undefined;
+const subtitlesRepository = runtimeBridge ? new IpcSubtitlesRepository(runtimeBridge) : undefined;
+const localAiRepository = runtimeBridge ? new IpcLocalAiRepository(runtimeBridge) : undefined;
+const assistantRepository = runtimeBridge ? new IpcAssistantRepository(runtimeBridge) : undefined;
 const contentSearchRepository = runtimeBridge
   ? new IpcContentSearchRepository(runtimeBridge)
   : undefined;
@@ -61,17 +70,23 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <LibraryProvider repository={libraryRepository}>
       <DuplicatesProvider repository={duplicatesRepository}>
         <ContentSearchProvider repository={contentSearchRepository}>
-          <SettingsProvider repository={preferencesRepository}>
-            <SourcesProvider
-              repository={sourcesRepository ?? mockLibrarySourcesRepository}
-              runner={importRunner}
-              picker={bridge ?? undefined}
-            >
-              <OnboardingProvider repository={onboardingRepository}>
-                <App />
-              </OnboardingProvider>
-            </SourcesProvider>
-          </SettingsProvider>
+          <SubtitlesProvider repository={subtitlesRepository}>
+            <LocalAiProvider repository={localAiRepository}>
+              <AssistantProvider repository={assistantRepository}>
+                <SettingsProvider repository={preferencesRepository}>
+                  <SourcesProvider
+                    repository={sourcesRepository ?? mockLibrarySourcesRepository}
+                    runner={importRunner}
+                    picker={bridge ?? undefined}
+                  >
+                    <OnboardingProvider repository={onboardingRepository}>
+                      <App />
+                    </OnboardingProvider>
+                  </SourcesProvider>
+                </SettingsProvider>
+              </AssistantProvider>
+            </LocalAiProvider>
+          </SubtitlesProvider>
         </ContentSearchProvider>
       </DuplicatesProvider>
     </LibraryProvider>

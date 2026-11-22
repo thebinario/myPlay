@@ -13,8 +13,11 @@ import type {
   Paged,
   SourceIndexState,
 } from '../../modules/library';
+import type { LocalAiStatus } from '../../app/local-ai';
+import type { AskQuestionInput } from '../../modules/assistant';
 import type {
   DuplicateGroup,
+  SubtitleTrackView,
   MarkDuplicateAsWatchedInput,
   MediaAnalysisStatus,
   MediaFile,
@@ -77,6 +80,12 @@ export const DESKTOP_METHODS = [
   'media.analysisStatus',
   'search.content',
   'search.contentStatus',
+  'subtitles.forLesson',
+  'ai.status',
+  'ai.setEnabled',
+  'ai.removeModels',
+  'assistant.ask',
+  'assistant.cancel',
   'progress.getReading',
   'progress.saveReading',
   'settings.get',
@@ -135,6 +144,15 @@ export interface DesktopParams {
   /** Full-text search in PDF/subtitle/transcript text (FTS5, accent-insensitive). */
   'search.content': ContentSearchQuery;
   'search.contentStatus': Record<string, never>;
+  /** Subtitle files and local transcript of a lesson, already parsed. */
+  'subtitles.forLesson': { lessonId: string };
+  'ai.status': Record<string, never>;
+  'ai.setEnabled': { enabled: boolean };
+  /** Deletes downloaded models (app data only). */
+  'ai.removeModels': Record<string, never>;
+  /** Starts a local RAG answer; tokens and result arrive as `assistant:*` events. */
+  'assistant.ask': AskQuestionInput;
+  'assistant.cancel': { requestId: string };
   'progress.getReading': { documentId: string };
   'progress.saveReading': SaveReadingProgress;
   'settings.get': { key: string };
@@ -176,6 +194,12 @@ export interface DesktopResults {
   'media.analysisStatus': MediaAnalysisStatus;
   'search.content': ContentHit[];
   'search.contentStatus': ContentIndexStatus;
+  'subtitles.forLesson': SubtitleTrackView[];
+  'ai.status': LocalAiStatus;
+  'ai.setEnabled': LocalAiStatus;
+  'ai.removeModels': LocalAiStatus;
+  'assistant.ask': { requestId: string };
+  'assistant.cancel': { cancelled: boolean };
   'progress.getReading': ReadingProgress | null;
   'progress.saveReading': ReadingProgress;
   'settings.get': AppSetting | null;
@@ -223,4 +247,7 @@ export const DESKTOP_EVENTS: readonly DesktopEventName[] = [
   'index:paused',
   'index:completed',
   'index:failed',
+  'assistant:token',
+  'assistant:done',
+  'assistant:error',
 ];

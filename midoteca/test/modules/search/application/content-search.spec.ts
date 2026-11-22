@@ -78,7 +78,10 @@ describe('content search (SQLite FTS5 + real files)', () => {
   });
 
   it('finds PDF text with its page and document', async () => {
-    writePdf('Curso A/Modulo 1/Apostila.pdf', ['Capitulo de abertura', 'Configuracao do Docker Compose']);
+    writePdf('Curso A/Modulo 1/Apostila.pdf', [
+      'Capitulo de abertura',
+      'Configuracao do Docker Compose',
+    ]);
     await scanAndExtract();
 
     const hits = await app.contentSearch.search({ text: 'docker comp' });

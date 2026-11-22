@@ -1,6 +1,16 @@
 import type { IndexSummary } from './types';
 
 /**
+ * Serialized assistant answer carried by `assistant:done`. Kept structural here
+ * so the event bus does not depend on the assistant module.
+ */
+export interface AssistantAnswerPayload {
+  text: string;
+  sources: unknown[];
+  citations: unknown[];
+}
+
+/**
  * Internal, transport-agnostic library events. A desktop layer (IPC/WebSocket)
  * can subscribe and forward them; the core never assumes a transport.
  */
@@ -16,7 +26,10 @@ export type LibraryEvent =
   | 'index:progress'
   | 'index:paused'
   | 'index:completed'
-  | 'index:failed';
+  | 'index:failed'
+  | 'assistant:token'
+  | 'assistant:done'
+  | 'assistant:error';
 
 export interface LibraryEventPayloads {
   'source:added': { sourceId: string; rootPath: string; displayName: string | null };
@@ -54,6 +67,10 @@ export interface LibraryEventPayloads {
   'index:paused': { sourceId: string; reason: 'cancelled' | 'paused' };
   'index:completed': { sourceId: string; summary: IndexSummary };
   'index:failed': { sourceId: string; message: string };
+  /** Streaming of a local assistant answer (see `assistant.ask`). */
+  'assistant:token': { requestId: string; token: string };
+  'assistant:done': { requestId: string; answer: AssistantAnswerPayload };
+  'assistant:error': { requestId: string; message: string; cancelled: boolean };
 }
 
 export type LibraryEventHandler<K extends LibraryEvent> = (

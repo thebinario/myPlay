@@ -4,6 +4,8 @@ import { useLibraryRepository } from '@/modules/library/presentation/LibraryProv
 import { useMediaElementPlayback } from '@/modules/player/presentation/hooks/useMediaElementPlayback';
 import { useAutoHideControls } from '@/modules/player/presentation/hooks/useAutoHideControls';
 import { useWatchSegments } from '@/modules/player/presentation/hooks/useWatchSegments';
+import { useLessonSubtitles } from '@/modules/player/presentation/hooks/useLessonSubtitles';
+import { activeCueText } from '@/modules/player/domain/subtitles';
 import { formatSeconds } from '@/modules/player/domain/progress';
 import {
   lessonsOf,
@@ -262,8 +264,20 @@ export function useVideoPlayer({
     retryPlayback();
   }, [retryPlayback]);
 
-  const availableSubtitles = currentLesson.subtitles ?? DEFAULT_SUBTITLES;
-  const activeSubtitle = availableSubtitles.find((s) => s.id === selectedSubtitleId);
+  // No desktop as faixas vêm do backend (arquivos e transcrição local, já
+  // interpretados); sem núcleo, mantém as faixas de demonstração.
+  const loadedSubtitles = useLessonSubtitles(currentLesson.id);
+  const availableSubtitles = loadedSubtitles ?? currentLesson.subtitles ?? DEFAULT_SUBTITLES;
+  const selectedSubtitle = availableSubtitles.find((s) => s.id === selectedSubtitleId);
+  const loadedSelection = loadedSubtitles?.find((track) => track.id === selectedSubtitleId);
+  const cueText = loadedSelection
+    ? activeCueText(loadedSelection.cues, playback.currentTime)
+    : null;
+  const activeSubtitle = loadedSelection
+    ? cueText
+      ? { ...loadedSelection, content: cueText }
+      : undefined
+    : selectedSubtitle;
   const loadingLabel = loadingLabelFor(currentLessonIndex);
 
   return {
