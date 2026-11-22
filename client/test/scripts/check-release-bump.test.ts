@@ -35,6 +35,17 @@ describe('scripts — check-release-bump', () => {
     expect(errors.join('\n')).toMatch(/\[Unreleased\]/);
   });
 
+  it('não confunde quebra de linha CRLF (checkout no Windows) com nota nova', () => {
+    const same = doc('\n### Adicionado\n\n- Algo.\n');
+    const errors = checkReleaseNotes({
+      baseVersion: '1.1.0-beta.2',
+      headVersion: '1.1.0-beta.2',
+      baseChangelog: same,
+      headChangelog: same.replace(/\n/g, '\r\n'),
+    });
+    expect(errors.join('\n')).toMatch(/\[Unreleased\]/);
+  });
+
   it('rejeita um CHANGELOG sem a seção [Unreleased]', () => {
     const errors = checkReleaseNotes({
       baseVersion: '1.1.0-beta.2',

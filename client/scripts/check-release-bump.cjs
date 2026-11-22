@@ -37,7 +37,7 @@ function compareVersions(a, b) {
 
 /** Corpo da seção `## [Unreleased]` (null quando a seção não existe). */
 function unreleasedSection(changelog) {
-  const match = UNRELEASED.exec(changelog);
+  const match = UNRELEASED.exec(changelog.replace(/\r\n/g, '\n'));
   return match ? match[1].trim() : null;
 }
 
