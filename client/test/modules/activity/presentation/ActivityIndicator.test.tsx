@@ -1,69 +1,94 @@
 import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ActivityIndicator } from '@/modules/activity/presentation/ActivityIndicator';
 import type { ActivitySnapshotView } from '@/modules/activity/domain/activity';
 
-const idle: ActivitySnapshotView = { items: [], running: 0, queued: 0 };
+const NOW = Date.parse('2026-11-22T12:00:00Z');
+const ago = (ms: number) => new Date(NOW - ms).toISOString();
+const MIN = 60_000;
+
+const base = { detail: null, finishedAt: null, percent: null };
+const idle: ActivitySnapshotView = { items: [], running: 0, queued: 0, recent: [] };
 const busy: ActivitySnapshotView = {
-  running: 2,
+  running: 1,
   queued: 1,
   items: [
     {
+      ...base,
       id: 'scan:1',
       kind: 'scan',
       status: 'running',
-      label: 'Analisando biblioteca — Cursos',
-      percent: null,
-      detail: 'Módulo 2/aula.mp4',
+      label: 'Atualizando biblioteca',
+      percent: 62,
     },
     {
-      id: 'job-1',
-      kind: 'transcription',
-      status: 'running',
-      label: 'Transcrevendo vídeos — Cursos',
-      percent: 40,
-      detail: '03 - Foco.mp4',
-    },
-    {
+      ...base,
       id: 'job-2',
       kind: 'content-extraction',
       status: 'queued',
-      label: 'Indexando textos — Cursos',
-      percent: null,
-      detail: null,
+      label: 'Indexação de documentos · Cursos',
+    },
+  ],
+  recent: [
+    {
+      ...base,
+      id: 'job-1@1',
+      kind: 'transcription',
+      status: 'completed',
+      label: 'Transcrição · Cursos',
+      finishedAt: ago(2 * MIN),
+    },
+    {
+      ...base,
+      id: 'scan:2@1',
+      kind: 'scan',
+      status: 'failed',
+      label: 'Atualizando biblioteca · HD externo',
+      finishedAt: ago(60 * MIN),
     },
   ],
 };
 
-describe('ActivityIndicator', () => {
-  it('não aparece quando nada está sendo processado', () => {
-    const { container } = render(<ActivityIndicator snapshot={idle} />);
-    expect(container.firstChild).toBeNull();
+const open = (snapshot: ActivitySnapshotView) => {
+  render(<ActivityIndicator snapshot={snapshot} now={NOW} />);
+  fireEvent.click(screen.getByRole('button', { name: /atividade/i }));
+  return screen.getByRole('dialog', { name: 'Atividade' });
+};
+
+describe('ActivityIndicator — menu suspenso de atividade', () => {
+  it('fica sempre disponível e resume o que está rodando no nome acessível', () => {
+    render(<ActivityIndicator snapshot={busy} now={NOW} />);
+    expect(
+      screen.getByRole('button', { name: 'Atividade: 1 tarefa em andamento, 1 na fila' }),
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('mostra quantas tarefas estão rodando', () => {
-    render(<ActivityIndicator snapshot={busy} />);
-    expect(screen.getByRole('button', { name: /2 tarefas em andamento/i })).toBeInTheDocument();
+  it('sem nada rodando, o botão continua lá e o painel avisa que não há processos', () => {
+    const dialog = open(idle);
+    expect(dialog).toHaveTextContent('Nenhum processo recente');
   });
 
-  it('ao passar o mouse lista o que está sendo processado, com percentual vindo do núcleo', () => {
-    render(<ActivityIndicator snapshot={busy} />);
-    expect(screen.queryByRole('list', { name: /atividades/i })).toBeNull();
-
-    fireEvent.mouseEnter(screen.getByTestId('activity-indicator'));
-
-    const list = screen.getByRole('list', { name: /atividades/i });
-    expect(list).toHaveTextContent('Analisando biblioteca — Cursos');
-    expect(list).toHaveTextContent('Módulo 2/aula.mp4');
-    expect(list).toHaveTextContent('Transcrevendo vídeos — Cursos');
-    expect(list).toHaveTextContent('40%');
-    expect(list).toHaveTextContent('Na fila');
-    expect(screen.getAllByRole('progressbar')).toHaveLength(2);
+  it('lista em andamento, fila e os últimos encerrados, com o status e o tempo relativo', () => {
+    const dialog = open(busy);
+    expect(dialog).toHaveTextContent('Últimos 4 processos');
+    const rows = within(dialog).getAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Atualizando bibliotecaEm andamento · 62%',
+      'Indexação de documentos · CursosNa fila',
+      'Transcrição · CursosConcluído · há 2 min',
+      'Atualizando biblioteca · HD externoFalhou · há 1 h',
+    ]);
+    expect(within(rows[0]).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '62');
   });
 
-  it('abre a lista também pelo teclado (foco)', () => {
-    render(<ActivityIndicator snapshot={busy} />);
-    fireEvent.focus(screen.getByRole('button', { name: /tarefas em andamento/i }));
-    expect(screen.getByRole('list', { name: /atividades/i })).toBeInTheDocument();
+  it('abre e fecha pelo clique e fecha com Esc', () => {
+    open(busy);
+    const toggle = screen.getByRole('button', { name: /atividade/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

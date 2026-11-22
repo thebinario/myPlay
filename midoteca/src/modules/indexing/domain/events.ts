@@ -19,6 +19,7 @@ export interface ActivitySnapshotPayload {
   items: unknown[];
   running: number;
   queued: number;
+  recent: unknown[];
 }
 
 /**

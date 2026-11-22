@@ -2,22 +2,31 @@ import type { ActivitySnapshot } from '@midoteca/core';
 import type { MidotecaBridge } from '@/core/contracts/desktop-bridge';
 import {
   IDLE_ACTIVITY,
+  type ActivityItemView,
   type ActivityRepository,
   type ActivitySnapshotView,
 } from '@/modules/activity/domain/activity';
+
+type ActivityItem = ActivitySnapshot['items'][number];
+
+function toItemView(item: ActivityItem): ActivityItemView {
+  return {
+    id: item.id,
+    kind: item.kind,
+    status: item.status,
+    label: item.label,
+    percent: item.percent,
+    detail: item.detail,
+    finishedAt: item.finishedAt,
+  };
+}
 
 function toView(snapshot: ActivitySnapshot): ActivitySnapshotView {
   return {
     running: snapshot.running,
     queued: snapshot.queued,
-    items: snapshot.items.map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      status: item.status,
-      label: item.label,
-      percent: item.percent,
-      detail: item.detail,
-    })),
+    items: snapshot.items.map(toItemView),
+    recent: (snapshot.recent ?? []).map(toItemView),
   };
 }
 

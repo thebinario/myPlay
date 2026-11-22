@@ -65,6 +65,11 @@ describe('progresso dos jobs no painel de atividade (SQLite + arquivos reais)', 
   });
 
   it('expõe o retrato da atividade, vazio quando nada está rodando', async () => {
-    await expect(app.activity.snapshot()).resolves.toEqual({ items: [], running: 0, queued: 0 });
+    await expect(app.activity.snapshot()).resolves.toEqual({
+      items: [],
+      running: 0,
+      queued: 0,
+      recent: [],
+    });
   });
 });

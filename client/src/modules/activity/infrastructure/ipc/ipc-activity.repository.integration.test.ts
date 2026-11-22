@@ -54,14 +54,14 @@ describe('IpcActivityRepository (integração com o núcleo)', () => {
     repository.subscribe(() => (notified += 1));
 
     await repository.hydrate();
-    expect(repository.getSnapshot()).toEqual({ items: [], running: 0, queued: 0 });
+    expect(repository.getSnapshot()).toEqual({ items: [], running: 0, queued: 0, recent: [] });
 
     app.events.emit('index:started', { sourceId: source.id });
     await eventually(() =>
       expect(repository.getSnapshot().items[0]).toMatchObject({
         kind: 'scan',
         status: 'running',
-        label: 'Analisando biblioteca — Cursos',
+        label: 'Atualizando biblioteca · Cursos',
       }),
     );
     expect(notified).toBeGreaterThan(0);
@@ -71,6 +71,12 @@ describe('IpcActivityRepository (integração com o núcleo)', () => {
       summary: {} as never,
     });
     await eventually(() => expect(repository.getSnapshot().running).toBe(0));
+    expect(repository.getSnapshot().recent[0]).toMatchObject({
+      kind: 'scan',
+      status: 'completed',
+      label: 'Atualizando biblioteca · Cursos',
+      finishedAt: expect.any(String),
+    });
     repository.dispose();
   });
 });

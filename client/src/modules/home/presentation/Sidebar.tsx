@@ -1,160 +1,158 @@
-import React, { type ReactNode } from 'react';
-import { Badge } from '@/shared/ui/components/Badge';
-import { IconButton } from '@/shared/ui/components/IconButton';
-import { Home, Library, Search, Settings, BookOpen } from 'lucide-react';
+import React from 'react';
+import { BookOpen, House, Library, PanelLeft, Search, Settings } from 'lucide-react';
 import { NavigationTab } from '@/core/domain/library';
-import { APP_CONFIG } from '@/core/config/app.config';
+import { SidebarAccount } from './SidebarAccount';
+import { SIDEBAR_GUTTER, SIDEBAR_THEME, SidebarNavButton } from './SidebarNavButton';
 
 interface SidebarProps {
   currentTab: NavigationTab;
   onNavigate: (tab: NavigationTab) => void;
-  /** Indicador de atividade em segundo plano (composto pelo App). */
-  activity?: ReactNode;
+  /** Só ícones (com tooltip) quando true. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  /** O núcleo está processando algo em segundo plano. */
+  syncing?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate, activity }) => {
-  const navItems = [
-    { id: 'home' as NavigationTab, label: 'Início', icon: Home },
-    { id: 'library' as NavigationTab, label: 'Biblioteca', icon: Library },
-    { id: 'search' as NavigationTab, label: 'Pesquisa', icon: Search },
-    { id: 'settings' as NavigationTab, label: 'Configurações', icon: Settings },
-  ];
+export const SIDEBAR_WIDTH = { expanded: 232, collapsed: 72 } as const;
 
-  return (
-    <aside
-      aria-label="Barra lateral de navegação"
+const MAIN_ITEMS = [
+  { id: 'home', label: 'Início', icon: House },
+  { id: 'library', label: 'Biblioteca', icon: Library },
+  { id: 'search', label: 'Pesquisa', icon: Search, shortcut: 'Ctrl K' },
+] as const;
+
+function isActive(item: NavigationTab, current: NavigationTab): boolean {
+  return current === item || (item === 'library' && current === 'course-details');
+}
+
+const Brand: React.FC<{ collapsed: boolean; onClick: () => void }> = ({ collapsed, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label="Midoteca — página inicial"
+    title={collapsed ? 'Midoteca' : undefined}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '0 6px',
+      marginBottom: '28px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      alignSelf: collapsed ? 'center' : 'flex-start',
+    }}
+  >
+    <span
+      aria-hidden="true"
       style={{
-        width: '76px',
-        backgroundColor: '#121622',
-        borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+        width: '36px',
+        height: '36px',
+        borderRadius: '10px',
+        backgroundColor: SIDEBAR_THEME.brand,
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        padding: '20px 0',
-        zIndex: 50,
+        justifyContent: 'center',
         flexShrink: 0,
-        height: '100vh',
       }}
     >
-      {/* Brand logo compact */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '32px',
-          cursor: 'pointer',
-        }}
-        onClick={() => onNavigate('home')}
-        title="MIDOTECA"
-      >
-        <Badge variant="violet" size="sm" style={{ backgroundColor: '#A594FF' }}>
-          <BookOpen size={18} color="#0D111B" strokeWidth={2.5} />
-        </Badge>
-        <span
-          style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            letterSpacing: '1px',
-            color: '#A594FF',
-            textTransform: 'uppercase',
-          }}
-        >
-          MIDOTECA
-        </span>
-      </div>
+      <BookOpen size={20} strokeWidth={2} color={SIDEBAR_THEME.background} />
+    </span>
+    {!collapsed && (
+      <span style={{ fontSize: '19px', fontWeight: 700, color: SIDEBAR_THEME.strong }}>
+        Midoteca
+      </span>
+    )}
+  </button>
+);
 
-      {/* Navigation Buttons */}
-      <nav
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          width: '100%',
-          alignItems: 'center',
-        }}
-      >
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            currentTab === item.id || (item.id === 'library' && currentTab === 'course-details');
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onNavigate,
+  collapsed = false,
+  onToggleCollapsed,
+  syncing = false,
+}) => (
+  <aside
+    aria-label="Barra lateral de navegação"
+    style={{
+      width: `${collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded}px`,
+      backgroundColor: SIDEBAR_THEME.background,
+      borderRight: `1px solid ${SIDEBAR_THEME.border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: collapsed ? 'center' : 'stretch',
+      padding: `22px ${SIDEBAR_GUTTER}px 20px`,
+      boxSizing: 'border-box',
+      zIndex: 50,
+      flexShrink: 0,
+      height: '100vh',
+      transition: 'width 0.18s ease',
+    }}
+  >
+    <Brand collapsed={collapsed} onClick={() => onNavigate('home')} />
 
-          return (
-            <IconButton
-              key={item.id}
-              icon={Icon}
-              size={20}
-              color={isActive ? '#A594FF' : '#94A3B8'}
-              onClick={() => onNavigate(item.id)}
-              aria-label={item.label}
-              variant={isActive ? 'violet' : 'muted'}
-              style={{
-                flexDirection: 'column',
-                gap: '3px',
-                width: '64px',
-                padding: '8px 0',
-                boxSizing: 'border-box',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontWeight: isActive ? 600 : 500,
-                  letterSpacing: '0.2px',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.label}
-              </span>
-            </IconButton>
-          );
-        })}
-      </nav>
-
-      <div
-        style={{
-          marginTop: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        {activity}
-        <div
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#10B981',
-            boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)',
-          }}
-          title="Modo offline pronto"
+    <nav
+      aria-label="Navegação principal"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: collapsed ? 'center' : 'stretch',
+        gap: '4px',
+      }}
+    >
+      {MAIN_ITEMS.map((item) => (
+        <SidebarNavButton
+          key={item.id}
+          label={item.label}
+          icon={item.icon}
+          shortcut={'shortcut' in item ? item.shortcut : undefined}
+          collapsed={collapsed}
+          active={isActive(item.id, currentTab)}
+          onClick={() => onNavigate(item.id)}
         />
-        <button
-          type="button"
+      ))}
+    </nav>
+
+    <div
+      style={{
+        marginTop: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: collapsed ? 'center' : 'stretch',
+        gap: '6px',
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          height: '1px',
+          width: '100%',
+          backgroundColor: SIDEBAR_THEME.border,
+          marginBottom: '12px',
+        }}
+      />
+      <SidebarNavButton
+        label="Configurações"
+        icon={Settings}
+        collapsed={collapsed}
+        active={isActive('settings', currentTab)}
+        onClick={() => onNavigate('settings')}
+      />
+      <SidebarNavButton
+        label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        icon={PanelLeft}
+        collapsed={collapsed}
+        onClick={() => onToggleCollapsed?.()}
+      />
+      <div style={{ marginTop: '14px', width: '100%' }}>
+        <SidebarAccount
+          collapsed={collapsed}
+          syncing={syncing}
           onClick={() => onNavigate('settings')}
-          aria-label={`Versão ${APP_CONFIG.version} — ver detalhes do app`}
-          title={`Midoteca ${APP_CONFIG.version}`}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            maxWidth: '68px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontSize: '9px',
-            color: '#64748B',
-            letterSpacing: '0.2px',
-          }}
-        >
-          v{APP_CONFIG.version}
-        </button>
+        />
       </div>
-    </aside>
-  );
-};
+    </div>
+  </aside>
+);

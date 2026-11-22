@@ -97,6 +97,8 @@ function createWindow() {
     height: 860,
     backgroundColor: '#0D111B',
     title: 'Midoteca',
+    // Ícone da janela/barra de tarefas (o instalador usa assets/icon.png).
+    icon: path.join(__dirname, '..', app.isPackaged ? 'dist' : 'public', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
