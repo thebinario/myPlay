@@ -1,5 +1,6 @@
 /**
- * Todo PR precisa subir a versão do app e registrar a entrada no CHANGELOG.
+ * Todo PR registra suas mudanças em `## [Unreleased]` no CHANGELOG; só o PR de
+ * release sobe a versão (ex.: 1.1.0-beta.3) e move as notas para a seção dela.
  *
  *   node scripts/check-release-bump.cjs <ref-da-base>   (ex.: origin/master)
  */
@@ -8,6 +9,7 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const FORMAT = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.(0|[1-9]\d*))?$/;
+const UNRELEASED = /^## \[Unreleased\][^\n]*\n([\s\S]*?)(?=^## \[|(?![\s\S]))/m;
 
 function parse(version) {
   const match = FORMAT.exec(version);
@@ -33,21 +35,64 @@ function compareVersions(a, b) {
   return left.beta - right.beta;
 }
 
-function checkReleaseBump({ baseVersion, headVersion, changelog }) {
+/** Corpo da seção `## [Unreleased]` (null quando a seção não existe). */
+function unreleasedSection(changelog) {
+  const match = UNRELEASED.exec(changelog);
+  return match ? match[1].trim() : null;
+}
+
+function hasVersionSection(changelog, version) {
+  return changelog.split('\n').some((line) => line.startsWith(`## [${version}]`));
+}
+
+/**
+ * - PR comum: versão igual à da base e algo novo em `## [Unreleased]`.
+ * - PR de release: versão maior que a da base e a seção `## [versão]` presente.
+ */
+function checkReleaseNotes({ baseVersion, headVersion, baseChangelog, headChangelog }) {
   if (!parse(headVersion)) {
     return [`A versão "${headVersion}" não segue o formato X.Y.Z ou X.Y.Z-beta.N.`];
   }
   const errors = [];
-  if (parse(baseVersion) && compareVersions(headVersion, baseVersion) <= 0) {
+  const isRelease = headVersion !== baseVersion;
+  if (isRelease && parse(baseVersion) && compareVersions(headVersion, baseVersion) <= 0) {
     errors.push(
       `client/package.json: a versão ${headVersion} precisa ser maior que ${baseVersion} (versão da base).`,
     );
   }
-  const escaped = headVersion.replace(/[.]/g, '\\.');
-  if (!new RegExp(`^## \\[${escaped}\\]`, 'm').test(changelog)) {
-    errors.push(`CHANGELOG.md: falta a seção "## [${headVersion}]" com as notas desta versão.`);
+
+  const head = unreleasedSection(headChangelog);
+  if (head === null) {
+    errors.push('CHANGELOG.md: falta a seção "## [Unreleased]" no topo.');
+    return errors;
+  }
+
+  if (isRelease) {
+    if (!hasVersionSection(headChangelog, headVersion)) {
+      errors.push(`CHANGELOG.md: falta a seção "## [${headVersion}]" com as notas desta release.`);
+    }
+    return errors;
+  }
+
+  const base = unreleasedSection(baseChangelog ?? '') ?? '';
+  if (head === base || !/^\s*- \S/m.test(head)) {
+    errors.push(
+      'CHANGELOG.md: registre em "## [Unreleased]" o que este PR adiciona, altera ou corrige.',
+    );
   }
   return errors;
+}
+
+function gitShow(repoRoot, ref, file) {
+  try {
+    return execFileSync('git', ['show', `${ref}:${file}`], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
 }
 
 function main() {
@@ -55,24 +100,22 @@ function main() {
   if (!baseRef) throw new Error('Informe a referência da base, por exemplo origin/master.');
   const clientRoot = path.resolve(__dirname, '..');
   const repoRoot = path.resolve(clientRoot, '..');
-  const basePackage = execFileSync('git', ['show', `${baseRef}:client/package.json`], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  const errors = checkReleaseBump({
-    baseVersion: JSON.parse(basePackage).version,
+  const basePackage = gitShow(repoRoot, baseRef, 'client/package.json');
+  const errors = checkReleaseNotes({
+    baseVersion: basePackage ? JSON.parse(basePackage).version : '0.0.0',
     headVersion: require(path.join(clientRoot, 'package.json')).version,
-    changelog: readFileSync(path.join(repoRoot, 'CHANGELOG.md'), 'utf8'),
+    baseChangelog: gitShow(repoRoot, baseRef, 'CHANGELOG.md'),
+    headChangelog: readFileSync(path.join(repoRoot, 'CHANGELOG.md'), 'utf8'),
   });
   if (errors.length > 0) {
     console.error(errors.join('\n'));
     process.exitCode = 1;
     return;
   }
-  console.log('Versão e CHANGELOG atualizados.');
+  console.log('CHANGELOG atualizado.');
 }
 
-module.exports = { checkReleaseBump, compareVersions };
+module.exports = { checkReleaseNotes, compareVersions };
 
 if (require.main === module) {
   try {
