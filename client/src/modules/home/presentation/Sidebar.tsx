@@ -3,6 +3,7 @@ import { Badge } from '@/shared/ui/components/Badge';
 import { IconButton } from '@/shared/ui/components/IconButton';
 import { Home, Library, Search, Settings, BookOpen } from 'lucide-react';
 import { NavigationTab } from '@/core/domain/library';
+import { APP_CONFIG } from '@/core/config/app.config';
 
 interface SidebarProps {
   currentTab: NavigationTab;
@@ -129,6 +130,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
           }}
           title="Modo offline pronto"
         />
+        <button
+          type="button"
+          onClick={() => onNavigate('settings')}
+          aria-label={`Versão ${APP_CONFIG.version} — ver detalhes do app`}
+          title={`Midoteca ${APP_CONFIG.version}`}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            maxWidth: '68px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontSize: '9px',
+            color: '#64748B',
+            letterSpacing: '0.2px',
+          }}
+        >
+          v{APP_CONFIG.version}
+        </button>
       </div>
     </aside>
   );

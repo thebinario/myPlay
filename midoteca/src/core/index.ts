@@ -8,3 +8,4 @@ export * from './ids';
 export * from './clock';
 export * from './validation';
 export * from './app-paths';
+export * from './catalog-order';

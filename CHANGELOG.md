@@ -9,6 +9,22 @@ compatível → *minor*; correção → *patch*; mudança incompatível → *maj
 validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
 versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
 
+## [1.1.0-beta.3] - 2026-11-22
+
+### Corrigido
+
+- **Ordem do catálogo:** cursos, coleções, seções, módulos e aulas seguem a
+  numeração do nome: "Módulo 2" vem antes de "Módulo 10", e itens sem número
+  ("Bônus", "Extras") vão para o fim da lista. A comparação ignora acentos e
+  maiúsculas ("Modulo 2" fica junto de "Módulo 1" e "Módulo 3"). A ordem manual
+  definida pelo usuário continua tendo prioridade. Quem decide é o núcleo; vale
+  para as bibliotecas já indexadas, sem precisar reescanear.
+
+### Adicionado
+
+- Versão do app visível no rodapé da barra lateral; um clique abre
+  Configurações, onde fica o Sobre.
+
 ## [1.1.0-beta.2] - 2026-11-21
 
 ### Adicionado

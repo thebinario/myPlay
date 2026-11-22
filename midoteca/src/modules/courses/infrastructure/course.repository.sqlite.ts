@@ -10,6 +10,7 @@ import {
 } from '../../../core/validation';
 import { TITLE_SOURCES, type TitleSource } from '../../../core/title-source';
 import { SORT_SOURCES, type SortSource } from '../../../core/sort-source';
+import { sortCatalogRows } from '../../../core/catalog-order';
 import { LESSON_MEDIA_ROLES, type LessonMediaRole } from '../../../core/domain/lesson-media-role';
 import type { Course, CourseModule, CourseSection, Lesson, LessonMedia } from '../domain/entities';
 import {
@@ -424,12 +425,14 @@ export class SqliteCourseRepository implements CourseRepository {
   }
 
   async listModules(courseId: string): Promise<CourseModule[]> {
-    const rows = this.db
-      .prepare(
-        `SELECT id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source, section_id
-         FROM course_modules WHERE course_id = ? ORDER BY sort_order, title`,
-      )
-      .all(courseId) as ModuleRow[];
+    const rows = sortCatalogRows(
+      this.db
+        .prepare(
+          `SELECT id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source, section_id
+           FROM course_modules WHERE course_id = ? ORDER BY sort_order, title`,
+        )
+        .all(courseId) as ModuleRow[],
+    );
     return rows.map(mapModule);
   }
 
@@ -489,12 +492,14 @@ export class SqliteCourseRepository implements CourseRepository {
   }
 
   async listLessons(moduleId: string): Promise<Lesson[]> {
-    const rows = this.db
-      .prepare(
-        `SELECT id, module_id, title, sort_order, sort_source, relative_path, detected_title, title_source
-         FROM lessons WHERE module_id = ? ORDER BY sort_order, title`,
-      )
-      .all(moduleId) as LessonRow[];
+    const rows = sortCatalogRows(
+      this.db
+        .prepare(
+          `SELECT id, module_id, title, sort_order, sort_source, relative_path, detected_title, title_source
+           FROM lessons WHERE module_id = ? ORDER BY sort_order, title`,
+        )
+        .all(moduleId) as LessonRow[],
+    );
     return rows.map(mapLesson);
   }
 
@@ -743,11 +748,13 @@ export class SqliteCourseRepository implements CourseRepository {
 
     const modules: CourseTreeModule[] = moduleRows.map((moduleRow) => {
       const documents = this.readTreeDocuments('dl.module_id', moduleRow.id);
-      const lessons = (lessonStmt.all(moduleRow.id) as LessonRow[]).map((lessonRow) => ({
-        ...mapLesson(lessonRow),
-        media: (mediaStmt.all(lessonRow.id) as LessonMediaRow[]).map(mapLessonMedia),
-        ...readWatchState(lessonRow.id, watchedStmt, elsewhereStmt),
-      }));
+      const lessons = sortCatalogRows(lessonStmt.all(moduleRow.id) as LessonRow[]).map(
+        (lessonRow) => ({
+          ...mapLesson(lessonRow),
+          media: (mediaStmt.all(lessonRow.id) as LessonMediaRow[]).map(mapLessonMedia),
+          ...readWatchState(lessonRow.id, watchedStmt, elsewhereStmt),
+        }),
+      );
       return { ...mapModule(moduleRow), documents, lessons };
     });
 
@@ -858,21 +865,25 @@ export class SqliteCourseRepository implements CourseRepository {
   }
 
   private readSectionRows(courseId: string): SectionRow[] {
-    return this.db
-      .prepare(
-        `SELECT id, course_id, title, sort_order, sort_source, relative_path, title_source
-         FROM course_sections WHERE course_id = ? ORDER BY sort_order, title`,
-      )
-      .all(courseId) as SectionRow[];
+    return sortCatalogRows(
+      this.db
+        .prepare(
+          `SELECT id, course_id, title, sort_order, sort_source, relative_path, title_source
+           FROM course_sections WHERE course_id = ? ORDER BY sort_order, title`,
+        )
+        .all(courseId) as SectionRow[],
+    );
   }
 
   private readModuleRows(courseId: string): ModuleRow[] {
-    return this.db
-      .prepare(
-        `SELECT id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source, section_id
-         FROM course_modules WHERE course_id = ? ORDER BY sort_order, title`,
-      )
-      .all(courseId) as ModuleRow[];
+    return sortCatalogRows(
+      this.db
+        .prepare(
+          `SELECT id, course_id, title, sort_order, sort_source, relative_path, detected_title, title_source, section_id
+           FROM course_modules WHERE course_id = ? ORDER BY sort_order, title`,
+        )
+        .all(courseId) as ModuleRow[],
+    );
   }
 
   private readModules(courseId: string): CourseModule[] {
@@ -890,12 +901,14 @@ export class SqliteCourseRepository implements CourseRepository {
   }
 
   private readLessons(moduleId: string): Lesson[] {
-    const rows = this.db
-      .prepare(
-        `SELECT id, module_id, title, sort_order, sort_source, relative_path, detected_title, title_source
-         FROM lessons WHERE module_id = ? ORDER BY sort_order, title`,
-      )
-      .all(moduleId) as LessonRow[];
+    const rows = sortCatalogRows(
+      this.db
+        .prepare(
+          `SELECT id, module_id, title, sort_order, sort_source, relative_path, detected_title, title_source
+           FROM lessons WHERE module_id = ? ORDER BY sort_order, title`,
+        )
+        .all(moduleId) as LessonRow[],
+    );
     return rows.map(mapLesson);
   }
 
