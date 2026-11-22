@@ -102,6 +102,8 @@ export function mapCourseTree(
           completed: false,
           watchedElsewhere: lesson.watchedElsewhere ?? null,
           isUnavailable: primary ? primary.availability === 'missing' : undefined,
+          playability: primary?.playability ?? null,
+          playabilityReason: primary?.playabilityReason ?? null,
           videoUrl: primary ? buildMediaUrl(root, primary.relativePath) : '',
           order: lesson.sortOrder,
           materials: [],

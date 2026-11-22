@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { clampSeekTime } from '@/modules/player/domain/progress';
 import {
   classifyPlaybackError,
+  type MediaPlayabilityVerdict,
   type PlaybackErrorInfo,
 } from '@/modules/player/domain/playback-error';
 
@@ -50,6 +51,9 @@ export interface UseMediaElementPlaybackOptions {
   autoPlay?: boolean;
   /** Quando verdadeiro, entra em estado de erro (arquivo indisponível). */
   unavailable?: boolean;
+  /** Veredito do núcleo: `damaged`/`unsupported` abrem direto no diagnóstico. */
+  playability?: MediaPlayabilityVerdict | null;
+  playabilityReason?: string | null;
   onEnded?: () => void;
   onProgress?: (snapshot: { currentTime: number; isPlaying: boolean }) => void;
 }
@@ -95,6 +99,19 @@ function reloadVideo(video: HTMLVideoElement | null): void {
   }
 }
 
+/** Erro conhecido antes de tocar: arquivo ausente ou veredito negativo do núcleo. */
+function blockingError(
+  src: string,
+  unavailable: boolean,
+  verdict: { playability: MediaPlayabilityVerdict | null; playabilityReason: string | null },
+): PlaybackErrorInfo | null {
+  if (unavailable) return classifyPlaybackError({ isUnavailable: true, url: src });
+  if (verdict.playability === 'damaged' || verdict.playability === 'unsupported') {
+    return classifyPlaybackError({ url: src, ...verdict });
+  }
+  return null;
+}
+
 export function useMediaElementPlayback({
   videoRef,
   src,
@@ -102,18 +119,22 @@ export function useMediaElementPlayback({
   initialTime = 0,
   autoPlay = false,
   unavailable = false,
+  playability = null,
+  playabilityReason = null,
   onEnded,
   onProgress,
 }: UseMediaElementPlaybackOptions): MediaElementPlayback {
-  const [status, setStatus] = useState<PlayerStatus>(unavailable ? 'error' : 'ready');
-  const [errorInfo, setErrorInfo] = useState<PlaybackErrorInfo | null>(() =>
-    unavailable ? classifyPlaybackError({ isUnavailable: true, url: src }) : null,
-  );
+  const verdict = { playability, playabilityReason };
+  const blockedInfo = blockingError(src, unavailable, verdict);
+  const [status, setStatus] = useState<PlayerStatus>(blockedInfo ? 'error' : 'ready');
+  const [errorInfo, setErrorInfo] = useState<PlaybackErrorInfo | null>(blockedInfo);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [mediaDuration, setMediaDuration] = useState(fallbackDuration);
   const [playbackRate, setPlaybackRateState] = useState(1);
 
+  const verdictRef = useRef(verdict);
+  verdictRef.current = verdict;
   const isPlayingRef = useRef(isPlaying);
   const currentTimeRef = useRef(currentTime);
   const statusRef = useRef(status);
@@ -147,8 +168,9 @@ export function useMediaElementPlayback({
     setPlaybackRateState(1);
     applyRate(video, 1);
 
-    if (unavailable) {
-      setErrorInfo(classifyPlaybackError({ isUnavailable: true, url: src }));
+    const blocked = blockingError(src, unavailable, verdict);
+    if (blocked) {
+      setErrorInfo(blocked);
       setStatus('error');
       return;
     }
@@ -167,7 +189,7 @@ export function useMediaElementPlayback({
       setStatus('playing');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, unavailable, fallbackDuration]);
+  }, [src, unavailable, playability, fallbackDuration]);
 
   // Vincula os eventos nativos do elemento de mídia.
   useEffect(() => {
@@ -254,6 +276,7 @@ export function useMediaElementPlayback({
         url: src,
         mediaErrorCode: mediaError?.code,
         mediaErrorMessage: mediaError?.message,
+        ...verdictRef.current,
       });
       setErrorInfo(initialInfo);
       setStatus('error');
@@ -272,6 +295,7 @@ export function useMediaElementPlayback({
             } else if (res.ok) {
               setErrorInfo(
                 classifyPlaybackError({
+                  ...verdictRef.current,
                   url: src,
                   mediaErrorCode: mediaError?.code ?? 4,
                   mediaErrorMessage: mediaError?.message,

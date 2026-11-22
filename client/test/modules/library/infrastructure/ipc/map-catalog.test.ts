@@ -20,6 +20,8 @@ function media(overrides: Partial<MediaFile> & { id: string }): MediaFile {
     modifiedAt: '2026-10-01T00:00:00Z',
     sha256: null,
     availability: 'available',
+    playability: 'playable',
+    playabilityReason: null,
     lastSeenAt: '2026-10-01T00:00:00Z',
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-01T00:00:00Z',
@@ -173,6 +175,27 @@ describe('mapCourseTree', () => {
     expect(course.modules[0].lessons[0].isUnavailable).toBe(true);
     expect(course.modules[0].lessons[1].isUnavailable).toBeFalsy();
     expect(course.modules[0].lessons[1].duration).toBe(0);
+  });
+
+  it('leva à aula o veredito de reprodução do núcleo (arquivo danificado/incompatível)', () => {
+    const mediaById = new Map([
+      [
+        'mv1',
+        media({
+          id: 'mv1',
+          playability: 'damaged',
+          playabilityReason: 'Invalid data found when processing input',
+        }),
+      ],
+      ['mv2', media({ id: 'mv2', playability: null })],
+    ]);
+    const course = mapCourseTree(courseTree(), mediaById, new Map([['src-1', '/HD']]));
+    const [damaged, unknown] = course.modules[0].lessons;
+    expect(damaged).toMatchObject({
+      playability: 'damaged',
+      playabilityReason: 'Invalid data found when processing input',
+    });
+    expect(unknown.playability).toBeNull();
   });
 
   it('deriva category/provider/tags dos campos do curso quando não há metadata', () => {

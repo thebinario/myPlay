@@ -7,7 +7,7 @@ export interface TempLibrary {
   root: string;
   cleanup(): void;
   mkdir(relative: string): string;
-  write(relative: string, content?: string, mtime?: Date): string;
+  write(relative: string, content?: string | Buffer, mtime?: Date): string;
   symlink(target: string, linkRelative: string): string;
 }
 
@@ -24,7 +24,7 @@ export function createTempLibrary(): TempLibrary {
       mkdirSync(absolute, { recursive: true });
       return absolute;
     },
-    write(relative: string, content = `content-${randomUUID()}`, mtime?: Date) {
+    write(relative: string, content: string | Buffer = `content-${randomUUID()}`, mtime?: Date) {
       const absolute = join(root, relative);
       mkdirSync(dirname(absolute), { recursive: true });
       writeFileSync(absolute, content);

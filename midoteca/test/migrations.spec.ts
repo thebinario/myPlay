@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-      expect(app.migration?.currentVersion).toBe(10);
+      expect(app.migration?.applied).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+      expect(app.migration?.currentVersion).toBe(11);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(10);
+      expect(second.migration?.currentVersion).toBe(11);
     } finally {
       second.close();
     }
@@ -70,6 +70,7 @@ describe('database initialization and migrations', () => {
         { id: 8, name: '0008-content-search' },
         { id: 9, name: '0009-transcripts' },
         { id: 10, name: '0010-chunk-embeddings' },
+        { id: 11, name: '0011-media-playability' },
       ]);
     } finally {
       app.close();

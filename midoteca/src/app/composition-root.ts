@@ -24,6 +24,7 @@ import {
   SqliteDuplicateReadStore,
   SqliteLessonSubtitleLookup,
   SqliteMediaAnalysisStore,
+  SqlitePlayabilityStore,
   SqliteMediaRepository,
   SqliteTranscriptCueReader,
   type AudioDecoder,
@@ -32,7 +33,7 @@ import {
 } from '../modules/media';
 import { AssistantService, type LlmClient } from '../modules/assistant';
 import { createLocalAi, type LocalAi } from './local-ai';
-import { createBackgroundJobs, type MediaTools } from './background-jobs';
+import { createBackgroundJobs, schedulePlayabilityCheck, type MediaTools } from './background-jobs';
 import { ActivityMonitor } from '../modules/jobs/application/activity-monitor';
 import { fileNameOf } from '../core/file-name';
 import {
@@ -47,6 +48,7 @@ import { NodeFileHasher } from '../platform/fs/file-hasher';
 import { FsSubtitleReader } from '../platform/text/fs-subtitle-reader';
 import { FfmpegFrameSampler } from '../platform/media/ffmpeg-frame-sampler';
 import { FfprobeMediaProber } from '../platform/media/ffprobe-prober';
+import { FfprobeMediaInspector } from '../platform/media/ffprobe-inspector';
 import { nowIso } from '../core/clock';
 import {
   SqliteLessonMediaDurations,
@@ -130,6 +132,8 @@ export interface Midoteca {
   readonly jobRunner: JobRunner;
   /** Live picture of background work (scans, analysis, transcription...). */
   readonly activity: ActivityMonitor;
+  /** Queues the playability check of videos not verified yet (e.g. older libraries). */
+  checkPlayability(): Promise<void>;
   /** Duplicate-content read model and explicit reuse of completions. */
   readonly duplicates: DuplicatesService;
   /** Full-text search over PDF/subtitle/transcript text (FTS5). */
@@ -211,6 +215,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     observer: activity,
     analysis,
     content,
+    playability: new SqlitePlayabilityStore(database),
     text: {
       documents: new PdfJsTextExtractor(),
       subtitles: subtitleReader,
@@ -228,9 +233,14 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
       hasher: options.mediaTools?.hasher ?? new NodeFileHasher(),
       prober: options.mediaTools?.prober ?? new FfprobeMediaProber(),
       sampler: options.mediaTools?.sampler ?? new FfmpegFrameSampler(),
+      inspector: options.mediaTools?.inspector ?? new FfprobeMediaInspector(),
     },
   });
-  if (options.backgroundJobs && !readonly) jobRunner.start();
+  if (options.backgroundJobs && !readonly) {
+    jobRunner.start();
+    // Libraries indexed before playability existed are verified in the background.
+    jobRunner.track(schedulePlayabilityCheck(jobs));
+  }
   const duplicates = new DuplicatesService({
     reads: new SqliteDuplicateReadStore(database),
     analysis,
@@ -258,6 +268,12 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     queries,
     jobRunner,
     activity,
+    checkPlayability: async () => {
+      if (readonly) return;
+      const enqueue = schedulePlayabilityCheck(jobs);
+      jobRunner.track(enqueue);
+      await enqueue;
+    },
     duplicates,
     contentSearch: new ContentSearchService(content),
     subtitles: new LessonSubtitlesService({

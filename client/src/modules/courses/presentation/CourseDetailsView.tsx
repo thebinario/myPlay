@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { LessonWatchBadge } from '@/modules/courses/presentation/LessonWatchBadge';
+import { LessonMediaIssueBadge } from '@/modules/courses/presentation/LessonMediaIssueBadge';
 import { WatchedElsewhereNotice } from '@/modules/courses/presentation/WatchedElsewhereNotice';
 import { CourseProgressCard } from './CourseProgressCard';
 
@@ -305,6 +306,10 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
                                     watchedRatio={lesson.watchedRatio}
                                     completed={lesson.completed}
                                     completionSource={lesson.completionSource}
+                                  />
+                                  <LessonMediaIssueBadge
+                                    playability={lesson.playability}
+                                    reason={lesson.playabilityReason}
                                   />
                                   {!lesson.completed && lesson.watchedElsewhere && (
                                     <WatchedElsewhereNotice

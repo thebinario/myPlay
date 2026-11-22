@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { PlayerUnavailableState } from '@/modules/player/presentation/components/PlayerUnavailableState';
+import { classifyPlaybackError } from '@/modules/player/domain/playback-error';
 
 const meta: Meta<typeof PlayerUnavailableState> = {
   title: 'Player/PlayerUnavailableState',
@@ -66,6 +67,30 @@ export const CorruptedFile: Story = {
       suggestion:
         'Verifique se o arquivo original abre em outros players ou tente copiar novamente o arquivo.',
     },
+    onReconnect: () => {},
+  },
+};
+
+/** Veredito do núcleo: arquivo danificado/incompleto (ex.: WebM com início zerado). */
+export const DamagedDetectedByCore: Story = {
+  args: {
+    errorInfo: classifyPlaybackError({
+      url: 'midoteca-media://media/%2FHD%2FSEC542-OnDemand_8.webm',
+      playability: 'damaged',
+      playabilityReason: 'Invalid data found when processing input',
+    }),
+    onReconnect: () => {},
+  },
+};
+
+/** Contêiner compatível (.webm) que não abriu: não sugere converter para WebM. */
+export const NativeContainerUnreadable: Story = {
+  args: {
+    errorInfo: classifyPlaybackError({
+      url: 'midoteca-media://media/%2FHD%2Faula.webm',
+      mediaErrorCode: 4,
+      httpStatus: 200,
+    }),
     onReconnect: () => {},
   },
 };

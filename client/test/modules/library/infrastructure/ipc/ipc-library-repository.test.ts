@@ -45,6 +45,8 @@ function coreMedia(
     modifiedAt: null,
     sha256: null,
     availability: 'available',
+    playability: null,
+    playabilityReason: null,
     lastSeenAt: null,
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-01T00:00:00Z',

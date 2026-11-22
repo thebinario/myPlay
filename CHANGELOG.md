@@ -25,6 +25,11 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
   maiúsculas ("Modulo 2" fica junto de "Módulo 1" e "Módulo 3"). A ordem manual
   definida pelo usuário continua tendo prioridade. Quem decide é o núcleo; vale
   para as bibliotecas já indexadas, sem precisar reescanear.
+- O player abre direto no diagnóstico certo quando o núcleo já sabe que o
+  arquivo não toca: "Arquivo de vídeo danificado ou incompleto" (com orientação
+  para copiar novamente o original) ou o codec incompatível exato.
+- Um `.webm`/`.mp4` que não abre deixou de exibir "converta para MP4 ou WebM";
+  a mensagem agora aponta arquivo danificado ou codec interno incompatível.
 
 ### Adicionado
 
@@ -38,6 +43,12 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
   O indicador some quando nada está em processamento.
 - Rótulos, percentuais e ordem vêm prontos do núcleo (`activity.list` e o
   evento `activity:changed`); a interface só apresenta.
+- **Verificação dos vídeos:** em segundo plano, o núcleo lê cada vídeo com o
+  ffprobe (sem decodificar nem alterar o arquivo) e classifica como
+  reproduzível, formato incompatível (ex.: HEVC, AC-3, AVI) ou danificado.
+  Bibliotecas já indexadas também são verificadas automaticamente. O
+  progresso aparece no indicador de atividade como "Verificando vídeos".
+- Selo "Arquivo danificado" / "Formato incompatível" na lista de aulas.
 
 ## [1.1.0-beta.2] - 2026-11-21
 

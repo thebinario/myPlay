@@ -1,5 +1,6 @@
 import type { MediaType } from '../../../core/domain/media-type';
 import type { JsonObject } from '../../../core/json';
+import type { MediaPlayability } from './playability';
 
 /**
  * Whether the file is currently reachable. A missing file downgrades to
@@ -26,6 +27,10 @@ export interface MediaFile {
   /** Content hash for dedup/fingerprint; NOT globally unique on purpose. */
   sha256: string | null;
   availability: MediaAvailability;
+  /** Can the desktop player decode it? Decided by the core; null = not checked yet. */
+  playability: MediaPlayability | null;
+  /** Why it is not playable (ffprobe message or offending codec/container). */
+  playabilityReason: string | null;
   /** ISO time this row was last observed by a successful scan; null if never. */
   lastSeenAt: string | null;
   createdAt: string;

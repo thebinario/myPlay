@@ -43,7 +43,7 @@ describe('migration 0006 - watch coverage', () => {
 
     const app = createMidoteca({ databaseFile: temp.file });
     try {
-      expect(app.migration?.applied).toEqual([6, 7, 8, 9, 10]);
+      expect(app.migration?.applied).toEqual([6, 7, 8, 9, 10, 11]);
       const done = await app.progress.getPlayback('done');
       expect(done).toMatchObject({
         positionMs: 60_000,
