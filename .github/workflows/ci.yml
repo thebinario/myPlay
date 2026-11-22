@@ -22,6 +22,20 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
+  release-notes:
+    name: CHANGELOG
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Exigir notas em [Unreleased] (ou release com nova versão)
+        run: node client/scripts/check-release-bump.cjs "origin/${{ github.base_ref }}"
+
   core:
     name: Backend (@midoteca/core)
     runs-on: ubuntu-latest

@@ -1,7 +1,7 @@
 {
   "name": "midoteca-desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0-beta.2",
   "main": "electron/main.cjs",
   "type": "module",
   "engines": {
@@ -32,7 +32,8 @@
     "desktop:smoke": "npm run desktop:rebuild && MIDOTECA_SMOKE=1 electron electron/main.cjs",
     "desktop:prod": "npm run desktop:core && npm run build && npm run desktop:start",
     "desktop:stg": "node scripts/desktop-stg.cjs",
-    "desktop:release": "node scripts/desktop-release.cjs"
+    "desktop:release": "node scripts/desktop-release.cjs",
+    "release:check": "node scripts/check-release-bump.cjs"
   },
   "dependencies": {
     "@midoteca/core": "file:../midoteca",

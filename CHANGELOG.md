@@ -1,0 +1,63 @@
+# Changelog
+
+Todas as mudanças relevantes da Midoteca. Formato baseado em
+[Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versões em
+[SemVer](https://semver.org/lang/pt-BR/).
+
+**Regras:**
+
+- **Todo PR** registra o que adicionou, alterou ou corrigiu em `## [Unreleased]`
+  (seções *Adicionado*, *Alterado*, *Corrigido*, *Removido*). Não mexe na versão.
+- **Release** (build distribuído, inclusive beta de teste): um PR sobe a versão em
+  `client/package.json` e renomeia `[Unreleased]` para `## [versão] - data`,
+  abrindo um `[Unreleased]` vazio. Funcionalidade nova → *minor*; só correções →
+  *patch*; incompatível → *major*. Enquanto o empacotado não for validado, a
+  versão leva `-beta.N`, e N sobe a cada build de teste distribuído (não a cada PR).
+- O CI (`npm run release:check`) bloqueia PRs que não cumprem isso.
+
+## [Unreleased]
+
+### Corrigido
+
+- **Ordem do catálogo:** cursos, coleções, seções, módulos e aulas seguem a
+  numeração do nome: "Módulo 2" vem antes de "Módulo 10", e itens sem número
+  ("Bônus", "Extras") vão para o fim da lista. A comparação ignora acentos e
+  maiúsculas ("Modulo 2" fica junto de "Módulo 1" e "Módulo 3"). A ordem manual
+  definida pelo usuário continua tendo prioridade. Quem decide é o núcleo; vale
+  para as bibliotecas já indexadas, sem precisar reescanear.
+
+### Adicionado
+
+- Versão do app visível no rodapé da barra lateral; um clique abre
+  Configurações, onde fica o Sobre.
+
+## [1.1.0-beta.2] - 2026-11-21
+
+### Adicionado
+
+- **Conteúdo duplicado:** análise em segundo plano (duração, hash e impressão
+  perceptual) detecta cópias idênticas e vídeos recodificados.
+- Aviso "Já assistido em…" na aula, com "Marcar como vista" por ação explícita.
+- Painel de duplicatas em Configurações → Processamento.
+- A análise pausa enquanto um vídeo está sendo reproduzido.
+
+## [1.1.0-beta.1] - 2026-11-21
+
+### Alterado
+
+- **Aula concluída só quando realmente assistida:** a conclusão automática
+  passou a exigir ≥ 90% da mídia reproduzida. Arrastar até o fim não conclui mais;
+  quem decide é o núcleo, não o player.
+- A tela de fim do vídeo mostra "Fim do vídeo", separado de "Concluída".
+- Aulas concluídas antes desta versão permanecem concluídas (origem `legacy`).
+
+### Adicionado
+
+- Selo "Assistido N%" nas aulas e marcação manual de conclusão com a origem
+  registrada (`watched`, `manual`, `legacy`).
+- A versão exibida em Configurações → Sobre vem do `package.json`.
+
+## [1.0.0] - 2026-10-18
+
+- Lançamento do MVP desktop: bibliotecas locais, cursos, player, leitor PDF,
+  busca, configurações e instalador Windows.

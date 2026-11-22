@@ -1,4 +1,7 @@
+import { compareCatalogTitles, naturalCompare } from '../../../core/catalog-order';
 import type { DiscoveredFile } from './types';
+
+export { naturalCompare };
 
 /**
  * Pure, filesystem-free planning of the catalog structure from a flat list of
@@ -769,32 +772,7 @@ function compareNamed(
   b: { order: number; title: string; relativePath: string },
 ): number {
   if (a.order !== b.order) return a.order - b.order;
-  const natural = naturalCompare(a.title, b.title);
+  const natural = compareCatalogTitles(a.title, b.title);
   if (natural !== 0) return natural;
   return naturalCompare(a.relativePath, b.relativePath);
-}
-
-/** Case-insensitive, numeric-aware comparison ("2" < "10"). */
-export function naturalCompare(a: string, b: string): number {
-  const left = a.toLowerCase();
-  const right = b.toLowerCase();
-  const leftParts = left.match(/(\d+|\D+)/g) ?? [];
-  const rightParts = right.match(/(\d+|\D+)/g) ?? [];
-  const length = Math.max(leftParts.length, rightParts.length);
-  for (let i = 0; i < length; i += 1) {
-    const lp = leftParts[i];
-    const rp = rightParts[i];
-    if (lp === undefined) return -1;
-    if (rp === undefined) return 1;
-    const ln = Number(lp);
-    const rn = Number(rp);
-    const leftIsNumber = !Number.isNaN(ln);
-    const rightIsNumber = !Number.isNaN(rn);
-    if (leftIsNumber && rightIsNumber) {
-      if (ln !== rn) return ln - rn;
-    } else if (lp !== rp) {
-      return lp < rp ? -1 : 1;
-    }
-  }
-  return 0;
 }

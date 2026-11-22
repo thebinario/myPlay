@@ -270,7 +270,7 @@ midoteca/src/
 │   ├── domain/                            # media-type.ts · lesson-media-role.ts
 │   ├── contracts/                         # (decisão P10) FileScanner · SourceProbe · ManifestLoader
 │   ├── errors.ts · ids.ts · clock.ts · validation.ts
-│   └── json.ts · json-codec.ts · title-source.ts · sort-source.ts · app-paths.ts
+│   └── json.ts · json-codec.ts · title-source.ts · sort-source.ts · catalog-order.ts · app-paths.ts
 │
 ├── modules/
 │   ├── library/

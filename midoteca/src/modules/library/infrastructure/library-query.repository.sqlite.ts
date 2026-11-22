@@ -16,6 +16,7 @@ import type { LibraryQueryStore } from '../domain/repositories';
 import type { LibrarySourceStatus } from '../domain/entities';
 import type { TitleSource } from '../../../core/title-source';
 import type { SqliteDatabase } from '../../../platform/persistence/sqlite/database';
+import { compareCatalogTitles, sortCatalogRows } from '../../../core/catalog-order';
 
 interface CourseSummaryRow {
   id: string;
@@ -133,11 +134,25 @@ interface CourseNodeRow {
 interface SectionRow {
   id: string;
   title: string;
+  sort_order: number;
 }
 
 interface ModuleRow {
   id: string;
   title: string;
+  sort_order: number;
+}
+
+/** Ids of one page ordered by the catalog title rule, plus the total. */
+interface OrderedPage {
+  ids: string[];
+  total: number;
+}
+
+/** Restores the domain order of a page fetched with `WHERE id IN (...)`. */
+function inPageOrder<T extends { id: string }>(rows: T[], ids: string[]): T[] {
+  const position = new Map(ids.map((id, index) => [id, index]));
+  return [...rows].sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0));
 }
 
 function mapCollectionSummary(row: CollectionSummaryRow): CollectionSummary {
@@ -154,12 +169,16 @@ function mapCollectionSummary(row: CollectionSummaryRow): CollectionSummary {
   };
 }
 
+/** `?, ?, ?` for an IN list; `NULL` keeps an empty list valid SQL. */
+function placeholders(ids: readonly string[]): string {
+  return ids.length === 0 ? 'NULL' : ids.map(() => '?').join(', ');
+}
+
 export class SqliteLibraryQueryStore implements LibraryQueryStore {
   constructor(private readonly db: SqliteDatabase) {}
 
   listCourses(query: { limit: number; offset: number; sourceId?: string }): Paged<CourseSummary> {
-    const where = query.sourceId ? 'WHERE c.source_id = ?' : '';
-    const params: unknown[] = query.sourceId ? [query.sourceId] : [];
+    const page = this.orderedPage('courses', query);
     const rows = this.db
       .prepare(
         `SELECT c.id, c.title, c.source_id, c.relative_path, c.title_source,
@@ -170,15 +189,12 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
                    JOIN course_modules m2 ON l.module_id = m2.id
                    WHERE m2.course_id = c.id) AS lesson_count
          FROM courses c
-         ${where}
-         ORDER BY c.title COLLATE NOCASE
-         LIMIT ? OFFSET ?`,
+         WHERE c.id IN (${placeholders(page.ids)})`,
       )
-      .all(...params, query.limit, query.offset) as CourseSummaryRow[];
-    const total = this.count('courses c', where, params);
+      .all(...page.ids) as CourseSummaryRow[];
     return {
-      items: rows.map(mapCourseSummary),
-      total,
+      items: inPageOrder(rows, page.ids).map(mapCourseSummary),
+      total: page.total,
       limit: query.limit,
       offset: query.offset,
     };
@@ -298,8 +314,7 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
     offset: number;
     sourceId?: string;
   }): Paged<CollectionSummary> {
-    const where = query.sourceId ? 'WHERE c.source_id = ?' : '';
-    const params: unknown[] = query.sourceId ? [query.sourceId] : [];
+    const page = this.orderedPage('collections', query);
     const rows = this.db
       .prepare(
         `WITH collection_content(collection_id, kind, content_id) AS (
@@ -346,15 +361,12 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
                      WHERE r.document_id = cc.content_id AND r.completed_at IS NOT NULL))
                  )) AS completed_count
          FROM collections c
-         ${where}
-         ORDER BY c.title COLLATE NOCASE
-         LIMIT ? OFFSET ?`,
+         WHERE c.id IN (${placeholders(page.ids)})`,
       )
-      .all(...params, query.limit, query.offset) as CollectionSummaryRow[];
-    const total = this.count('collections c', where, params);
+      .all(...page.ids) as CollectionSummaryRow[];
     return {
-      items: rows.map(mapCollectionSummary),
-      total,
+      items: inPageOrder(rows, page.ids).map(mapCollectionSummary),
+      total: page.total,
       limit: query.limit,
       offset: query.offset,
     };
@@ -369,10 +381,10 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
     const courseRows = this.db
       .prepare(
         `SELECT id, title, relative_path, category, provider
-         FROM courses WHERE collection_id = ?
-         ORDER BY title COLLATE NOCASE`,
+         FROM courses WHERE collection_id = ?`,
       )
       .all(collectionId) as CourseNodeRow[];
+    courseRows.sort((a, b) => compareCatalogTitles(a.title, b.title));
 
     return {
       id: collection.id,
@@ -383,20 +395,18 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
   }
 
   private buildCourseNode(course: CourseNodeRow): CollectionCourseNode {
-    const sectionRows = this.db
-      .prepare(
-        `SELECT id, title FROM course_sections
-         WHERE course_id = ? ORDER BY sort_order, title COLLATE NOCASE`,
-      )
-      .all(course.id) as SectionRow[];
+    const sectionRows = sortCatalogRows(
+      this.db
+        .prepare(`SELECT id, title, sort_order FROM course_sections WHERE course_id = ?`)
+        .all(course.id) as SectionRow[],
+    );
 
     const sections: CollectionSectionNode[] = sectionRows.map((section) => {
-      const moduleRows = this.db
-        .prepare(
-          `SELECT id, title FROM course_modules
-           WHERE section_id = ? ORDER BY sort_order, title COLLATE NOCASE`,
-        )
-        .all(section.id) as ModuleRow[];
+      const moduleRows = sortCatalogRows(
+        this.db
+          .prepare(`SELECT id, title, sort_order FROM course_modules WHERE section_id = ?`)
+          .all(section.id) as ModuleRow[],
+      );
       const modules = moduleRows.map((module) => this.buildModuleNode(module));
       return {
         id: section.id,
@@ -461,6 +471,28 @@ export class SqliteLibraryQueryStore implements LibraryQueryStore {
       lastScanAt: source.last_scan_at,
       mediaCount: media.count,
       courseCount: courses.count,
+    };
+  }
+
+  /**
+   * SQLite cannot sort naturally ("Módulo 2" < "Módulo 10", unnumbered last),
+   * so the page window is chosen in the domain over the lightweight id/title
+   * projection and only that page's summaries are computed in SQL.
+   */
+  private orderedPage(
+    table: 'courses' | 'collections',
+    query: { limit: number; offset: number; sourceId?: string },
+  ): OrderedPage {
+    const where = query.sourceId ? 'WHERE source_id = ?' : '';
+    const params: unknown[] = query.sourceId ? [query.sourceId] : [];
+    const all = this.db.prepare(`SELECT id, title FROM ${table} ${where}`).all(...params) as {
+      id: string;
+      title: string;
+    }[];
+    all.sort((a, b) => compareCatalogTitles(a.title, b.title));
+    return {
+      ids: all.slice(query.offset, query.offset + query.limit).map((row) => row.id),
+      total: all.length,
     };
   }
 
