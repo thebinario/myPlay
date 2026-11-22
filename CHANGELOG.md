@@ -4,44 +4,18 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versões em
 [SemVer](https://semver.org/lang/pt-BR/).
 
-**Regra:** todo PR sobe a versão em `client/package.json` (funcionalidade nova
-compatível → *minor*; correção → *patch*; mudança incompatível → *major*; antes de
-validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
-versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
+**Regras:**
 
-## [1.1.0-beta.5] - 2026-11-22
+- **Todo PR** registra o que adicionou, alterou ou corrigiu em `## [Unreleased]`
+  (seções *Adicionado*, *Alterado*, *Corrigido*, *Removido*). Não mexe na versão.
+- **Release** (build distribuído, inclusive beta de teste): um PR sobe a versão em
+  `client/package.json` e renomeia `[Unreleased]` para `## [versão] - data`,
+  abrindo um `[Unreleased]` vazio. Funcionalidade nova → *minor*; só correções →
+  *patch*; incompatível → *major*. Enquanto o empacotado não for validado, a
+  versão leva `-beta.N`, e N sobe a cada build de teste distribuído (não a cada PR).
+- O CI (`npm run release:check`) bloqueia PRs que não cumprem isso.
 
-### Adicionado
-
-- **Verificação dos vídeos:** em segundo plano, o núcleo lê cada vídeo com o
-  ffprobe (sem decodificar nem alterar o arquivo) e classifica como
-  reproduzível, formato incompatível (ex.: HEVC, AC-3, AVI) ou danificado.
-  Bibliotecas indexadas antes desta versão são verificadas automaticamente. O
-  progresso aparece no indicador de atividade como "Verificando vídeos".
-- Selo "Arquivo danificado" / "Formato incompatível" na lista de aulas.
-
-### Corrigido
-
-- O player abre direto no diagnóstico certo quando o núcleo já sabe que o
-  arquivo não toca: "Arquivo de vídeo danificado ou incompleto" (com orientação
-  para copiar novamente o original) ou o codec incompatível exato.
-- Um `.webm`/`.mp4` que não abre deixou de exibir "converta para MP4 ou WebM";
-  a mensagem agora aponta arquivo danificado ou codec interno incompatível.
-
-## [1.1.0-beta.4] - 2026-11-22
-
-### Adicionado
-
-- **Atividade em segundo plano:** um ícone animado na barra lateral mostra
-  quantas tarefas estão rodando. Ao passar o mouse, aparece a lista do que está
-  sendo processado: escaneamento de bibliotecas, análise de mídias, transcrição,
-  indexação de textos e preparação da busca inteligente. Cada item mostra o
-  arquivo atual e o percentual, e as tarefas na fila aparecem como "Na fila".
-  O indicador some quando nada está em processamento.
-- Rótulos, percentuais e ordem vêm prontos do núcleo (`activity.list` e o
-  evento `activity:changed`); a interface só apresenta.
-
-## [1.1.0-beta.3] - 2026-11-22
+## [Unreleased]
 
 ### Corrigido
 
@@ -51,11 +25,30 @@ versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
   maiúsculas ("Modulo 2" fica junto de "Módulo 1" e "Módulo 3"). A ordem manual
   definida pelo usuário continua tendo prioridade. Quem decide é o núcleo; vale
   para as bibliotecas já indexadas, sem precisar reescanear.
+- O player abre direto no diagnóstico certo quando o núcleo já sabe que o
+  arquivo não toca: "Arquivo de vídeo danificado ou incompleto" (com orientação
+  para copiar novamente o original) ou o codec incompatível exato.
+- Um `.webm`/`.mp4` que não abre deixou de exibir "converta para MP4 ou WebM";
+  a mensagem agora aponta arquivo danificado ou codec interno incompatível.
 
 ### Adicionado
 
 - Versão do app visível no rodapé da barra lateral; um clique abre
   Configurações, onde fica o Sobre.
+- **Atividade em segundo plano:** um ícone animado na barra lateral mostra
+  quantas tarefas estão rodando. Ao passar o mouse, aparece a lista do que está
+  sendo processado: escaneamento de bibliotecas, análise de mídias, transcrição,
+  indexação de textos e preparação da busca inteligente. Cada item mostra o
+  arquivo atual e o percentual, e as tarefas na fila aparecem como "Na fila".
+  O indicador some quando nada está em processamento.
+- Rótulos, percentuais e ordem vêm prontos do núcleo (`activity.list` e o
+  evento `activity:changed`); a interface só apresenta.
+- **Verificação dos vídeos:** em segundo plano, o núcleo lê cada vídeo com o
+  ffprobe (sem decodificar nem alterar o arquivo) e classifica como
+  reproduzível, formato incompatível (ex.: HEVC, AC-3, AVI) ou danificado.
+  Bibliotecas já indexadas também são verificadas automaticamente. O
+  progresso aparece no indicador de atividade como "Verificando vídeos".
+- Selo "Arquivo danificado" / "Formato incompatível" na lista de aulas.
 
 ## [1.1.0-beta.2] - 2026-11-21
 

@@ -6,11 +6,13 @@
 
 <!-- Testes criados/atualizados antes da implementação (TDD) e o que foi executado. -->
 
-## Versão (obrigatório)
+## CHANGELOG (obrigatório)
 
-- [ ] `client/package.json` com a nova versão (`npm --prefix client version <x.y.z[-beta.n]> --no-git-tag-version`)
-- [ ] Seção `## [<versão>]` no `CHANGELOG.md`
-- [ ] Linha no histórico de versões do `docs/ROADMAP.md`
+- [ ] O que este PR adiciona/altera/corrige está em `## [Unreleased]` no `CHANGELOG.md`
+- [ ] PR de release apenas: versão nova em `client/package.json`
+      (`npm --prefix client version <x.y.z[-beta.n]> --no-git-tag-version`),
+      `[Unreleased]` renomeado para `## [<versão>] - <data>` e linha no histórico
+      de versões do `docs/ROADMAP.md`
 
 ## Pendências
 
