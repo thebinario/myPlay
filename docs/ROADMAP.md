@@ -44,6 +44,7 @@ versão do app e acrescenta uma linha aqui.
 | 1.1.0-beta.1 | beta | Conclusão de aulas por cobertura real (≥ 90%), decidida no núcleo |
 | 1.1.0-beta.2 | beta | Detecção de conteúdo duplicado (exato e recodificado) com aviso "já assistido em…" |
 | 1.1.0-beta.3 | beta | Ordem natural do catálogo (Módulo 2 antes de 10, sem número por último) e versão visível na barra lateral |
+| 1.1.0-beta.4 | beta | Indicador de atividade em segundo plano (escaneamento, análise, transcrição, indexação) com progresso vindo do núcleo |
 
 ## 2. Estado atual do projeto
 

@@ -5,6 +5,7 @@ import type {
   MediaAnalysisStore,
   MediaProber,
 } from '../../domain/analysis';
+import { fileNameOf } from '../../../../core/file-name';
 import {
   DURATION_TOLERANCE_MS,
   frameSimilarity,
@@ -22,6 +23,8 @@ export interface AnalyzeSourceMediaDependencies {
 
 export interface AnalysisPacing {
   yieldToPlayback(): Promise<void>;
+  /** Publishes progress to the activity panel. */
+  reportProgress?(progress: { done: number; total: number | null; detail: string | null }): void;
   signal?: AbortSignal;
 }
 
@@ -38,11 +41,24 @@ export class AnalyzeSourceMedia {
 
   async execute(sourceId: string, pacing: AnalysisPacing): Promise<number> {
     let processed = 0;
+    const total = await this.deps.store.countPending(sourceId);
     for (;;) {
       const batch = await this.deps.store.listPending(sourceId, BATCH_SIZE);
-      if (batch.length === 0) return processed;
+      if (batch.length === 0) {
+        pacing.reportProgress?.({
+          done: processed,
+          total: Math.max(total, processed),
+          detail: null,
+        });
+        return processed;
+      }
       for (const media of batch) {
         if (pacing.signal?.aborted) return processed;
+        pacing.reportProgress?.({
+          done: processed,
+          total: Math.max(total, processed + 1),
+          detail: fileNameOf(media.absolutePath),
+        });
         await pacing.yieldToPlayback();
         try {
           await this.analyze(media);

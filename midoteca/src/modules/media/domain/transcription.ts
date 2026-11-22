@@ -81,6 +81,7 @@ export interface TranscriptionStatus {
 export interface TranscriptStore {
   /** Videos with a known duration, without subtitles, not yet (fully) transcribed. */
   listPending(sourceId: string, limit: number): Promise<TranscriptionCandidate[]>;
+  countPending(sourceId: string): Promise<number>;
   /** Starts (or restarts, when the fingerprint changed) a transcript. */
   begin(candidate: TranscriptionCandidate, model: string, language: string): Promise<number>;
   /** Appends a window's segments and advances the checkpoint atomically. */

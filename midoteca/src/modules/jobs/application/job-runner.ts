@@ -10,8 +10,26 @@ export interface JobPacer {
   waitWhilePlaybackActive?(): Promise<void>;
 }
 
+/** Progress a handler reports between units of work. */
+export interface JobProgressReport {
+  done: number;
+  /** Null/omitted when the amount of work is unknown. */
+  total?: number | null;
+  /** What is being processed now (e.g. a relative file path). */
+  detail?: string | null;
+}
+
+/** Lifecycle hooks for whoever shows background work (activity monitor). */
+export interface JobObserver {
+  jobStarted(job: Job): void;
+  jobProgress(job: Job, progress: JobProgressReport): void;
+  jobFinished(job: Job): void;
+}
+
 export interface JobContext {
   job: Job;
+  /** Publishes progress for the activity panel (not persisted). */
+  reportProgress(progress: JobProgressReport): void;
   /** Persists progress so a retry/restart resumes from here. */
   saveCheckpoint(checkpoint: JsonObject): Promise<void>;
   /** Call between units of work: honours pause and playback back-off. */
@@ -31,6 +49,8 @@ export interface JobRunnerOptions {
   maxAttempts?: number;
   /** Idle polling interval for the background loop, in ms. Default 2000. */
   pollIntervalMs?: number;
+  /** Optional lifecycle observer (activity panel). */
+  observer?: JobObserver;
 }
 
 /**
@@ -140,11 +160,15 @@ export class JobRunner {
     }
 
     await this.options.jobs.update(job.id, { status: 'running', incrementAttempts: true });
+    const running = { ...job, status: 'running' as const, attempts: job.attempts + 1 };
+    const { observer } = this.options;
+    observer?.jobStarted(running);
     let checkpoint = job.checkpoint;
     try {
       await handler({
-        job: { ...job, attempts: job.attempts + 1 },
+        job: running,
         signal: this.controller.signal,
+        reportProgress: (progress) => observer?.jobProgress(running, progress),
         saveCheckpoint: async (next) => {
           checkpoint = next;
           await this.options.jobs.update(job.id, { checkpoint: next });
@@ -166,6 +190,8 @@ export class JobRunner {
       if (status === 'failed') {
         console.error(`[jobs] ${job.type} falhou após ${attempts} tentativas`, error);
       }
+    } finally {
+      observer?.jobFinished(running);
     }
     return true;
   }

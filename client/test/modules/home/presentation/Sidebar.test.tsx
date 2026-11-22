@@ -15,4 +15,15 @@ describe('home/presentation — Sidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: /versão/i }));
     expect(onNavigate).toHaveBeenCalledWith('settings');
   });
+
+  it('exibe o indicador de atividade recebido no rodapé', () => {
+    render(
+      <Sidebar
+        currentTab="home"
+        onNavigate={() => {}}
+        activity={<span data-testid="activity-slot">atividade</span>}
+      />,
+    );
+    expect(screen.getByTestId('activity-slot')).toBeInTheDocument();
+  });
 });

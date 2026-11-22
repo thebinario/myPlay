@@ -11,6 +11,17 @@ export interface AssistantAnswerPayload {
 }
 
 /**
+ * Snapshot of the background activity carried by `activity:changed`. Kept
+ * structural so the event bus does not depend on the jobs module (the typed
+ * shape is `ActivitySnapshot` in `modules/jobs/domain/activity`).
+ */
+export interface ActivitySnapshotPayload {
+  items: unknown[];
+  running: number;
+  queued: number;
+}
+
+/**
  * Internal, transport-agnostic library events. A desktop layer (IPC/WebSocket)
  * can subscribe and forward them; the core never assumes a transport.
  */
@@ -29,7 +40,8 @@ export type LibraryEvent =
   | 'index:failed'
   | 'assistant:token'
   | 'assistant:done'
-  | 'assistant:error';
+  | 'assistant:error'
+  | 'activity:changed';
 
 export interface LibraryEventPayloads {
   'source:added': { sourceId: string; rootPath: string; displayName: string | null };
@@ -71,6 +83,8 @@ export interface LibraryEventPayloads {
   'assistant:token': { requestId: string; token: string };
   'assistant:done': { requestId: string; answer: AssistantAnswerPayload };
   'assistant:error': { requestId: string; message: string; cancelled: boolean };
+  /** Background work changed (job started/progressed/finished, scan state). */
+  'activity:changed': ActivitySnapshotPayload;
 }
 
 export type LibraryEventHandler<K extends LibraryEvent> = (

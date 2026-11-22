@@ -63,6 +63,7 @@ export interface ContentIndexStatus {
 /** Persistence of extracted chunks and their full-text index. */
 export interface ContentIndexStore {
   listPending(sourceId: string, limit: number): Promise<PendingExtraction[]>;
+  countPending(sourceId: string): Promise<number>;
   /** Atomically replaces the chunks of one origin and records success. */
   replaceChunks(item: PendingExtraction, chunks: ContentChunkInput[]): Promise<void>;
   markFailed(item: PendingExtraction, error: string): Promise<void>;

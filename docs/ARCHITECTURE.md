@@ -270,7 +270,7 @@ midoteca/src/
 │   ├── domain/                            # media-type.ts · lesson-media-role.ts
 │   ├── contracts/                         # (decisão P10) FileScanner · SourceProbe · ManifestLoader
 │   ├── errors.ts · ids.ts · clock.ts · validation.ts
-│   └── json.ts · json-codec.ts · title-source.ts · sort-source.ts · catalog-order.ts · app-paths.ts
+│   └── json.ts · json-codec.ts · title-source.ts · sort-source.ts · catalog-order.ts · file-name.ts · app-paths.ts
 │
 ├── modules/
 │   ├── library/
@@ -320,7 +320,10 @@ midoteca/src/
 │   │
 │   ├── media/      domain/{entities,repositories}.ts · infrastructure/media.repository.sqlite.ts
 │   ├── progress/   domain/{entities,repositories}.ts · infrastructure/progress.repository.sqlite.ts
-│   ├── jobs/       domain/{entities,repositories,types}.ts · infrastructure/job.repository.sqlite.ts
+│   ├── jobs/       domain/{entities,ports,inputs,activity}.ts · infrastructure/job.repository.sqlite.ts
+│   │               application/{job-runner,activity-monitor}.ts   # fila persistida + painel de atividade
+│   │               # activity.ts: read model (rótulo pt-BR, % e ordem decididos no núcleo);
+│   │               # ActivityMonitor observa o JobRunner e os eventos index:* e publica activity:changed
 │   ├── settings/   domain/{entities,repositories}.ts · infrastructure/settings.repository.sqlite.ts
 │   └── search/     domain/contracts.ts     # SearchRepository (reservado, Fase 2)
 │

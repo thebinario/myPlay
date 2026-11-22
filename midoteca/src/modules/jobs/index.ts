@@ -4,3 +4,5 @@ export * from './domain/ports';
 export * from './infrastructure/job.repository.sqlite';
 export * from './application/job-runner';
 export * from './application/schedule-source-job';
+export * from './domain/activity';
+export * from './application/activity-monitor';

@@ -33,6 +33,8 @@ import {
 import { AssistantService, type LlmClient } from '../modules/assistant';
 import { createLocalAi, type LocalAi } from './local-ai';
 import { createBackgroundJobs, type MediaTools } from './background-jobs';
+import { ActivityMonitor } from '../modules/jobs/application/activity-monitor';
+import { fileNameOf } from '../core/file-name';
 import {
   ContentSearchService,
   PdfJsTextExtractor,
@@ -126,6 +128,8 @@ export interface Midoteca {
   readonly queries: LibraryQueryService;
   /** Persisted background job queue (media analysis, ...). */
   readonly jobRunner: JobRunner;
+  /** Live picture of background work (scans, analysis, transcription...). */
+  readonly activity: ActivityMonitor;
   /** Duplicate-content read model and explicit reuse of completions. */
   readonly duplicates: DuplicatesService;
   /** Full-text search over PDF/subtitle/transcript text (FTS5). */
@@ -190,10 +194,21 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     cacheDir: options.aiCacheDir,
     ...options.aiTools,
   });
+  const activity = new ActivityMonitor({
+    jobs,
+    events,
+    sourceNames: {
+      nameOf: async (sourceId) => {
+        const source = await library.findSourceById(sourceId);
+        return source ? (source.displayName ?? fileNameOf(source.rootPath)) : null;
+      },
+    },
+  });
   const jobRunner = createBackgroundJobs({
     jobs,
     governor,
     events,
+    observer: activity,
     analysis,
     content,
     text: {
@@ -242,6 +257,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     indexer,
     queries,
     jobRunner,
+    activity,
     duplicates,
     contentSearch: new ContentSearchService(content),
     subtitles: new LessonSubtitlesService({
@@ -260,6 +276,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
       llm: localAi.tools.llm,
     }),
     close: () => {
+      activity.dispose();
       void jobRunner.stop();
       database.close();
     },

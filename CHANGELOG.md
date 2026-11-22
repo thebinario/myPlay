@@ -9,6 +9,19 @@ compatível → *minor*; correção → *patch*; mudança incompatível → *maj
 validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
 versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
 
+## [1.1.0-beta.4] - 2026-11-22
+
+### Adicionado
+
+- **Atividade em segundo plano:** um ícone animado na barra lateral mostra
+  quantas tarefas estão rodando. Ao passar o mouse, aparece a lista do que está
+  sendo processado: escaneamento de bibliotecas, análise de mídias, transcrição,
+  indexação de textos e preparação da busca inteligente. Cada item mostra o
+  arquivo atual e o percentual, e as tarefas na fila aparecem como "Na fila".
+  O indicador some quando nada está em processamento.
+- Rótulos, percentuais e ordem vêm prontos do núcleo (`activity.list` e o
+  evento `activity:changed`); a interface só apresenta.
+
 ## [1.1.0-beta.3] - 2026-11-22
 
 ### Corrigido

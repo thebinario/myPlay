@@ -1,3 +1,4 @@
+import { fileNameOf } from '../../../../core/file-name';
 import {
   shiftSegments,
   transcriptionWindows,
@@ -15,6 +16,8 @@ export interface TranscribeSourceMediaDependencies {
 export interface TranscriptionPacing {
   /** Waits while media is playing: transcription never competes with playback. */
   waitForIdle(): Promise<void>;
+  /** Publishes progress to the activity panel. */
+  reportProgress?(progress: { done: number; total: number | null; detail: string | null }): void;
   signal?: AbortSignal;
 }
 
@@ -32,11 +35,24 @@ export class TranscribeSourceMedia {
   async execute(sourceId: string, language: string, pacing: TranscriptionPacing): Promise<number> {
     const { store, audio, transcriber } = this.deps;
     let transcribed = 0;
+    const total = await store.countPending(sourceId);
     for (;;) {
       const batch = await store.listPending(sourceId, BATCH_SIZE);
-      if (batch.length === 0) return transcribed;
+      if (batch.length === 0) {
+        pacing.reportProgress?.({
+          done: transcribed,
+          total: Math.max(total, transcribed),
+          detail: null,
+        });
+        return transcribed;
+      }
       for (const candidate of batch) {
         if (pacing.signal?.aborted) return transcribed;
+        pacing.reportProgress?.({
+          done: transcribed,
+          total: Math.max(total, transcribed + 1),
+          detail: fileNameOf(candidate.absolutePath),
+        });
 
         const twin =
           candidate.processedMs === 0

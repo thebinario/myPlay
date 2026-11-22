@@ -1,3 +1,4 @@
+import { fileNameOf } from '../../../../core/file-name';
 import { chunkCues, chunkPages } from '../../domain/content-chunking';
 import type {
   ContentChunkInput,
@@ -17,6 +18,8 @@ export interface ExtractSourceContentDependencies {
 
 export interface ExtractionPacing {
   yieldToPlayback(): Promise<void>;
+  /** Publishes progress to the activity panel. */
+  reportProgress?(progress: { done: number; total: number | null; detail: string | null }): void;
   signal?: AbortSignal;
 }
 
@@ -32,11 +35,24 @@ export class ExtractSourceContent {
 
   async execute(sourceId: string, pacing: ExtractionPacing): Promise<number> {
     let processed = 0;
+    const total = await this.deps.store.countPending(sourceId);
     for (;;) {
       const batch = await this.deps.store.listPending(sourceId, BATCH_SIZE);
-      if (batch.length === 0) return processed;
+      if (batch.length === 0) {
+        pacing.reportProgress?.({
+          done: processed,
+          total: Math.max(total, processed),
+          detail: null,
+        });
+        return processed;
+      }
       for (const item of batch) {
         if (pacing.signal?.aborted) return processed;
+        pacing.reportProgress?.({
+          done: processed,
+          total: Math.max(total, processed + 1),
+          detail: fileNameOf(item.absolutePath),
+        });
         await pacing.yieldToPlayback();
         try {
           await this.deps.store.replaceChunks(item, await this.extract(item));

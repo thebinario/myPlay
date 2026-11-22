@@ -26,6 +26,8 @@ import { LocalAiProvider } from '@/modules/settings/presentation/providers/Local
 import { IpcAssistantRepository } from '@/modules/assistant/infrastructure/ipc/ipc-assistant.repository';
 import { AssistantProvider } from '@/modules/assistant/presentation/AssistantProvider';
 import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
+import { IpcActivityRepository } from '@/modules/activity/infrastructure/ipc/ipc-activity.repository';
+import { ActivityProvider } from '@/modules/activity/presentation/ActivityProvider';
 import '@/index.css';
 
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
@@ -61,6 +63,8 @@ const duplicatesRepository = runtimeBridge ? new IpcDuplicatesRepository(runtime
 const subtitlesRepository = runtimeBridge ? new IpcSubtitlesRepository(runtimeBridge) : undefined;
 const localAiRepository = runtimeBridge ? new IpcLocalAiRepository(runtimeBridge) : undefined;
 const assistantRepository = runtimeBridge ? new IpcAssistantRepository(runtimeBridge) : undefined;
+const activityRepository = runtimeBridge ? new IpcActivityRepository(runtimeBridge) : undefined;
+if (activityRepository) void activityRepository.hydrate();
 const contentSearchRepository = runtimeBridge
   ? new IpcContentSearchRepository(runtimeBridge)
   : undefined;
@@ -80,7 +84,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                     picker={bridge ?? undefined}
                   >
                     <OnboardingProvider repository={onboardingRepository}>
-                      <App />
+                      <ActivityProvider repository={activityRepository}>
+                        <App />
+                      </ActivityProvider>
                     </OnboardingProvider>
                   </SourcesProvider>
                 </SettingsProvider>

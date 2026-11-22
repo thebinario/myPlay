@@ -34,6 +34,7 @@ import type {
 import type { AppSetting } from '../../modules/settings';
 import type { ContentHit, ContentIndexStatus, ContentSearchQuery } from '../../modules/search';
 import type { LibraryType } from '../../modules/library';
+import type { ActivitySnapshot } from '../../modules/jobs';
 
 /**
  * Transport-agnostic contract of the desktop RPC surface.
@@ -48,6 +49,7 @@ import type { LibraryType } from '../../modules/library';
  */
 
 export const DESKTOP_METHODS = [
+  'activity.list',
   'system.info',
   'system.setPlaybackActive',
   'sources.list',
@@ -109,6 +111,7 @@ export interface SystemInfo {
 
 /** Request params per method. `undefined` means the method takes no params. */
 export interface DesktopParams {
+  'activity.list': undefined;
   'system.info': undefined;
   /** Renderer signals media playback so background jobs back off. */
   'system.setPlaybackActive': { active: boolean };
@@ -162,6 +165,8 @@ export interface DesktopParams {
 
 /** Response payload per method. */
 export interface DesktopResults {
+  /** Background work (scans, analysis, transcription, indexing) to show live. */
+  'activity.list': ActivitySnapshot;
   'system.info': SystemInfo;
   'system.setPlaybackActive': null;
   'sources.list': LibrarySource[];
@@ -250,4 +255,5 @@ export const DESKTOP_EVENTS: readonly DesktopEventName[] = [
   'assistant:token',
   'assistant:done',
   'assistant:error',
+  'activity:changed',
 ];

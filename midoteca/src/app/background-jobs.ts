@@ -1,5 +1,5 @@
 import type { EventBus, ResourceGovernor } from '../modules/indexing';
-import { JobRunner, type JobContext, type JobRepository } from '../modules/jobs';
+import { JobRunner, type JobContext, type JobObserver, type JobRepository } from '../modules/jobs';
 import {
   scheduleJobOnce,
   scheduleSourceJob,
@@ -61,6 +61,8 @@ export interface BackgroundJobsDependencies {
   text: TextTools;
   /** Local transcription; omitted when local AI is not available. */
   transcription?: TranscriptionTools;
+  /** Receives job lifecycle/progress for the activity panel. */
+  observer?: JobObserver;
   /** Local embeddings for semantic search; omitted when local AI is off. */
   embeddings?: { store: EmbeddingStore; embedder: Embedder; isEnabled: () => Promise<boolean> };
 }
@@ -83,7 +85,11 @@ function perSource(type: string, handler: SourceHandler) {
  * The loop is started only by the desktop runtime; tests use `drain()`.
  */
 export function createBackgroundJobs(deps: BackgroundJobsDependencies): JobRunner {
-  const runner = new JobRunner({ jobs: deps.jobs, governor: deps.governor });
+  const runner = new JobRunner({
+    jobs: deps.jobs,
+    governor: deps.governor,
+    observer: deps.observer,
+  });
   const analyze = new AnalyzeSourceMedia({ store: deps.analysis, ...deps.tools });
   const extract = new ExtractSourceContent({ store: deps.content, ...deps.text });
 
