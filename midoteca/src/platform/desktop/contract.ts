@@ -29,6 +29,7 @@ import type {
   SetLessonCompletionInput,
 } from '../../modules/progress';
 import type { AppSetting } from '../../modules/settings';
+import type { ContentHit, ContentIndexStatus, ContentSearchQuery } from '../../modules/search';
 import type { LibraryType } from '../../modules/library';
 
 /**
@@ -74,6 +75,8 @@ export const DESKTOP_METHODS = [
   'progress.markDuplicateAsWatched',
   'media.listDuplicateGroups',
   'media.analysisStatus',
+  'search.content',
+  'search.contentStatus',
   'progress.getReading',
   'progress.saveReading',
   'settings.get',
@@ -129,6 +132,9 @@ export interface DesktopParams {
   'progress.markDuplicateAsWatched': MarkDuplicateAsWatchedInput;
   'media.listDuplicateGroups': Record<string, never>;
   'media.analysisStatus': Record<string, never>;
+  /** Full-text search in PDF/subtitle/transcript text (FTS5, accent-insensitive). */
+  'search.content': ContentSearchQuery;
+  'search.contentStatus': Record<string, never>;
   'progress.getReading': { documentId: string };
   'progress.saveReading': SaveReadingProgress;
   'settings.get': { key: string };
@@ -168,6 +174,8 @@ export interface DesktopResults {
   'progress.markDuplicateAsWatched': PlaybackProgress;
   'media.listDuplicateGroups': DuplicateGroup[];
   'media.analysisStatus': MediaAnalysisStatus;
+  'search.content': ContentHit[];
+  'search.contentStatus': ContentIndexStatus;
   'progress.getReading': ReadingProgress | null;
   'progress.saveReading': ReadingProgress;
   'settings.get': AppSetting | null;

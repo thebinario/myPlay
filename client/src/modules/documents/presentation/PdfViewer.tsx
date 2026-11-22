@@ -7,10 +7,12 @@ import { PdfPageViewport } from '@/modules/documents/presentation/PdfPageViewpor
 interface PdfViewerProps {
   document: Document;
   onBack: () => void;
+  /** Página inicial (ex.: trecho encontrado na busca); sobrepõe a posição salva. */
+  initialPage?: number;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack }) => {
-  const reader = usePdfReader(document);
+export const PdfViewer: React.FC<PdfViewerProps> = ({ document, onBack, initialPage }) => {
+  const reader = usePdfReader(document, initialPage);
 
   return (
     <div

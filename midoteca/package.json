@@ -36,7 +36,8 @@
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "ffmpeg-static": "^5.2.0",
-    "ffprobe-static": "^3.1.0"
+    "ffprobe-static": "^3.1.0",
+    "pdfjs-dist": "^6.4.299"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

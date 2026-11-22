@@ -35,6 +35,7 @@ export const App: React.FC = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [selectedDocPage, setSelectedDocPage] = useState<number | undefined>(undefined);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const documentReturnTab = useRef<NavigationTab>('library');
 
@@ -219,7 +220,18 @@ export const App: React.FC = () => {
     setCurrentTab('editor');
   };
 
+  const handlePlayLessonAt = (courseId: string, lessonId: string, seconds: number) => {
+    handlePlayLesson(courseId, lessonId);
+    setResumeTime(seconds);
+  };
+
+  const handleOpenDocumentAt = (docId: string, page: number) => {
+    handleOpenDocument(docId);
+    setSelectedDocPage(page);
+  };
+
   const handleOpenDocument = (docId: string) => {
+    setSelectedDocPage(undefined);
     documentReturnTab.current = currentTab === 'pdf-viewer' ? 'library' : currentTab;
     setSelectedDocId(docId);
     setCurrentTab('pdf-viewer');
@@ -327,6 +339,8 @@ export const App: React.FC = () => {
             onOpenLesson={handlePlayLesson}
             onOpenMovie={handleOpenMovie}
             onOpenDocument={handleOpenDocument}
+            onOpenLessonAt={handlePlayLessonAt}
+            onOpenDocumentAt={handleOpenDocumentAt}
           />
         )}
 
@@ -383,7 +397,12 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === 'pdf-viewer' && selectedDoc && (
-          <PdfViewer document={selectedDoc} onBack={handleBackFromDocument} />
+          <PdfViewer
+            key={`${selectedDoc.id}:${selectedDocPage ?? ''}`}
+            document={selectedDoc}
+            onBack={handleBackFromDocument}
+            initialPage={selectedDocPage}
+          />
         )}
 
         {currentTab === 'settings' && (

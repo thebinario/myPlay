@@ -26,6 +26,12 @@ import {
   type MediaRepository,
 } from '../modules/media';
 import { createBackgroundJobs, type MediaTools } from './background-jobs';
+import {
+  ContentSearchService,
+  FsSubtitleReader,
+  PdfJsTextExtractor,
+  SqliteContentIndexStore,
+} from '../modules/search';
 import { NodeFileHasher } from '../platform/fs/file-hasher';
 import { FfmpegFrameSampler } from '../platform/media/ffmpeg-frame-sampler';
 import { FfprobeMediaProber } from '../platform/media/ffprobe-prober';
@@ -99,6 +105,8 @@ export interface Midoteca {
   readonly jobRunner: JobRunner;
   /** Duplicate-content read model and explicit reuse of completions. */
   readonly duplicates: DuplicatesService;
+  /** Full-text search over PDF/subtitle/transcript text (FTS5). */
+  readonly contentSearch: ContentSearchService;
   close(): void;
 }
 
@@ -140,11 +148,14 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
   });
   const jobs = new SqliteJobRepository(database);
   const analysis = new SqliteMediaAnalysisStore(database);
+  const content = new SqliteContentIndexStore(database);
   const jobRunner = createBackgroundJobs({
     jobs,
     governor,
     events,
     analysis,
+    content,
+    text: { documents: new PdfJsTextExtractor(), subtitles: new FsSubtitleReader() },
     tools: {
       hasher: options.mediaTools?.hasher ?? new NodeFileHasher(),
       prober: options.mediaTools?.prober ?? new FfprobeMediaProber(),
@@ -179,6 +190,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     queries,
     jobRunner,
     duplicates,
+    contentSearch: new ContentSearchService(content),
     close: () => {
       void jobRunner.stop();
       database.close();

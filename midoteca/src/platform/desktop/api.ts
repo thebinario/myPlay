@@ -207,6 +207,12 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
       case 'media.analysisStatus':
         return midoteca.duplicates.analysisStatus();
 
+      case 'search.content':
+        return midoteca.contentSearch.search(params as DesktopParams['search.content']);
+
+      case 'search.contentStatus':
+        return midoteca.contentSearch.status();
+
       case 'progress.setLessonCompletion':
         return midoteca.watchProgress.setCompletion(
           params as DesktopParams['progress.setLessonCompletion'],

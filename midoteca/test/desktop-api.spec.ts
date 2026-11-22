@@ -240,6 +240,30 @@ describe('desktop API (RPC surface)', () => {
     expect(app.governor.getSignals().playbackActive).toBe(false);
   });
 
+  it('searches subtitle text through the RPC surface', async () => {
+    library.write('Curso A/Modulo 1/01 - Intro.mp4', 'video', FIXED_MTIME);
+    library.write(
+      'Curso A/Modulo 1/01 - Intro.srt',
+      ['1', '00:00:10,000 --> 00:00:12,000', 'Configuração do Kubernetes', ''].join('\n'),
+      FIXED_MTIME,
+    );
+    const source = unwrap<{ id: string }>(
+      await api.handle({ method: 'sources.add', params: { rootPath: library.root } }),
+    );
+    unwrap(await api.handle({ method: 'indexing.scan', params: { sourceId: source.id } }));
+    await app.jobRunner.drain();
+
+    const hits = unwrap<Array<{ sourceKind: string; startMs: number; lessonId: string }>>(
+      await api.handle({ method: 'search.content', params: { text: 'configuracao kube' } }),
+    );
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ sourceKind: 'subtitle', startMs: 10_000 });
+    const status = unwrap<{ indexed: number }>(
+      await api.handle({ method: 'search.contentStatus', params: {} }),
+    );
+    expect(status.indexed).toBe(1);
+  });
+
   it('persists PDF page count discovered by the renderer', async () => {
     const sourceId = await scanFixture();
     const listed = unwrap<{ items: Array<{ id: string; pageCount: number | null }> }>(

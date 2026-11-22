@@ -9,6 +9,8 @@
  *   2. Reproduzir continuamente (16x) conclui a aula com `completionSource = watched`.
  *   3. As duas aulas (cópias do mesmo vídeo) formam um grupo `exact`; a aula não
  *      vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`).
+ *   4. Uma frase da legenda (.srt), buscada sem acentos na Pesquisa, aparece em
+ *      "Trechos encontrados" e abre o vídeo no tempo do trecho.
  *
  * Pré-requisitos: `npm run desktop:core`, `npm run build` e `npm run desktop:rebuild`.
  * Os vídeos de `public/media/videos` são COPIADOS para uma biblioteca temporária;
@@ -35,6 +37,10 @@ function prepareLibrary() {
   fs.mkdirSync(moduleDir, { recursive: true });
   fs.copyFileSync(FIXTURE_VIDEO, path.join(moduleDir, '01 - Assistida.mp4'));
   fs.copyFileSync(FIXTURE_VIDEO, path.join(moduleDir, '02 - Pulada.mp4'));
+  fs.writeFileSync(
+    path.join(moduleDir, '01 - Assistida.pt-BR.srt'),
+    '1\n00:01:15,000 --> 00:01:19,000\nConfiguração do ambiente de produção\n',
+  );
   return { base, dataDir, library };
 }
 
@@ -201,6 +207,34 @@ async function main() {
     );
     assert(reused.completionSource === 'duplicate', 'origem deveria ser "duplicate"');
     console.log('✓ conclusão reaproveitada da aula duplicada');
+
+    // ── Cenário 4: busca no texto da legenda abre o vídeo no tempo do trecho ──
+    await waitFor(
+      page,
+      async () => (await invoke(page, 'search.content', { text: 'ambiente' })).length > 0,
+      60_000,
+      'extração da legenda em segundo plano',
+    );
+    await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+    await page.getByLabel('Campo de pesquisa').fill('configuracao do ambiente');
+    const hit = page.getByRole('button', { name: /Assistida · 01:15/ });
+    await hit.waitFor({ timeout: 15_000 });
+    await hit.click();
+    await page.getByTestId('player-video').waitFor();
+    const startedAt = await waitFor(
+      page,
+      () =>
+        page.evaluate(() => {
+          const video = /** @type {HTMLVideoElement | null} */ (
+            document.querySelector('[data-testid="player-video"]')
+          );
+          return video && video.readyState >= 1 ? video.currentTime : null;
+        }),
+      30_000,
+      'player aberto no trecho',
+    );
+    assert(Math.abs(startedAt - 75) < 3, `player deveria abrir em ~75s, abriu em ${startedAt}s`);
+    console.log('✓ trecho da legenda encontrado sem acento e aberto no tempo exato');
   } finally {
     await app.close();
     fs.rmSync(base, { recursive: true, force: true });

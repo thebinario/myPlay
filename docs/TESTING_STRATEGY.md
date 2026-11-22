@@ -129,7 +129,9 @@ nunca são alterados), usa `MIDOTECA_DATA_DIR` isolado e valida:
    cobertura ≥ 90%, decidida pelo backend;
 3. as duas aulas (cópias do mesmo vídeo) são agrupadas como `exact` pela análise
    em segundo plano (ffprobe e hash reais), a duração é catalogada, e a aula não
-   vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`).
+   vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`);
+4. uma frase de uma legenda `.srt` real, buscada sem acentos na Pesquisa, aparece
+   em "Trechos encontrados" e abre o vídeo no tempo do trecho.
 
 Testes de integração dos adapters de mídia usam os binários reais
 (`midoteca/test/platform/media/ffmpeg-tools.integration.spec.ts`): geram o mesmo
