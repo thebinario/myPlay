@@ -13,7 +13,13 @@ import type {
   Paged,
   SourceIndexState,
 } from '../../modules/library';
-import type { MediaFile, MediaTrack } from '../../modules/media';
+import type {
+  DuplicateGroup,
+  MarkDuplicateAsWatchedInput,
+  MediaAnalysisStatus,
+  MediaFile,
+  MediaTrack,
+} from '../../modules/media';
 import type {
   PlaybackProgress,
   ReadingProgress,
@@ -39,6 +45,7 @@ import type { LibraryType } from '../../modules/library';
 
 export const DESKTOP_METHODS = [
   'system.info',
+  'system.setPlaybackActive',
   'sources.list',
   'sources.add',
   'sources.remove',
@@ -64,6 +71,9 @@ export const DESKTOP_METHODS = [
   'progress.savePlayback',
   'progress.recordSegment',
   'progress.setLessonCompletion',
+  'progress.markDuplicateAsWatched',
+  'media.listDuplicateGroups',
+  'media.analysisStatus',
   'progress.getReading',
   'progress.saveReading',
   'settings.get',
@@ -88,6 +98,8 @@ export interface SystemInfo {
 /** Request params per method. `undefined` means the method takes no params. */
 export interface DesktopParams {
   'system.info': undefined;
+  /** Renderer signals media playback so background jobs back off. */
+  'system.setPlaybackActive': { active: boolean };
   'sources.list': undefined;
   'sources.add': { rootPath: string; displayName?: string | null; libraryType?: LibraryType };
   'sources.remove': { sourceId: string };
@@ -114,6 +126,9 @@ export interface DesktopParams {
   'progress.savePlayback': SavePlaybackPositionInput & { completedAt?: string | null };
   'progress.recordSegment': RecordPlaybackSegmentInput;
   'progress.setLessonCompletion': SetLessonCompletionInput;
+  'progress.markDuplicateAsWatched': MarkDuplicateAsWatchedInput;
+  'media.listDuplicateGroups': Record<string, never>;
+  'media.analysisStatus': Record<string, never>;
   'progress.getReading': { documentId: string };
   'progress.saveReading': SaveReadingProgress;
   'settings.get': { key: string };
@@ -124,6 +139,7 @@ export interface DesktopParams {
 /** Response payload per method. */
 export interface DesktopResults {
   'system.info': SystemInfo;
+  'system.setPlaybackActive': null;
   'sources.list': LibrarySource[];
   'sources.add': LibrarySource;
   'sources.remove': void;
@@ -149,6 +165,9 @@ export interface DesktopResults {
   'progress.savePlayback': PlaybackProgress;
   'progress.recordSegment': PlaybackProgress;
   'progress.setLessonCompletion': PlaybackProgress;
+  'progress.markDuplicateAsWatched': PlaybackProgress;
+  'media.listDuplicateGroups': DuplicateGroup[];
+  'media.analysisStatus': MediaAnalysisStatus;
   'progress.getReading': ReadingProgress | null;
   'progress.saveReading': ReadingProgress;
   'settings.get': AppSetting | null;

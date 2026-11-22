@@ -1,4 +1,13 @@
 export * from './domain/entities';
 export * from './domain/inputs';
 export * from './domain/ports';
+export * from './domain/analysis';
+export * from './domain/duplicate-detection';
+export * from './domain/perceptual-fingerprint';
+export * from './application/duplicates.service';
+export * from './application/schedule-media-analysis';
+export * from './application/use-cases/analyze-source-media';
+export type { MarkDuplicateAsWatchedInput } from './application/use-cases/mark-duplicate-as-watched';
 export * from './infrastructure/media.repository.sqlite';
+export * from './infrastructure/media-analysis.store.sqlite';
+export * from './infrastructure/duplicate-read.store.sqlite';

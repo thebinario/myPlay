@@ -425,6 +425,11 @@ export class MockLibraryService implements LibraryRepository {
   /** Modo demonstração: sem backend, a conclusão só muda manualmente. */
   recordWatchSegment(): void {}
 
+  /** Modo demonstração: não há detecção de duplicatas nem tarefas de fundo. */
+  markDuplicateAsWatched(): void {}
+
+  setPlaybackActive(): void {}
+
   private replaceItem(item: LibraryItem): void {
     const index = this.items.findIndex((i) => i.id === item.id);
     if (index >= 0) {

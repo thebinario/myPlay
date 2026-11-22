@@ -34,9 +34,23 @@ export type CourseTreeModule = CourseModule & {
       media: LessonMedia[];
       /** Fraction of the media really played (0..1); null when unknown. */
       watchedRatio: number | null;
+      /**
+       * Same content (exact or perceptual duplicate) already watched in another
+       * lesson, while this one is not completed; null otherwise.
+       */
+      watchedElsewhere: WatchedElsewhere | null;
     }
   >;
 };
+
+export interface WatchedElsewhere {
+  lessonId: string;
+  lessonTitle: string;
+  courseId: string;
+  courseTitle: string;
+  watchedRatio: number | null;
+  completedAt: string | null;
+}
 
 export interface CourseTreeSection extends CourseSection {
   modules: CourseTreeModule[];

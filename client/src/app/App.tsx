@@ -13,6 +13,7 @@ import { SettingsView } from '@/modules/settings/presentation/views/SettingsView
 import { NavigationTab, Course } from '@/core/domain/library';
 import { useLibrary } from '@/modules/library/presentation/LibraryProvider';
 import { LibrarySourcesPanel } from '@/modules/sources/presentation/components/LibrarySourcesPanel';
+import { DuplicateGroupsPanel } from '@/modules/library/presentation/components/DuplicateGroupsPanel';
 import { OnboardingView } from '@/modules/onboarding/presentation/views/OnboardingView';
 import { useLibrarySources } from '@/modules/sources/presentation/hooks/useLibrarySources';
 import { useImportFlow } from '@/modules/sources/presentation/hooks/useImportFlow';
@@ -337,6 +338,9 @@ export const App: React.FC = () => {
             )}
             onBack={handleBackToLibrary}
             onToggleLesson={handleToggleLesson}
+            onMarkDuplicateWatched={(courseId, lessonId, fromLessonId) =>
+              repository.markDuplicateAsWatched(courseId, lessonId, fromLessonId)
+            }
             onToggleDocumentRead={handleToggleDocumentRead}
             onPlayLesson={handlePlayLesson}
             onOpenDocument={handleOpenDocument}
@@ -399,6 +403,7 @@ export const App: React.FC = () => {
             }}
             onResetLibrary={handleResetLibrary}
             onOpenOnboarding={() => setShowOnboarding(true)}
+            processingSection={<DuplicateGroupsPanel />}
           />
         )}
       </main>

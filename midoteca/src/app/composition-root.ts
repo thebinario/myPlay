@@ -10,7 +10,7 @@ import {
   type DocumentRepository,
 } from '../modules/documents';
 import { Indexer, ResourceGovernor, SqliteIndexingStore, type EventBus } from '../modules/indexing';
-import { SqliteJobRepository, type JobRepository } from '../modules/jobs';
+import { SqliteJobRepository, type JobRepository, type JobRunner } from '../modules/jobs';
 import {
   LibraryQueryService,
   LibrarySourceService,
@@ -18,7 +18,17 @@ import {
   SqliteLibraryRepository,
   type LibraryRepository,
 } from '../modules/library';
-import { SqliteMediaRepository, type MediaRepository } from '../modules/media';
+import {
+  DuplicatesService,
+  SqliteDuplicateReadStore,
+  SqliteMediaAnalysisStore,
+  SqliteMediaRepository,
+  type MediaRepository,
+} from '../modules/media';
+import { createBackgroundJobs, type MediaTools } from './background-jobs';
+import { NodeFileHasher } from '../platform/fs/file-hasher';
+import { FfmpegFrameSampler } from '../platform/media/ffmpeg-frame-sampler';
+import { FfprobeMediaProber } from '../platform/media/ffprobe-prober';
 import { nowIso } from '../core/clock';
 import {
   SqliteLessonMediaDurations,
@@ -44,6 +54,13 @@ export interface MidotecaOptions {
   readonly?: boolean;
   /** Apply pending migrations on open. Defaults to true. */
   migrate?: boolean;
+  /**
+   * Media analysis adapters. Defaults to the real file hasher, ffprobe and
+   * ffmpeg; tests may inject deterministic fakes.
+   */
+  mediaTools?: Partial<MediaTools>;
+  /** Start the background job loop (desktop runtime). Defaults to false. */
+  backgroundJobs?: boolean;
 }
 
 /**
@@ -78,6 +95,10 @@ export interface Midoteca {
   readonly indexer: Indexer;
   /** Paginated read-side queries. */
   readonly queries: LibraryQueryService;
+  /** Persisted background job queue (media analysis, ...). */
+  readonly jobRunner: JobRunner;
+  /** Duplicate-content read model and explicit reuse of completions. */
+  readonly duplicates: DuplicatesService;
   close(): void;
 }
 
@@ -117,6 +138,26 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     durations: new SqliteLessonMediaDurations(database),
     now: nowIso,
   });
+  const jobs = new SqliteJobRepository(database);
+  const analysis = new SqliteMediaAnalysisStore(database);
+  const jobRunner = createBackgroundJobs({
+    jobs,
+    governor,
+    events,
+    analysis,
+    tools: {
+      hasher: options.mediaTools?.hasher ?? new NodeFileHasher(),
+      prober: options.mediaTools?.prober ?? new FfprobeMediaProber(),
+      sampler: options.mediaTools?.sampler ?? new FfmpegFrameSampler(),
+    },
+  });
+  if (options.backgroundJobs && !readonly) jobRunner.start();
+  const duplicates = new DuplicatesService({
+    reads: new SqliteDuplicateReadStore(database),
+    analysis,
+    progress,
+    now: nowIso,
+  });
 
   return {
     database,
@@ -126,7 +167,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     documents,
     progress,
     watchProgress,
-    jobs: new SqliteJobRepository(database),
+    jobs,
     settings: new SqliteSettingsRepository(database),
     migration,
     courseOrganization: new CourseOrganizationService({ courses }),
@@ -136,6 +177,11 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     sources,
     indexer,
     queries,
-    close: () => database.close(),
+    jobRunner,
+    duplicates,
+    close: () => {
+      void jobRunner.stop();
+      database.close();
+    },
   };
 }

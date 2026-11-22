@@ -15,6 +15,8 @@ import { IpcLibrarySourcesRepository } from '@/modules/sources/infrastructure/ip
 import { IpcImportRunner } from '@/modules/sources/infrastructure/ipc/ipc-import-runner';
 import { IpcLibraryRepository } from '@/modules/library/infrastructure/ipc/ipc-library-repository';
 import { IpcPreferencesRepository } from '@/modules/settings/infrastructure/ipc/ipc-preferences.repository';
+import { IpcDuplicatesRepository } from '@/modules/library/infrastructure/ipc/ipc-duplicates.repository';
+import { DuplicatesProvider } from '@/modules/library/presentation/DuplicatesProvider';
 import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
 import '@/index.css';
 
@@ -47,20 +49,24 @@ const libraryRepository = runtimeBridge
   : mockRepository;
 if (libraryRepository instanceof IpcLibraryRepository) libraryRepository.hydrate();
 
+const duplicatesRepository = runtimeBridge ? new IpcDuplicatesRepository(runtimeBridge) : undefined;
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <LibraryProvider repository={libraryRepository}>
-      <SettingsProvider repository={preferencesRepository}>
-        <SourcesProvider
-          repository={sourcesRepository ?? mockLibrarySourcesRepository}
-          runner={importRunner}
-          picker={bridge ?? undefined}
-        >
-          <OnboardingProvider repository={onboardingRepository}>
-            <App />
-          </OnboardingProvider>
-        </SourcesProvider>
-      </SettingsProvider>
+      <DuplicatesProvider repository={duplicatesRepository}>
+        <SettingsProvider repository={preferencesRepository}>
+          <SourcesProvider
+            repository={sourcesRepository ?? mockLibrarySourcesRepository}
+            runner={importRunner}
+            picker={bridge ?? undefined}
+          >
+            <OnboardingProvider repository={onboardingRepository}>
+              <App />
+            </OnboardingProvider>
+          </SourcesProvider>
+        </SettingsProvider>
+      </DuplicatesProvider>
     </LibraryProvider>
   </React.StrictMode>,
 );

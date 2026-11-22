@@ -100,6 +100,8 @@ export interface IndexingStore {
   ): MediaIndexRecord | null;
   insertMedia(input: MediaInsert): string;
   touchMedia(id: string, input: MediaTouch): void;
+  /** Content changed on disk: drop probe/hash/fingerprint so it is re-analyzed. */
+  invalidateAnalysis(id: string): void;
   markMissing(sourceId: string, runToken: string): string[];
 
   upsertCourse(input: UpsertCourseInput): UpsertTitleResult;

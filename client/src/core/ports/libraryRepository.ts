@@ -54,6 +54,13 @@ export interface PlaybackStateRepository {
     lessonId: string,
     segment: { fromSeconds: number; toSeconds: number; durationSeconds?: number },
   ): void;
+  /**
+   * Reaproveita a conclusão de uma aula duplicada já assistida. O backend
+   * valida se as aulas tocam o mesmo conteúdo.
+   */
+  markDuplicateAsWatched(courseId: string, lessonId: string, fromLessonId: string): void;
+  /** Informa ao núcleo que há reprodução ativa (tarefas de fundo recuam). */
+  setPlaybackActive(active: boolean): void;
   getPlaybackPosition(courseId: string, lessonId: string): number;
   saveSubtitlePreference(courseId: string, lessonId: string, subtitleId: string | null): void;
   getSubtitlePreference(courseId: string, lessonId: string): string | null;

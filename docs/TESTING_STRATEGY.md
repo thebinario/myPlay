@@ -126,7 +126,16 @@ nunca são alterados), usa `MIDOTECA_DATA_DIR` isolado e valida:
 
 1. seek até o fim **não** conclui a aula e o status mostra "Fim do vídeo";
 2. reprodução contínua (16x) conclui com `completionSource = 'watched'` e
-   cobertura ≥ 90%, decidida pelo backend.
+   cobertura ≥ 90%, decidida pelo backend;
+3. as duas aulas (cópias do mesmo vídeo) são agrupadas como `exact` pela análise
+   em segundo plano (ffprobe e hash reais), a duração é catalogada, e a aula não
+   vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`).
+
+Testes de integração dos adapters de mídia usam os binários reais
+(`midoteca/test/platform/media/ffmpeg-tools.integration.spec.ts`): geram o mesmo
+clipe em duas resoluções e um clipe diferente com `ffmpeg -f lavfi`. Os testes
+de caso de uso (`duplicate-analysis.spec.ts`) usam o hasher real com arquivos
+reais e probe/sampler determinísticos.
 
 Depois do E2E, rode `npm run desktop:rebuild:node` para voltar o binário nativo
 ao Node antes da suíte do núcleo.

@@ -75,6 +75,16 @@ src/
 - 4 testes do núcleo e 2 de integração do client falham no Windows por
   comparar caminhos com `\` × `/` (pré-existente, sem relação com a Fase 1).
 
+### 3.2 Dívidas registradas (Fase 2 — duplicatas, 2026-11-21)
+
+- A preferência `pauseTasksDuringPlayback` fica só no frontend; o backend sempre
+  desacelera os jobs durante a reprodução. Ela deveria ser lida pelo núcleo.
+- `LibraryRepository` (frontend) ganhou `markDuplicateAsWatched` e
+  `setPlaybackActive`, e segue agregando papéis demais (ver P9/ISP).
+- `media_duplicate_links` guarda só vínculos diretos; a árvore do curso
+  (`watchedElsewhere`) não segue vínculos transitivos, ao contrário de
+  `media.listDuplicateGroups`.
+
 ## 4. Priorização
 
 | Prioridade | Alvo | Impacto | Risco | Situação |
