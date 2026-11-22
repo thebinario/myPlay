@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Sidebar } from '@/modules/home/presentation/Sidebar';
+import { ActivityIndicator } from '@/modules/activity/presentation/ActivityIndicator';
 
 const meta: Meta<typeof Sidebar> = {
   title: 'Components/Sidebar',
@@ -106,5 +107,39 @@ export const DisabledState: Story = {
   args: {
     currentTab: 'home',
     onNavigate: () => {},
+  },
+};
+
+/** Rodapé com o indicador de atividade em segundo plano e a versão do app. */
+export const WithActivity: Story = {
+  args: {
+    currentTab: 'library',
+    onNavigate: () => {},
+    activity: (
+      <ActivityIndicator
+        snapshot={{
+          running: 1,
+          queued: 1,
+          items: [
+            {
+              id: 'job-1',
+              kind: 'transcription',
+              status: 'running',
+              label: 'Transcrevendo vídeos — Cursos',
+              percent: 42,
+              detail: '03 - Priorização.mp4',
+            },
+            {
+              id: 'job-2',
+              kind: 'content-extraction',
+              status: 'queued',
+              label: 'Indexando textos — Cursos',
+              percent: null,
+              detail: null,
+            },
+          ],
+        }}
+      />
+    ),
   },
 };

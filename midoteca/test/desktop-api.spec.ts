@@ -432,3 +432,23 @@ describe('desktop API (RPC surface)', () => {
     if (!unknown.ok) expect(unknown.error.kind).toBe('validation');
   });
 });
+
+describe('desktop API — atividade em segundo plano', () => {
+  it('expõe o retrato da atividade e encaminha activity:changed ao renderer', async () => {
+    const temp = createTempDatabase();
+    const app = createMidoteca({ databaseFile: temp.file });
+    const api = createDesktopApi(app);
+    try {
+      const snapshot = unwrap<{ items: unknown[]; running: number; queued: number }>(
+        await api.handle({ method: 'activity.list' }),
+      );
+      expect(snapshot).toEqual({ items: [], running: 0, queued: 0 });
+      const { DESKTOP_EVENTS, DESKTOP_METHODS } = await import('../src/index');
+      expect(DESKTOP_METHODS).toContain('activity.list');
+      expect(DESKTOP_EVENTS).toContain('activity:changed');
+    } finally {
+      app.close();
+      temp.cleanup();
+    }
+  });
+});

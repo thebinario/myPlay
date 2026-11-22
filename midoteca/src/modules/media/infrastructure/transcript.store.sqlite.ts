@@ -62,6 +62,13 @@ export class SqliteTranscriptStore implements TranscriptStore {
     }));
   }
 
+  async countPending(sourceId: string): Promise<number> {
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS count FROM (${CANDIDATES} AND v.source_id = ?)`)
+      .get(sourceId) as { count: number };
+    return row.count;
+  }
+
   async begin(candidate: TranscriptionCandidate, model: string, language: string): Promise<number> {
     return this.db.transaction(() => {
       if (candidate.processedMs === 0) {

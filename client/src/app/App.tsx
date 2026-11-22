@@ -20,6 +20,7 @@ import { OnboardingView } from '@/modules/onboarding/presentation/views/Onboardi
 import { useLibrarySources } from '@/modules/sources/presentation/hooks/useLibrarySources';
 import { useImportFlow } from '@/modules/sources/presentation/hooks/useImportFlow';
 import { useOnboarding } from '@/modules/onboarding/presentation/hooks/useOnboarding';
+import { ActivityCenter } from '@/modules/activity/presentation/ActivityCenter';
 
 type PlayerSnapshot = { currentTime: number; isPlaying: boolean };
 
@@ -304,7 +305,7 @@ export const App: React.FC = () => {
       className="app-container"
       style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0D111B' }}
     >
-      <Sidebar currentTab={currentTab} onNavigate={handleNavigate} />
+      <Sidebar currentTab={currentTab} onNavigate={handleNavigate} activity={<ActivityCenter />} />
 
       <main className="main-content" style={{ flex: 1, height: '100vh', overflowY: 'auto' }}>
         {currentTab === 'home' && (

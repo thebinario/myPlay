@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { Badge } from '@/shared/ui/components/Badge';
 import { IconButton } from '@/shared/ui/components/IconButton';
 import { Home, Library, Search, Settings, BookOpen } from 'lucide-react';
@@ -8,9 +8,11 @@ import { APP_CONFIG } from '@/core/config/app.config';
 interface SidebarProps {
   currentTab: NavigationTab;
   onNavigate: (tab: NavigationTab) => void;
+  /** Indicador de atividade em segundo plano (composto pelo App). */
+  activity?: ReactNode;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate, activity }) => {
   const navItems = [
     { id: 'home' as NavigationTab, label: 'Início', icon: Home },
     { id: 'library' as NavigationTab, label: 'Biblioteca', icon: Library },
@@ -120,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onNavigate }) => {
           gap: '8px',
         }}
       >
+        {activity}
         <div
           style={{
             width: '8px',

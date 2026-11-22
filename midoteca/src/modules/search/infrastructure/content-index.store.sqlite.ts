@@ -166,6 +166,13 @@ export class SqliteContentIndexStore implements ContentIndexStore, RetrievalStor
     }));
   }
 
+  async countPending(sourceId: string): Promise<number> {
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS count FROM (${PENDING_SQL})`)
+      .get({ sourceId, limit: -1 }) as { count: number };
+    return row.count;
+  }
+
   async replaceChunks(item: PendingExtraction, chunks: ContentChunkInput[]): Promise<void> {
     this.db.transaction(() => {
       this.deleteChunks(item);

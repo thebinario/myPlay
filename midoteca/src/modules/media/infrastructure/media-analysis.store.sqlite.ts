@@ -52,6 +52,17 @@ export class SqliteMediaAnalysisStore implements MediaAnalysisStore {
     return rows.map(mapRow);
   }
 
+  async countPending(sourceId: string): Promise<number> {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM media_files mf
+         WHERE mf.source_id = ? AND mf.analyzed_at IS NULL
+           AND mf.availability = 'available' AND mf.media_type IN ('video', 'pdf')`,
+      )
+      .get(sourceId) as { count: number };
+    return row.count;
+  }
+
   async saveDuration(id: string, durationMs: number): Promise<void> {
     this.db
       .prepare(`UPDATE media_files SET duration_ms = ?, updated_at = ? WHERE id = ?`)

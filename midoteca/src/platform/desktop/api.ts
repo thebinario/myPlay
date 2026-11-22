@@ -81,6 +81,9 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
 
   async function dispatch(method: DesktopMethod, params: unknown): Promise<unknown> {
     switch (method) {
+      case 'activity.list':
+        return midoteca.activity.snapshot();
+
       case 'system.info':
         return {
           appDataDir: resolveAppDataDir(),

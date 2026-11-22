@@ -41,6 +41,7 @@ export interface MediaAnalysisStatus {
 export interface MediaAnalysisStore {
   /** Available videos/PDFs of the source not yet analyzed (`analyzed_at` NULL). */
   listPending(sourceId: string, limit: number): Promise<AnalyzableMedia[]>;
+  countPending(sourceId: string): Promise<number>;
   saveDuration(id: string, durationMs: number): Promise<void>;
   savePartialHash(id: string, partialHash: string): Promise<void>;
   saveSha256(id: string, sha256: string): Promise<void>;

@@ -30,6 +30,14 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 - Versão do app visível no rodapé da barra lateral; um clique abre
   Configurações, onde fica o Sobre.
+- **Atividade em segundo plano:** um ícone animado na barra lateral mostra
+  quantas tarefas estão rodando. Ao passar o mouse, aparece a lista do que está
+  sendo processado: escaneamento de bibliotecas, análise de mídias, transcrição,
+  indexação de textos e preparação da busca inteligente. Cada item mostra o
+  arquivo atual e o percentual, e as tarefas na fila aparecem como "Na fila".
+  O indicador some quando nada está em processamento.
+- Rótulos, percentuais e ordem vêm prontos do núcleo (`activity.list` e o
+  evento `activity:changed`); a interface só apresenta.
 
 ## [1.1.0-beta.2] - 2026-11-21
 
