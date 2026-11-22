@@ -42,6 +42,7 @@ versão do app e acrescenta uma linha aqui.
 | --- | --- | --- |
 | 1.0.0 | estável | MVP desktop (Fases 00–11) |
 | 1.1.0-beta.1 | beta | Conclusão de aulas por cobertura real (≥ 90%), decidida no núcleo |
+| 1.1.0-beta.2 | beta | Detecção de conteúdo duplicado (exato e recodificado) com aviso "já assistido em…" |
 
 ## 2. Estado atual do projeto
 

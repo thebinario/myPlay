@@ -9,6 +9,16 @@ compatível → *minor*; correção → *patch*; mudança incompatível → *maj
 validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
 versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
 
+## [1.1.0-beta.2] - 2026-11-21
+
+### Adicionado
+
+- **Conteúdo duplicado:** análise em segundo plano (duração, hash e impressão
+  perceptual) detecta cópias idênticas e vídeos recodificados.
+- Aviso "Já assistido em…" na aula, com "Marcar como vista" por ação explícita.
+- Painel de duplicatas em Configurações → Processamento.
+- A análise pausa enquanto um vídeo está sendo reproduzido.
+
 ## [1.1.0-beta.1] - 2026-11-21
 
 ### Alterado
