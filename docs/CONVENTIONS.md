@@ -130,9 +130,14 @@ BREAKING CHANGE: relativePath substitui filePath; ajustar consumidores.
 ## 7. Versionamento e changelog
 
 - **SemVer** (`MAJOR.MINOR.PATCH`): `BREAKING` → MAJOR; `feat` → MINOR;
-  `fix`/demais → PATCH.
-- **Changelog**: seguir [Keep a Changelog](https://keepachangelog.com/)
-  (`CHANGELOG.md`) quando houver release; agrupar por `Added/Changed/Fixed`.
+  `fix`/demais → PATCH. Antes de validar o empacotado: `-beta.N`.
+- **Changelog** ([Keep a Changelog](https://keepachangelog.com/)): **todo PR**
+  registra suas mudanças em `## [Unreleased]` (*Adicionado/Alterado/Corrigido/Removido*)
+  e não altera a versão.
+- **Release**: só o PR de release sobe a versão em `client/package.json`, transforma
+  `[Unreleased]` em `## [versão] - data` e acrescenta a linha no histórico do
+  `docs/ROADMAP.md`. `-beta.N` sobe a cada build de teste distribuído, não a cada PR.
+- Verificado no CI por `npm run release:check` (`client/scripts/check-release-bump.cjs`).
 
 ## 8. Definição de pronto (verificável)
 

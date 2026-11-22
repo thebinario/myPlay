@@ -4,12 +4,18 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), versões em
 [SemVer](https://semver.org/lang/pt-BR/).
 
-**Regra:** todo PR sobe a versão em `client/package.json` (funcionalidade nova
-compatível → *minor*; correção → *patch*; mudança incompatível → *major*; antes de
-validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
-versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
+**Regras:**
 
-## [1.1.0-beta.3] - 2026-11-22
+- **Todo PR** registra o que adicionou, alterou ou corrigiu em `## [Unreleased]`
+  (seções *Adicionado*, *Alterado*, *Corrigido*, *Removido*). Não mexe na versão.
+- **Release** (build distribuído, inclusive beta de teste): um PR sobe a versão em
+  `client/package.json` e renomeia `[Unreleased]` para `## [versão] - data`,
+  abrindo um `[Unreleased]` vazio. Funcionalidade nova → *minor*; só correções →
+  *patch*; incompatível → *major*. Enquanto o empacotado não for validado, a
+  versão leva `-beta.N`, e N sobe a cada build de teste distribuído (não a cada PR).
+- O CI (`npm run release:check`) bloqueia PRs que não cumprem isso.
+
+## [Unreleased]
 
 ### Corrigido
 
