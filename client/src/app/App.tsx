@@ -14,6 +14,8 @@ import { NavigationTab, Course } from '@/core/domain/library';
 import { useLibrary } from '@/modules/library/presentation/LibraryProvider';
 import { LibrarySourcesPanel } from '@/modules/sources/presentation/components/LibrarySourcesPanel';
 import { DuplicateGroupsPanel } from '@/modules/library/presentation/components/DuplicateGroupsPanel';
+import { LocalAiPanel } from '@/modules/settings/presentation/components/LocalAiPanel';
+import { AssistantPanel } from '@/modules/assistant/presentation/AssistantPanel';
 import { OnboardingView } from '@/modules/onboarding/presentation/views/OnboardingView';
 import { useLibrarySources } from '@/modules/sources/presentation/hooks/useLibrarySources';
 import { useImportFlow } from '@/modules/sources/presentation/hooks/useImportFlow';
@@ -341,6 +343,13 @@ export const App: React.FC = () => {
             onOpenDocument={handleOpenDocument}
             onOpenLessonAt={handlePlayLessonAt}
             onOpenDocumentAt={handleOpenDocumentAt}
+            renderAssistant={(query) => (
+              <AssistantPanel
+                initialQuestion={query}
+                onOpenLessonAt={handlePlayLessonAt}
+                onOpenDocumentAt={handleOpenDocumentAt}
+              />
+            )}
           />
         )}
 
@@ -422,7 +431,12 @@ export const App: React.FC = () => {
             }}
             onResetLibrary={handleResetLibrary}
             onOpenOnboarding={() => setShowOnboarding(true)}
-            processingSection={<DuplicateGroupsPanel />}
+            processingSection={
+              <>
+                <LocalAiPanel />
+                <DuplicateGroupsPanel />
+              </>
+            }
           />
         )}
       </main>

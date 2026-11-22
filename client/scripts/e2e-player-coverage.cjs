@@ -11,6 +11,12 @@
  *      vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`).
  *   4. Uma frase da legenda (.srt), buscada sem acentos na Pesquisa, aparece em
  *      "Trechos encontrados" e abre o vídeo no tempo do trecho.
+ *   5. Um vídeo com fala e sem legenda é transcrito localmente (Whisper): o texto
+ *      falado é encontrado pela busca e aparece como legenda "gerada
+ *      automaticamente" no menu CC. Use MIDOTECA_AI_CACHE para reaproveitar o
+ *      modelo baixado entre execuções.
+ *   6. "Perguntar à biblioteca" responde com o modelo local a partir da aula
+ *      falada (defina MIDOTECA_LLM_MODEL com um GGUF pequeno para acelerar).
  *
  * Pré-requisitos: `npm run desktop:core`, `npm run build` e `npm run desktop:rebuild`.
  * Os vídeos de `public/media/videos` são COPIADOS para uma biblioteca temporária;
@@ -23,6 +29,8 @@ const { _electron: electron } = require('playwright');
 
 const ROOT = path.resolve(__dirname, '..');
 const FIXTURE_VIDEO = path.join(ROOT, 'public', 'media', 'videos', 'big-buck-bunny.mp4');
+const CORE = path.resolve(ROOT, '..', 'midoteca');
+const SPEECH_WAV = path.join(CORE, 'test', 'fixtures', 'speech-pt.wav');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`E2E falhou: ${message}`);
@@ -41,6 +49,17 @@ function prepareLibrary() {
     path.join(moduleDir, '01 - Assistida.pt-BR.srt'),
     '1\n00:01:15,000 --> 00:01:19,000\nConfiguração do ambiente de produção\n',
   );
+  // Vídeo curto com fala em português (sem legenda) para a transcrição local.
+  const speechDir = path.join(library, 'Curso Fala', 'Modulo 1');
+  fs.mkdirSync(speechDir, { recursive: true });
+  const ffmpeg = require(require.resolve('ffmpeg-static', { paths: [CORE] }));
+  require('node:child_process').execFileSync(ffmpeg, [
+    '-v', 'error', '-y',
+    '-f', 'lavfi', '-i', 'color=c=navy:s=640x360:r=24',
+    '-i', SPEECH_WAV,
+    '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
+    path.join(speechDir, '01 - Aula falada.mp4'),
+  ]);
   return { base, dataDir, library };
 }
 
@@ -235,6 +254,67 @@ async function main() {
     );
     assert(Math.abs(startedAt - 75) < 3, `player deveria abrir em ~75s, abriu em ${startedAt}s`);
     console.log('✓ trecho da legenda encontrado sem acento e aberto no tempo exato');
+    // A transcrição espera a reprodução parar (prioridade do player): pausa o vídeo.
+    await page.evaluate(() => {
+      /** @type {HTMLVideoElement | null} */ (
+        document.querySelector('[data-testid="player-video"]')
+      )?.pause();
+    });
+
+    // ── Cenário 5: transcrição local (Whisper) vira legenda e texto pesquisável ──
+    const transcribed = await waitFor(
+      page,
+      async () => {
+        const found = await invoke(page, 'search.content', { text: 'ambiente de producao' });
+        return found.find((item) => item.sourceKind === 'transcript') ?? null;
+      },
+      600_000,
+      'transcrição local da aula falada',
+    );
+    const speechLessonId = transcribed.lessonId;
+    const speechTracks = await invoke(page, 'subtitles.forLesson', { lessonId: speechLessonId });
+    assert(
+      speechTracks.some((track) => track.generated && track.cues.length > 0),
+      'a aula falada deveria ter uma legenda gerada',
+    );
+    await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+    await page.getByLabel('Campo de pesquisa').fill('ambiente de producao');
+    await page.getByRole('button', { name: /Aula falada · / }).first().click();
+    await page.getByTestId('player-video').waitFor();
+    await page.getByRole('button', { name: /legendas e idiomas \(cc\)/i }).click();
+    await page.getByText('Português (gerada automaticamente)').click();
+    await page.evaluate(() => {
+      const video = /** @type {HTMLVideoElement} */ (
+        document.querySelector('[data-testid="player-video"]')
+      );
+      video.muted = true;
+      video.currentTime = 2;
+      void video.play();
+    });
+    const overlay = page.getByTestId('subtitles-display');
+    await overlay.waitFor({ timeout: 15_000 });
+    const shown = (await overlay.textContent()) ?? '';
+    assert(/ambiente|aula/i.test(shown), `legenda gerada inesperada: "${shown}"`);
+    console.log('✓ transcrição local exibida como legenda e encontrada pela busca:', shown);
+
+    // ── Cenário 6: pergunta à biblioteca respondida pelo modelo local (RAG) ──
+    await page.evaluate(() => {
+      /** @type {HTMLVideoElement | null} */ (
+        document.querySelector('[data-testid="player-video"]')
+      )?.pause();
+    });
+    await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+    await page.getByLabel('Campo de pesquisa').fill('Como configurar o ambiente de produção?');
+    await page.getByRole('button', { name: 'Perguntar à biblioteca' }).click();
+    const answer = page.getByTestId('assistant-answer');
+    await answer.waitFor({ timeout: 300_000 });
+    await page
+      .getByRole('button', { name: 'Parar' })
+      .waitFor({ state: 'detached', timeout: 300_000 });
+    const answerText = (await answer.textContent()) ?? '';
+    assert(answerText.trim().length > 20, 'resposta do assistente vazia');
+    assert(!/não encontrei/i.test(answerText), 'o assistente deveria encontrar a aula falada');
+    console.log('✓ assistente local respondeu com base na biblioteca:', answerText.slice(0, 120));
   } finally {
     await app.close();
     fs.rmSync(base, { recursive: true, force: true });

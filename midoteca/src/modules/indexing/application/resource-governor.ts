@@ -84,6 +84,17 @@ export class ResourceGovernor {
     });
   }
 
+  /**
+   * Heavy work (transcription, embeddings) waits until playback stops, instead
+   * of merely slowing down. Also honours pause/cancel.
+   */
+  async waitWhilePlaybackActive(pollMs = 500): Promise<void> {
+    while (this.signals.playbackActive && !this.cancelled) {
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+    }
+    await this.waitWhilePaused();
+  }
+
   /** Yields briefly when a resource signal asks for a slower pace. */
   async throttle(): Promise<void> {
     if (!this.isThrottled) return;

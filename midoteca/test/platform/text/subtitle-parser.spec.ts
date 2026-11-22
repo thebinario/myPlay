@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSubtitles } from '../../../../src/modules/search/infrastructure/subtitle-parser';
+import { parseSubtitles } from '../../../src/platform/text/subtitle-parser';
 
 describe('parseSubtitles', () => {
   it('parses SRT (CRLF, multi-line cues, formatting tags)', () => {

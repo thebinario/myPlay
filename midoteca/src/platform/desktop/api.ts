@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { resolveAppDataDir } from '../../core/app-paths';
 import { ConflictError, NotFoundError, PersistenceError, ValidationError } from '../../core/errors';
 import type { Midoteca } from '../../app/composition-root';
@@ -54,6 +55,30 @@ export function toErrorPayload(error: unknown): DesktopErrorPayload {
  * domain error.
  */
 export function createDesktopApi(midoteca: Midoteca): DesktopApi {
+  const runningAnswers = new Map<string, AbortController>();
+
+  /** Runs an answer in the background, streaming through the event bus. */
+  function startAnswer(input: DesktopParams['assistant.ask']): { requestId: string } {
+    const requestId = randomUUID();
+    const controller = new AbortController();
+    runningAnswers.set(requestId, controller);
+    void midoteca.assistant
+      .ask(input, {
+        signal: controller.signal,
+        onToken: (token) => midoteca.events.emit('assistant:token', { requestId, token }),
+      })
+      .then((answer) => midoteca.events.emit('assistant:done', { requestId, answer }))
+      .catch((error: unknown) =>
+        midoteca.events.emit('assistant:error', {
+          requestId,
+          message: toErrorPayload(error).message,
+          cancelled: controller.signal.aborted,
+        }),
+      )
+      .finally(() => runningAnswers.delete(requestId));
+    return { requestId };
+  }
+
   async function dispatch(method: DesktopMethod, params: unknown): Promise<unknown> {
     switch (method) {
       case 'system.info':
@@ -212,6 +237,37 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
 
       case 'search.contentStatus':
         return midoteca.contentSearch.status();
+
+      case 'subtitles.forLesson': {
+        const { lessonId } = params as DesktopParams['subtitles.forLesson'];
+        return midoteca.subtitles.forLesson(lessonId);
+      }
+
+      case 'ai.status':
+        return midoteca.ai.status();
+
+      case 'ai.setEnabled': {
+        const { enabled } = params as DesktopParams['ai.setEnabled'];
+        return midoteca.ai.setEnabled(enabled);
+      }
+
+      case 'ai.removeModels':
+        return midoteca.ai.removeModels();
+
+      case 'assistant.ask': {
+        const input = params as DesktopParams['assistant.ask'];
+        if (typeof input?.question !== 'string' || !input.question.trim()) {
+          throw new ValidationError('Field "question" must not be empty');
+        }
+        return startAnswer(input);
+      }
+
+      case 'assistant.cancel': {
+        const { requestId } = params as DesktopParams['assistant.cancel'];
+        const controller = runningAnswers.get(requestId);
+        controller?.abort();
+        return { cancelled: !!controller };
+      }
 
       case 'progress.setLessonCompletion':
         return midoteca.watchProgress.setCompletion(

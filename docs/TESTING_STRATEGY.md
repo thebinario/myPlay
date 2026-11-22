@@ -131,7 +131,26 @@ nunca são alterados), usa `MIDOTECA_DATA_DIR` isolado e valida:
    em segundo plano (ffprobe e hash reais), a duração é catalogada, e a aula não
    vista mostra "Já assistido em…" e reaproveita a conclusão (`duplicate`);
 4. uma frase de uma legenda `.srt` real, buscada sem acentos na Pesquisa, aparece
-   em "Trechos encontrados" e abre o vídeo no tempo do trecho.
+   em "Trechos encontrados" e abre o vídeo no tempo do trecho;
+5. um vídeo com fala e sem legenda (gerado com ffmpeg a partir de
+   `midoteca/test/fixtures/speech-pt.wav`) é transcrito pelo Whisper real: o
+   texto falado é encontrado pela busca e aparece como legenda "gerada
+   automaticamente". Defina `MIDOTECA_AI_CACHE` para não baixar o modelo a cada
+   execução.
+
+6. a pergunta "Como configurar o ambiente de produção?" em "Perguntar à
+   biblioteca" é respondida pelo modelo local, com citação que abre a aula
+   falada (use `MIDOTECA_LLM_MODEL` com um modelo pequeno para acelerar).
+
+O assistente é testado com `Embedder` e `LlmClient` determinísticos sobre
+SQLite real (`test/modules/assistant/application/ask-question.spec.ts`):
+recuperação híbrida, escopo por curso, streaming de tokens, citações e a
+resposta "não encontrei" sem chamar o modelo.
+
+O adapter do Whisper tem teste de integração opt-in
+(`MIDOTECA_AI_IT=1 npx vitest run test/platform/ai`), porque baixa ~80 MB; o
+decodificador de áudio (ffmpeg real) roda sempre. Os casos de uso usam um
+`Transcriber` determinístico com SQLite real.
 
 Testes de integração dos adapters de mídia usam os binários reais
 (`midoteca/test/platform/media/ffmpeg-tools.integration.spec.ts`): geram o mesmo

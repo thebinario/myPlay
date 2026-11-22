@@ -75,8 +75,14 @@ async function serveLibraryMedia(request) {
 }
 
 function startKernel() {
-  // Jobs de fundo (probe, hash, duplicatas) recuam durante a reprodução.
-  midoteca = createMidoteca({ backgroundJobs: process.env.MIDOTECA_SMOKE !== '1' });
+  // Jobs de fundo (análise, busca, transcrição local) recuam durante a reprodução.
+  const background = process.env.MIDOTECA_SMOKE !== '1';
+  midoteca = createMidoteca({
+    backgroundJobs: background,
+    localAi: background,
+    // Permite reaproveitar os modelos baixados entre execuções de teste (E2E).
+    aiCacheDir: process.env.MIDOTECA_AI_CACHE || undefined,
+  });
   api = createDesktopApi(midoteca);
   for (const name of DESKTOP_EVENTS) {
     midoteca.events.on(name, (payload) => {

@@ -14,6 +14,8 @@ interface SearchViewProps {
   onOpenLessonAt?: (courseId: string, lessonId: string, seconds: number) => void;
   /** Abre o PDF na página do trecho encontrado. */
   onOpenDocumentAt?: (docId: string, page: number) => void;
+  /** Painel do assistente composto por `app/`, recebendo o texto digitado. */
+  renderAssistant?: (query: string) => React.ReactNode;
   initialQuery?: string;
 }
 
@@ -24,6 +26,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onOpenDocument,
   onOpenLessonAt,
   onOpenDocumentAt,
+  renderAssistant,
   initialQuery = '',
 }) => {
   const search = useUniversalSearch(
@@ -79,6 +82,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
         onClear={search.clearQuery}
         inputRef={search.inputRef}
       />
+
+      {renderAssistant && search.query.trim().length > 2 && renderAssistant(search.query)}
 
       <SearchFilterTabs filter={search.filter} onChange={search.setFilter} />
 

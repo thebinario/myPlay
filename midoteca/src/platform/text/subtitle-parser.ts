@@ -1,4 +1,4 @@
-import type { Cue } from '../domain/content-chunking';
+import type { Cue } from '../../core/domain/subtitles';
 
 const TIMING =
   /^\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})/;

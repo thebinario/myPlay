@@ -13,6 +13,66 @@ function unwrap<T>(response: DesktopResponse): T {
   return response.data as T;
 }
 
+describe('desktop API — assistant streaming', () => {
+  it('answers asynchronously, streaming tokens and the final answer as events', async () => {
+    const temp = createTempDatabase();
+    const library = createTempLibrary();
+    const app = createMidoteca({
+      databaseFile: temp.file,
+      mediaTools: { prober: { probe: async () => ({ durationMs: null }) } },
+      aiTools: {
+        llm: {
+          modelId: 'fake',
+          generate: async (_prompt, { onToken }) => {
+            onToken?.('Veja ');
+            onToken?.('[1].');
+            return 'Veja [1].';
+          },
+        },
+      },
+    });
+    const api = createDesktopApi(app);
+    try {
+      library.write('Curso A/Modulo 1/01 - Intro.mp4', 'video', FIXED_MTIME);
+      library.write(
+        'Curso A/Modulo 1/01 - Intro.srt',
+        ['1', '00:00:05,000 --> 00:00:07,000', 'Instalando o Kubernetes localmente', ''].join('\n'),
+        FIXED_MTIME,
+      );
+      const source = unwrap<{ id: string }>(
+        await api.handle({ method: 'sources.add', params: { rootPath: library.root } }),
+      );
+      unwrap(await api.handle({ method: 'indexing.scan', params: { sourceId: source.id } }));
+      await app.jobRunner.drain();
+
+      const events: Array<{ name: string; payload: Record<string, unknown> }> = [];
+      app.events.on('assistant:token', (payload) => events.push({ name: 'token', payload }));
+      const done = new Promise<Record<string, unknown>>((resolve) =>
+        app.events.on('assistant:done', (payload) => resolve(payload)),
+      );
+
+      const { requestId } = unwrap<{ requestId: string }>(
+        await api.handle({
+          method: 'assistant.ask',
+          params: { question: 'Como instalar o Kubernetes?' },
+        }),
+      );
+      const final = await done;
+
+      expect(final.requestId).toBe(requestId);
+      expect(events.map((event) => event.payload.token)).toEqual(['Veja ', '[1].']);
+      const answer = final.answer as { text: string; citations: Array<{ startMs: number }> };
+      expect(answer.text).toBe('Veja [1].');
+      expect(answer.citations[0].startMs).toBe(5_000);
+    } finally {
+      await app.jobRunner.stop();
+      app.close();
+      temp.cleanup();
+      library.cleanup();
+    }
+  });
+});
+
 describe('desktop API (RPC surface)', () => {
   let temp: TempDatabase;
   let app: Midoteca;
@@ -262,6 +322,38 @@ describe('desktop API (RPC surface)', () => {
       await api.handle({ method: 'search.contentStatus', params: {} }),
     );
     expect(status.indexed).toBe(1);
+  });
+
+  it('serves parsed subtitles per lesson and local AI status/controls', async () => {
+    library.write('Curso A/Modulo 1/01 - Intro.mp4', 'video', FIXED_MTIME);
+    library.write(
+      'Curso A/Modulo 1/01 - Intro.pt-BR.srt',
+      ['1', '00:00:01,000 --> 00:00:02,000', 'Olá', ''].join('\n'),
+      FIXED_MTIME,
+    );
+    const lessonId = await firstLessonId();
+
+    const tracks = unwrap<Array<{ language: string; generated: boolean; cues: unknown[] }>>(
+      await api.handle({ method: 'subtitles.forLesson', params: { lessonId } }),
+    );
+    expect(tracks).toEqual([
+      expect.objectContaining({
+        language: 'pt',
+        generated: false,
+        cues: [{ startMs: 1_000, endMs: 2_000, text: 'Olá' }],
+      }),
+    ]);
+
+    const status = unwrap<{ enabled: boolean; models: Array<{ id: string }> }>(
+      await api.handle({ method: 'ai.status', params: {} }),
+    );
+    expect(status.enabled).toBe(true);
+    expect(status.models.map((model) => model.id)).toContain('onnx-community/whisper-base');
+
+    const disabled = unwrap<{ enabled: boolean }>(
+      await api.handle({ method: 'ai.setEnabled', params: { enabled: false } }),
+    );
+    expect(disabled.enabled).toBe(false);
   });
 
   it('persists PDF page count discovered by the renderer', async () => {

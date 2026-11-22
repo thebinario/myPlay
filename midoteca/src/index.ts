@@ -16,6 +16,7 @@ export * from './modules/jobs';
 export * from './modules/settings';
 export * from './modules/indexing';
 export * from './modules/search';
+export * from './modules/assistant';
 export { createMidoteca } from './app/composition-root';
 export type { Midoteca, MidotecaOptions } from './app/composition-root';
 export * from './platform/desktop';

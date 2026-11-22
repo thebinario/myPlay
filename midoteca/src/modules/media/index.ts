@@ -11,3 +11,10 @@ export type { MarkDuplicateAsWatchedInput } from './application/use-cases/mark-d
 export * from './infrastructure/media.repository.sqlite';
 export * from './infrastructure/media-analysis.store.sqlite';
 export * from './infrastructure/duplicate-read.store.sqlite';
+export * from './domain/transcription';
+export * from './application/transcription.service';
+export * from './application/lesson-subtitles.service';
+export * from './application/use-cases/transcribe-source-media';
+export * from './infrastructure/transcript.store.sqlite';
+export * from './infrastructure/transcript-cues.sqlite';
+export * from './infrastructure/lesson-subtitle-lookup.sqlite';

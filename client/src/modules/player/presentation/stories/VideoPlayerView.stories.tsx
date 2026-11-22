@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { within, userEvent, expect, waitFor, fireEvent } from 'storybook/test';
 import { VideoPlayerView } from '@/modules/player/presentation/views/VideoPlayerView';
 import { Course } from '@/core/domain/library';
+import { SubtitlesProvider } from '@/modules/player/presentation/providers/SubtitlesProvider';
 
 const mockCourse: Course = {
   id: 'course-react-desktop',
@@ -126,7 +127,6 @@ const baseArgs = {
   course: mockCourse,
   initialLessonId: mockInitialLessonId,
   onBack: () => {},
-  onCompleteLesson: () => {},
 };
 
 /** Mídia carregada e pronta (pausada na posição de retomada). */
@@ -255,5 +255,43 @@ export const SpeedMenuOpen: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: /velocidade de reprodução: 1x/i }));
     await expect(canvas.getByTestId('speed-floating-menu')).toBeTruthy();
+  },
+};
+
+/**
+ * Legenda real servida pelo backend (transcrição local gerada pelo Whisper):
+ * o texto exibido acompanha o instante atual do vídeo.
+ */
+export const GeneratedSubtitles: Story = {
+  args: { ...baseArgs },
+  decorators: [
+    (Story) => (
+      <SubtitlesProvider
+        repository={{
+          forLesson: async () => [
+            {
+              id: 'sub-pt',
+              language: 'pt',
+              generated: true,
+              cues: [
+                { startMs: 0, endMs: 600_000, text: 'Nesta aula vamos configurar o ambiente.' },
+              ],
+            },
+          ],
+        }}
+      >
+        <Story />
+      </SubtitlesProvider>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: /legendas e idiomas \(cc\)/i }));
+    await userEvent.click(await canvas.findByText('Português (gerada automaticamente)'));
+    await waitFor(() =>
+      expect(canvas.getByTestId('subtitles-display').textContent).toBe(
+        'Nesta aula vamos configurar o ambiente.',
+      ),
+    );
   },
 };

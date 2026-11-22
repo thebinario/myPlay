@@ -5,12 +5,14 @@ import type {
   DocumentTextExtractor,
   PendingExtraction,
   SubtitleReader,
+  TranscriptCueReader,
 } from '../../domain/ports';
 
 export interface ExtractSourceContentDependencies {
   store: ContentIndexStore;
   documents: DocumentTextExtractor;
   subtitles: SubtitleReader;
+  transcripts: TranscriptCueReader;
 }
 
 export interface ExtractionPacing {
@@ -52,6 +54,9 @@ export class ExtractSourceContent {
   private async extract(item: PendingExtraction): Promise<ContentChunkInput[]> {
     if (item.sourceKind === 'pdf') {
       return chunkPages(await this.deps.documents.extractPages(item.absolutePath));
+    }
+    if (item.sourceKind === 'transcript') {
+      return chunkCues(await this.deps.transcripts.readCues(item.mediaFileId));
     }
     return chunkCues(await this.deps.subtitles.readCues(item.absolutePath));
   }
