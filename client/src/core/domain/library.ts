@@ -43,6 +43,9 @@ export interface Lesson {
   } | null;
   subtitles?: SubtitleTrack[];
   isUnavailable?: boolean; // Para teste de arquivo indisponível / HD desconectado
+  /** Veredito do núcleo (ffprobe) sobre o arquivo; null = ainda não verificado. */
+  playability?: 'playable' | 'unsupported' | 'damaged' | null;
+  playabilityReason?: string | null;
 }
 
 export interface CourseModule {

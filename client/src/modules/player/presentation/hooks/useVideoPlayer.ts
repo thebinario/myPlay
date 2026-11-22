@@ -136,6 +136,8 @@ export function useVideoPlayer({
     initialTime,
     autoPlay,
     unavailable: isUnavailable,
+    playability: reconnected ? null : (currentLesson.playability ?? null),
+    playabilityReason: currentLesson.playabilityReason ?? null,
     onProgress,
   });
 

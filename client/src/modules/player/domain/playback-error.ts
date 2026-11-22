@@ -64,8 +64,13 @@ export function isFormatNativelySupported(formatOrExt: string): boolean {
   return NATIVELY_SUPPORTED_EXTENSIONS.has(normalized);
 }
 
+/** Veredito do núcleo sobre o arquivo (ffprobe), quando já verificado. */
+export type MediaPlayabilityVerdict = 'playable' | 'unsupported' | 'damaged';
+
 export interface ClassifyPlaybackErrorInput {
   url?: string;
+  playability?: MediaPlayabilityVerdict | null;
+  playabilityReason?: string | null;
   mediaErrorCode?: number | null;
   mediaErrorMessage?: string | null;
   isUnavailable?: boolean;
@@ -76,7 +81,14 @@ export interface ClassifyPlaybackErrorInput {
  * Classifica a causa raiz do erro de reprodução de acordo com as evidências disponíveis.
  */
 export function classifyPlaybackError(input: ClassifyPlaybackErrorInput): PlaybackErrorInfo {
-  const { url = '', mediaErrorCode, mediaErrorMessage, isUnavailable, httpStatus } = input;
+  const {
+    url = '',
+    mediaErrorCode,
+    mediaErrorMessage,
+    isUnavailable,
+    httpStatus,
+    playability,
+  } = input;
   const format = extractFileFormat(url);
   const normalizedExt = `.${format.toLowerCase()}`;
 
@@ -92,7 +104,29 @@ export function classifyPlaybackError(input: ClassifyPlaybackErrorInput): Playba
     };
   }
 
-  // 2. Arquivo corrompido ou erro de decodificação de stream
+  // 2. Veredito do núcleo: ele leu o arquivo e sabe por que não toca.
+  if (playability === 'damaged') {
+    return {
+      kind: 'corrupted',
+      format,
+      title: 'Arquivo de vídeo danificado ou incompleto',
+      message:
+        'A Midoteca não conseguiu ler o conteúdo deste arquivo. Isso costuma acontecer com downloads ou cópias interrompidos.',
+      suggestion:
+        'Copie ou baixe novamente o arquivo original para a pasta da biblioteca. A Midoteca nunca altera seus arquivos.',
+    };
+  }
+  if (playability === 'unsupported') {
+    return {
+      kind: 'unsupported_format',
+      format,
+      title: 'Formato de vídeo não suportado',
+      message: `Este arquivo usa um formato que o reprodutor não decodifica (${input.playabilityReason ?? `.${format.toLowerCase()}`}).`,
+      suggestion: 'Converta o arquivo para MP4 (H.264/AAC) para assistir.',
+    };
+  }
+
+  // 3. Arquivo corrompido ou erro de decodificação de stream
   const isDecodeError =
     mediaErrorCode === 3 ||
     (mediaErrorMessage && /decode|corrupt|truncate|demux/i.test(mediaErrorMessage));
@@ -109,9 +143,21 @@ export function classifyPlaybackError(input: ClassifyPlaybackErrorInput): Playba
     };
   }
 
-  // 3. Formato não suportado nativamente pelo Chromium
+  // 4. Formato não suportado nativamente pelo Chromium
   const isKnownUnsupported = KNOWN_UNSUPPORTED_EXTENSIONS.has(normalizedExt);
   const isNotSupportedCode = mediaErrorCode === 4;
+
+  if (!isKnownUnsupported && isNotSupportedCode && isFormatNativelySupported(format)) {
+    // Contêiner compatível que mesmo assim não abriu: danificado ou codec interno incompatível.
+    return {
+      kind: 'unsupported_format',
+      format,
+      title: 'Não foi possível reproduzir este vídeo',
+      message: `O arquivo .${format.toLowerCase()} não pôde ser lido: ele pode estar danificado ou usar um codec incompatível.`,
+      suggestion:
+        'Verifique se o arquivo abre em outro player. Se abrir, converta para MP4 (H.264/AAC); se não, copie-o novamente.',
+    };
+  }
 
   if (isKnownUnsupported || (isNotSupportedCode && httpStatus !== 404)) {
     return {
@@ -123,7 +169,7 @@ export function classifyPlaybackError(input: ClassifyPlaybackErrorInput): Playba
     };
   }
 
-  // 4. Erro genérico
+  // 5. Erro genérico
   return {
     kind: 'unknown',
     format,

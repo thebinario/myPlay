@@ -5,7 +5,13 @@
  */
 
 export type ActivityKind =
-  'scan' | 'media-analysis' | 'transcription' | 'content-extraction' | 'embeddings' | 'other';
+  | 'scan'
+  | 'media-analysis'
+  | 'media-check'
+  | 'transcription'
+  | 'content-extraction'
+  | 'embeddings'
+  | 'other';
 
 export type ActivityStatus = 'running' | 'queued';
 
@@ -37,6 +43,7 @@ export interface ActivitySnapshot {
 
 const KIND_BY_JOB_TYPE: Record<string, ActivityKind> = {
   'media.analyze-source': 'media-analysis',
+  'media.check-playability': 'media-check',
   'media.transcribe-source': 'transcription',
   'search.extract-content': 'content-extraction',
   'search.embed-chunks': 'embeddings',
@@ -45,6 +52,7 @@ const KIND_BY_JOB_TYPE: Record<string, ActivityKind> = {
 const LABELS: Record<ActivityKind, string> = {
   scan: 'Analisando biblioteca',
   'media-analysis': 'Analisando mídias',
+  'media-check': 'Verificando vídeos',
   transcription: 'Transcrevendo vídeos',
   'content-extraction': 'Indexando textos',
   embeddings: 'Preparando busca inteligente',

@@ -319,6 +319,9 @@ midoteca/src/
 │   │   └── infrastructure/document.repository.sqlite.ts
 │   │
 │   ├── media/      domain/{entities,repositories}.ts · infrastructure/media.repository.sqlite.ts
+│   │               domain/playability.ts (regra: playable | unsupported | damaged) ·
+│   │               application/use-cases/check-media-playability.ts (job media.check-playability) ·
+│   │               infrastructure/playability.store.sqlite.ts · adapter platform/media/ffprobe-inspector.ts
 │   ├── progress/   domain/{entities,repositories}.ts · infrastructure/progress.repository.sqlite.ts
 │   ├── jobs/       domain/{entities,ports,inputs,activity}.ts · infrastructure/job.repository.sqlite.ts
 │   │               application/{job-runner,activity-monitor}.ts   # fila persistida + painel de atividade

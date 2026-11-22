@@ -10,6 +10,7 @@ import {
 describe('jobs/domain — activity', () => {
   it('classifica os tipos de job em categorias de atividade', () => {
     expect(activityKindOf('media.analyze-source')).toBe('media-analysis');
+    expect(activityKindOf('media.check-playability')).toBe('media-check');
     expect(activityKindOf('media.transcribe-source')).toBe('transcription');
     expect(activityKindOf('search.extract-content')).toBe('content-extraction');
     expect(activityKindOf('search.embed-chunks')).toBe('embeddings');

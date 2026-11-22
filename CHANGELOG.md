@@ -9,6 +9,25 @@ compatível → *minor*; correção → *patch*; mudança incompatível → *maj
 validar o release empacotado → `-beta.N`) e acrescenta aqui a seção da nova
 versão. O CI (`npm run release:check`) bloqueia PRs sem isso.
 
+## [1.1.0-beta.5] - 2026-11-22
+
+### Adicionado
+
+- **Verificação dos vídeos:** em segundo plano, o núcleo lê cada vídeo com o
+  ffprobe (sem decodificar nem alterar o arquivo) e classifica como
+  reproduzível, formato incompatível (ex.: HEVC, AC-3, AVI) ou danificado.
+  Bibliotecas indexadas antes desta versão são verificadas automaticamente. O
+  progresso aparece no indicador de atividade como "Verificando vídeos".
+- Selo "Arquivo danificado" / "Formato incompatível" na lista de aulas.
+
+### Corrigido
+
+- O player abre direto no diagnóstico certo quando o núcleo já sabe que o
+  arquivo não toca: "Arquivo de vídeo danificado ou incompleto" (com orientação
+  para copiar novamente o original) ou o codec incompatível exato.
+- Um `.webm`/`.mp4` que não abre deixou de exibir "converta para MP4 ou WebM";
+  a mensagem agora aponta arquivo danificado ou codec interno incompatível.
+
 ## [1.1.0-beta.4] - 2026-11-22
 
 ### Adicionado

@@ -118,5 +118,49 @@ describe('player/domain — playback-error', () => {
       expect(error.kind).toBe('unsupported_format');
       expect(error.format).toBe('MP4');
     });
+
+    it('não recomenda converter para WebM um arquivo que já é WebM', () => {
+      const error = classifyPlaybackError({
+        url: 'midoteca-media://media/curso/aula.webm',
+        mediaErrorCode: 4,
+        httpStatus: 200,
+      });
+      expect(error.kind).toBe('unsupported_format');
+      expect(`${error.message} ${error.suggestion}`).not.toMatch(/ou WebM/);
+      expect(error.message).toMatch(/danificado|codec/i);
+    });
+  });
+
+  describe('veredito do núcleo (playability)', () => {
+    it('arquivo danificado detectado pelo núcleo vira diagnóstico de arquivo corrompido', () => {
+      const error = classifyPlaybackError({
+        url: 'midoteca-media://media/curso/aula.webm',
+        playability: 'damaged',
+        playabilityReason: 'Invalid data found when processing input',
+        mediaErrorCode: 4,
+      });
+      expect(error.kind).toBe('corrupted');
+      expect(error.title).toMatch(/danificado ou incompleto/i);
+      expect(error.suggestion).toMatch(/novamente/i);
+    });
+
+    it('codec incompatível detectado pelo núcleo informa qual é o codec', () => {
+      const error = classifyPlaybackError({
+        url: 'midoteca-media://media/curso/aula.mkv',
+        playability: 'unsupported',
+        playabilityReason: 'codec de vídeo hevc',
+      });
+      expect(error.kind).toBe('unsupported_format');
+      expect(error.message).toContain('codec de vídeo hevc');
+    });
+
+    it('arquivo ausente continua tendo prioridade sobre o veredito', () => {
+      const error = classifyPlaybackError({
+        url: 'midoteca-media://media/curso/aula.webm',
+        isUnavailable: true,
+        playability: 'damaged',
+      });
+      expect(error.kind).toBe('missing');
+    });
   });
 });

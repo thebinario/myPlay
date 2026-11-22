@@ -3,7 +3,13 @@
  * só apresenta: rótulo, percentual e ordem já vêm calculados do backend.
  */
 export type ActivityKindView =
-  'scan' | 'media-analysis' | 'transcription' | 'content-extraction' | 'embeddings' | 'other';
+  | 'scan'
+  | 'media-analysis'
+  | 'media-check'
+  | 'transcription'
+  | 'content-extraction'
+  | 'embeddings'
+  | 'other';
 
 export interface ActivityItemView {
   id: string;

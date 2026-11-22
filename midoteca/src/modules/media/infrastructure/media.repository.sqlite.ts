@@ -1,4 +1,5 @@
 import { nowIso } from '../../../core/clock';
+import type { MediaPlayability } from '../domain/playability';
 import { NotFoundError, ValidationError } from '../../../core/errors';
 import { decodeObject, encodeJson } from '../../../core/json-codec';
 import {
@@ -52,6 +53,8 @@ interface MediaRow {
   modified_at: string | null;
   sha256: string | null;
   availability: string;
+  playability: string | null;
+  playability_reason: string | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
@@ -77,6 +80,8 @@ function mapMedia(row: MediaRow): MediaFile {
     modifiedAt: row.modified_at,
     sha256: row.sha256,
     availability: row.availability as MediaAvailability,
+    playability: row.playability as MediaPlayability | null,
+    playabilityReason: row.playability_reason,
     lastSeenAt: row.last_seen_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -96,7 +101,8 @@ function mapTrack(row: TrackRow): MediaTrack {
 
 const MEDIA_SELECT = `
   SELECT id, source_id, relative_path, media_type, file_size, duration_ms,
-         modified_at, sha256, availability, last_seen_at, created_at, updated_at
+         modified_at, sha256, availability, playability, playability_reason,
+         last_seen_at, created_at, updated_at
   FROM media_files
 `;
 
@@ -122,6 +128,8 @@ export class SqliteMediaRepository implements MediaRepository {
       availability: input.availability
         ? assertOneOf(input.availability, MEDIA_AVAILABILITIES, 'availability')
         : 'unverified',
+      playability: null,
+      playabilityReason: null,
       lastSeenAt: normalizeIso(input.lastSeenAt, 'lastSeenAt'),
       createdAt: now,
       updatedAt: now,

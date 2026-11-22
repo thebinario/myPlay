@@ -6,6 +6,9 @@ import {
 } from '../modules/jobs/application/schedule-source-job';
 import {
   AnalyzeSourceMedia,
+  CheckMediaPlayability,
+  type MediaInspector,
+  type PlayabilityStore,
   MEDIA_ANALYZE_SOURCE_JOB,
   TranscribeSourceMedia,
   type AudioDecoder,
@@ -31,11 +34,14 @@ import {
 } from '../modules/search';
 
 export const MEDIA_TRANSCRIBE_SOURCE_JOB = 'media.transcribe-source';
+/** Library-wide (not per source): cheap ffprobe pass over unchecked videos. */
+export const MEDIA_CHECK_PLAYABILITY_JOB = 'media.check-playability';
 
 export interface MediaTools {
   hasher: FileHasher;
   prober?: MediaProber;
   sampler?: FrameSampler;
+  inspector?: MediaInspector;
 }
 
 export interface TextTools {
@@ -61,6 +67,8 @@ export interface BackgroundJobsDependencies {
   text: TextTools;
   /** Local transcription; omitted when local AI is not available. */
   transcription?: TranscriptionTools;
+  /** Where playability verdicts are stored. */
+  playability: PlayabilityStore;
   /** Receives job lifecycle/progress for the activity panel. */
   observer?: JobObserver;
   /** Local embeddings for semantic search; omitted when local AI is off. */
@@ -134,7 +142,16 @@ export function createBackgroundJobs(deps: BackgroundJobsDependencies): JobRunne
     );
   }
 
+  const inspector = deps.tools.inspector;
+  if (inspector) {
+    const check = new CheckMediaPlayability({ store: deps.playability, inspector });
+    runner.register(MEDIA_CHECK_PLAYABILITY_JOB, async (context) => {
+      await check.execute(context);
+    });
+  }
+
   deps.events.on('index:completed', ({ sourceId }) => {
+    if (inspector) runner.track(schedulePlayabilityCheck(deps.jobs));
     runner.track(scheduleSourceJob(deps.jobs, MEDIA_ANALYZE_SOURCE_JOB, sourceId));
     runner.track(scheduleSourceJob(deps.jobs, SEARCH_EXTRACT_CONTENT_JOB, sourceId, -2));
     if (transcription) {
@@ -143,4 +160,9 @@ export function createBackgroundJobs(deps: BackgroundJobsDependencies): JobRunne
   });
 
   return runner;
+}
+
+/** Enqueues the playability check once (high priority: it is cheap and user-visible). */
+export function schedulePlayabilityCheck(jobs: JobRepository): Promise<boolean> {
+  return scheduleJobOnce(jobs, MEDIA_CHECK_PLAYABILITY_JOB, {}, 1);
 }

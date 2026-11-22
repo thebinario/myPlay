@@ -133,7 +133,8 @@ export class SqliteIndexingStore implements IndexingStore {
       .prepare(
         `UPDATE media_files
            SET analyzed_at = NULL, analysis_error = NULL, partial_hash = NULL,
-               sha256 = NULL, duration_ms = NULL
+               sha256 = NULL, duration_ms = NULL,
+               playability = NULL, playability_reason = NULL, playability_checked_at = NULL
          WHERE id = ?`,
       )
       .run(id);
