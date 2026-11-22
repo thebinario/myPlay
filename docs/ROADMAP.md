@@ -33,6 +33,16 @@ arquivos legados de uma vez.
 | **v1.0 — Lançamento estável** | distribuição | Instalação desktop, onboarding, central de novidades com badge, modal de grandes mudanças, preferências no SQLite, desempenho e recuperação |
 | **v2.0 — Expansão** | pós-MVP | Armazenamento em nuvem, múltiplas fontes de mídia, sincronização opcional, gestão de contas/perfis (Admin/Usuário), controle de acesso a conteúdos, submissão de PDFs para avaliação com notas, edição avançada de PDFs e recursos inteligentes |
 
+### Histórico de versões publicadas
+
+Detalhes de cada versão em [`CHANGELOG.md`](../CHANGELOG.md). Todo PR sobe a
+versão do app e acrescenta uma linha aqui.
+
+| Versão | Canal | Destaque |
+| --- | --- | --- |
+| 1.0.0 | estável | MVP desktop (Fases 00–11) |
+| 1.1.0-beta.1 | beta | Conclusão de aulas por cobertura real (≥ 90%), decidida no núcleo |
+
 ## 2. Estado atual do projeto
 
 Snapshot revisado em **18/10/2026**. O produto atingiu com sucesso o marco da
