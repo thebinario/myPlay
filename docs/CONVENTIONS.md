@@ -36,6 +36,11 @@ Ferramenta padrão da comunidade para formatação. Config única na raiz
   é ignorado (ver `docs/REFACTORING_ROADMAP.md` P0).
 - Prettier e ESLint não brigam: `eslint-config-prettier` desliga regras de
   estilo do ESLint.
+- **Pre-commit:** `.githooks/pre-commit` formata com Prettier os arquivos
+  preparados de `client/` e `midoteca/` e os re-adiciona ao stage, evitando
+  falha de `format:check` na CI/release. O `prepare` de cada pacote aponta
+  `core.hooksPath` para `.githooks/` automaticamente em `npm install`/`npm ci`;
+  para instalar manualmente: `node .githooks/install.cjs`.
 
 ## 3. Editor — EditorConfig
 

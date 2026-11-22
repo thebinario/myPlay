@@ -20,6 +20,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "prepare": "node ../.githooks/install.cjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "desktop:core": "npm --prefix ../midoteca run build",

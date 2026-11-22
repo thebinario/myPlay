@@ -1,0 +1,52 @@
+#!/bin/sh
+# Formata com Prettier os arquivos preparados (staged) antes do commit.
+#
+# Instalado por `npm install`/`npm ci` (script `prepare` de client/ e midoteca/),
+# que aponta `core.hooksPath` para este diretório. Ver docs/CONVENTIONS.md §2.
+
+set -u
+
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n')
+[ -z "$staged" ] && exit 0
+
+status=0
+
+for project in client midoteca; do
+  [ -f "$project/package.json" ] || continue
+
+  prettier="$root/$project/node_modules/.bin/prettier"
+  if [ ! -x "$prettier" ]; then
+    echo "pre-commit: Prettier não instalado em $project/; rode npm install (formatação ignorada)." >&2
+    continue
+  fi
+
+  selected=$(printf '%s\n' "$staged" | grep -E "^${project}/" || true)
+  [ -z "$selected" ] && continue
+
+  files=$(printf '%s\n' "$selected" | sed "s|^${project}/||")
+
+  changed=$(cd "$project" && printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 "$prettier" --list-different --ignore-unknown -- 2>/dev/null)
+  [ -z "$changed" ] && continue
+
+  printf '%s\n' "$changed" | while IFS= read -r file; do
+    if ! git diff --quiet -- "$project/$file"; then
+      echo "pre-commit: $project/$file tem alterações não preparadas; elas também entrarão no commit." >&2
+    fi
+  done
+
+  echo "pre-commit: formatando com Prettier ($project/):"
+  printf '%s\n' "$changed" | sed 's/^/  - /'
+
+  if ! (cd "$project" && printf '%s\n' "$files" | tr '\n' '\0' | xargs -0 "$prettier" --write --ignore-unknown --log-level warn --); then
+    echo "pre-commit: falha ao formatar arquivos de $project/." >&2
+    status=1
+    continue
+  fi
+
+  printf '%s\n' "$changed" | sed "s|^|$project/|" | tr '\n' '\0' | xargs -0 git add --
+done
+
+exit $status
