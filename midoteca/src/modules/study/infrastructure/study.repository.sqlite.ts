@@ -16,6 +16,7 @@ interface TrackRow {
   title: string;
   kind: string;
   course_id: string | null;
+  source_id: string | null;
   platform: string | null;
   url: string | null;
   color: string;
@@ -60,6 +61,7 @@ const mapTrack = (row: TrackRow): StudyTrack => ({
   title: row.title,
   kind: row.kind as StudyTrackKind,
   courseId: row.course_id,
+  sourceId: row.source_id,
   platform: row.platform,
   url: row.url,
   color: row.color,
@@ -92,7 +94,7 @@ const mapSession = (row: SessionRow): StudySession => ({
   updatedAt: row.updated_at,
 });
 
-const TRACK_COLUMNS = `id, title, kind, course_id, platform, url, color, archived_at, created_at, updated_at`;
+const TRACK_COLUMNS = `id, title, kind, course_id, source_id, platform, url, color, archived_at, created_at, updated_at`;
 const SESSION_COLUMNS = `id, track_id, day, started_at, ended_at, duration_ms, source, activity, note,
   created_at, updated_at`;
 
@@ -127,14 +129,25 @@ export class SqliteStudyRepository implements StudyRepository {
     return row ? mapTrack(row) : null;
   }
 
+  async findTrackBySource(sourceId: string): Promise<StudyTrack | null> {
+    const row = this.db
+      .prepare(
+        `SELECT ${TRACK_COLUMNS} FROM study_tracks WHERE source_id = ?
+         ORDER BY archived_at IS NOT NULL, archived_at DESC LIMIT 1`,
+      )
+      .get(sourceId) as TrackRow | undefined;
+    return row ? mapTrack(row) : null;
+  }
+
   async saveTrack(track: StudyTrack): Promise<StudyTrack> {
     try {
       this.db
         .prepare(
           `INSERT INTO study_tracks (${TRACK_COLUMNS})
-           VALUES (@id, @title, @kind, @courseId, @platform, @url, @color, @archivedAt, @createdAt, @updatedAt)
+           VALUES (@id, @title, @kind, @courseId, @sourceId, @platform, @url, @color, @archivedAt, @createdAt, @updatedAt)
            ON CONFLICT(id) DO UPDATE SET
              title = excluded.title, kind = excluded.kind, course_id = excluded.course_id,
+             source_id = excluded.source_id,
              platform = excluded.platform, url = excluded.url, color = excluded.color,
              archived_at = excluded.archived_at, updated_at = excluded.updated_at`,
         )

@@ -142,6 +142,8 @@ describe('study planner (SQLite)', () => {
       expect(day.blocks.map((block) => block.status)).toEqual(['missed', 'now']);
       expect(day.focus).toMatchObject({ kind: 'now', blockId: day.blocks[1].block.id });
       expect(day.blocks[1].nextLesson).toEqual({
+        courseId: course.id,
+        courseTitle: 'Pentest Web',
         lessonId: l2.id,
         title: 'Aula 2',
         moduleTitle: 'Módulo 1',

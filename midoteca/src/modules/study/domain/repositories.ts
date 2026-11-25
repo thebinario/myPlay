@@ -23,6 +23,8 @@ export interface StudyRepository {
   findTrack(id: string): Promise<StudyTrack | null>;
   /** The active track of a course, else the latest archived one. */
   findTrackByCourse(courseId: string): Promise<StudyTrack | null>;
+  /** The active track of a library, else the latest archived one. */
+  findTrackBySource(sourceId: string): Promise<StudyTrack | null>;
   /** Upsert by id. */
   saveTrack(track: StudyTrack): Promise<StudyTrack>;
   /** Archives the track and removes its blocks from the schedule (one transaction). */

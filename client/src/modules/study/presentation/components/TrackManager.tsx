@@ -43,7 +43,13 @@ export const TrackManager: React.FC = () => {
                   {track.title}
                 </div>
                 <div style={{ color: STUDY_THEME.muted, fontSize: '12px' }}>
-                  {[TRACK_KIND_LABEL[track.kind], track.platform].filter(Boolean).join(' · ')}
+                  {[
+                    TRACK_KIND_LABEL[track.kind],
+                    track.sourceId ? 'Biblioteca inteira' : null,
+                    track.platform,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </div>
               </div>
               {track.url && (

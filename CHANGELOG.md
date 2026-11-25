@@ -17,6 +17,16 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-25
+
+### Adicionado
+
+- **Estudos: trilha de uma biblioteca inteira.** Ao criar uma trilha, o nome
+  da biblioteca na lista também pode ser escolhido ("Biblioteca inteira"). O
+  tempo assistido em qualquer curso dela entra nessa trilha (a trilha de um
+  curso específico, se existir, tem prioridade) e "Continuar" abre a próxima
+  aula do curso assistido por último na biblioteca. Migração 0014 (aditiva).
+
 ## [1.1.0] - 2026-11-25
 
 ### Adicionado

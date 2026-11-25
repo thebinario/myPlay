@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
-import { BookOpen, FolderOpen, Search } from 'lucide-react';
-import type { StudyCourseOptionView } from '@/modules/study/domain/study';
+import { Search } from 'lucide-react';
 import { useCourseOptions } from '@/modules/study/presentation/hooks/useCourseOptions';
+import { CourseOption, LibraryOption, type CourseSelection } from './CoursePickerOptions';
 import { ErrorNote, fieldStyle, STUDY_THEME } from './study-ui';
 
 interface CoursePickerProps {
   inputId: string;
-  selectedId: string | null;
-  onSelect: (course: StudyCourseOptionView) => void;
+  selection: CourseSelection | null;
+  onSelect: (selection: CourseSelection) => void;
 }
 
-/** "Biblioteca › Coleção › Curso": o mesmo caminho da tela Biblioteca. */
-export const coursePath = (course: StudyCourseOptionView) =>
-  [course.libraryName, course.collectionTitle, course.title].filter(Boolean).join(' › ');
-
-const countLabel = (count: number, one: string, many: string) =>
-  `${count} ${count === 1 ? one : many}`;
-
 /**
- * Escolha do curso de uma nova trilha: pesquisa (feita no núcleo) e lista
- * agrupada por biblioteca, para não confundir cursos de bibliotecas diferentes.
+ * Escolha do que a nova trilha cobre: pesquisa (feita no núcleo) e lista
+ * agrupada por biblioteca. Dá para escolher um curso ou a biblioteca inteira.
  */
-export const CoursePicker: React.FC<CoursePickerProps> = ({ inputId, selectedId, onSelect }) => {
+export const CoursePicker: React.FC<CoursePickerProps> = ({ inputId, selection, onSelect }) => {
   const [query, setQuery] = useState('');
   const { libraries, loading, error } = useCourseOptions(query);
+  const selectedCourse = selection?.kind === 'course' ? selection.course.courseId : null;
+  const selectedLibrary = selection?.kind === 'library' ? selection.sourceId : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -65,28 +60,16 @@ export const CoursePicker: React.FC<CoursePickerProps> = ({ inputId, selectedId,
         )}
         {libraries.map((library) => (
           <div key={library.sourceId ?? 'loose'} role="group" aria-label={library.libraryName}>
-            <div
-              aria-hidden
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 8px 4px',
-                color: STUDY_THEME.muted,
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <FolderOpen size={13} />
-              {library.libraryName}
-            </div>
+            <LibraryOption
+              library={library}
+              selected={library.sourceId !== null && library.sourceId === selectedLibrary}
+              onSelect={onSelect}
+            />
             {library.courses.map((course) => (
               <CourseOption
                 key={course.courseId}
                 course={course}
-                selected={course.courseId === selectedId}
+                selected={course.courseId === selectedCourse}
                 onSelect={onSelect}
               />
             ))}
@@ -96,43 +79,3 @@ export const CoursePicker: React.FC<CoursePickerProps> = ({ inputId, selectedId,
     </div>
   );
 };
-
-const CourseOption: React.FC<{
-  course: StudyCourseOptionView;
-  selected: boolean;
-  onSelect: (course: StudyCourseOptionView) => void;
-}> = ({ course, selected, onSelect }) => (
-  <button
-    type="button"
-    role="option"
-    aria-selected={selected}
-    aria-label={`${[course.collectionTitle, course.title].filter(Boolean).join(' › ')}, ${countLabel(course.moduleCount, 'módulo', 'módulos')} · ${countLabel(course.lessonCount, 'aula', 'aulas')}`}
-    onClick={() => onSelect(course)}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      width: '100%',
-      textAlign: 'left',
-      padding: '8px 8px 8px 22px',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      background: selected ? 'rgba(165, 148, 255, 0.16)' : 'transparent',
-      color: selected ? STUDY_THEME.strong : STUDY_THEME.text,
-      fontSize: '13px',
-    }}
-  >
-    <BookOpen size={14} aria-hidden color={selected ? STUDY_THEME.accent : STUDY_THEME.faint} />
-    <span style={{ flex: 1, minWidth: 0 }}>
-      {course.collectionTitle && (
-        <span style={{ color: STUDY_THEME.faint }}>{course.collectionTitle} › </span>
-      )}
-      {course.title}
-    </span>
-    <span style={{ color: STUDY_THEME.faint, fontSize: '11px', whiteSpace: 'nowrap' }}>
-      {countLabel(course.moduleCount, 'módulo', 'módulos')} ·{' '}
-      {countLabel(course.lessonCount, 'aula', 'aulas')}
-    </span>
-  </button>
-);

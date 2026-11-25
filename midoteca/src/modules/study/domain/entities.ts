@@ -5,8 +5,10 @@ export interface StudyTrack {
   id: string;
   title: string;
   kind: StudyTrackKind;
-  /** Library course, when `kind === 'course'`. */
+  /** Library course, when `kind === 'course'` and the track covers one course. */
   courseId: string | null;
+  /** Library (source), when `kind === 'course'` and the track covers all its courses. */
+  sourceId: string | null;
   /** External platform name, when `kind === 'external'`. */
   platform: string | null;
   url: string | null;

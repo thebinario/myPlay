@@ -112,6 +112,20 @@ export const TrackCoursePicker: Story = {
   },
 };
 
+/** Nova trilha cobrindo uma biblioteca inteira (todos os cursos dela). */
+export const TrackWholeLibrary: Story = {
+  args: { tab: 'tracks' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const form = await canvas.findByRole('form', { name: 'Nova trilha' });
+    const option = await within(form).findByRole('option', { name: 'Biblioteca inteira: Hacking' });
+    await userEvent.click(option);
+    await expect(option).toHaveAttribute('aria-selected', 'true');
+    await expect(within(form).getByText('Hacking › todos os cursos')).toBeVisible();
+    await expect(within(form).getByRole('button', { name: 'Criar trilha' })).toBeEnabled();
+  },
+};
+
 /** Pesquisa sem resultado. */
 export const TrackCoursePickerEmpty: Story = {
   args: { tab: 'tracks' },

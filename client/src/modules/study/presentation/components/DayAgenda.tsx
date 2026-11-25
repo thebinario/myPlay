@@ -127,8 +127,8 @@ export const DayAgenda: React.FC<DayAgendaProps> = ({
               day.isToday && item.status !== 'done' && day.timer?.trackId !== item.track.id
             }
             onStart={() =>
-              item.track.courseId && item.nextLesson
-                ? onOpenLesson(item.track.courseId, item.nextLesson.lessonId)
+              item.nextLesson
+                ? onOpenLesson(item.nextLesson.courseId, item.nextLesson.lessonId)
                 : onStartTimer(item.track.id, item.block.activity)
             }
           />

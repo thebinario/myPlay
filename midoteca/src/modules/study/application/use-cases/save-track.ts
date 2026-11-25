@@ -4,7 +4,10 @@ import type { StudyTrack } from '../../domain/entities';
 import { normalizeTrackFields, type SaveStudyTrackInput } from '../../domain/track';
 import { nextTrackColor, requireActiveTrack, type StudyDependencies } from '../dependencies';
 
-/** Creates or edits a track; a library course has at most one active track. */
+/**
+ * Creates or edits a track; a library course — or a whole library — has at
+ * most one active track.
+ */
 export class SaveStudyTrack {
   constructor(private readonly deps: StudyDependencies) {}
 
@@ -20,6 +23,16 @@ export class SaveStudyTrack {
       const other = await this.deps.repository.findTrackByCourse(fields.courseId);
       if (other && other.id !== existing?.id && !other.archivedAt) {
         throw new ConflictError(`Este curso já tem a trilha "${other.title}"`);
+      }
+    }
+
+    if (fields.sourceId) {
+      if ((await this.deps.catalog.libraryName(fields.sourceId)) === null) {
+        throw new ValidationError('Biblioteca não encontrada');
+      }
+      const other = await this.deps.repository.findTrackBySource(fields.sourceId);
+      if (other && other.id !== existing?.id && !other.archivedAt) {
+        throw new ConflictError(`Esta biblioteca já tem a trilha "${other.title}"`);
       }
     }
 

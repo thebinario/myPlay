@@ -22,6 +22,7 @@ const UNKNOWN_TRACK: StudyTrackView = {
   title: 'Trilha arquivada',
   kind: 'other',
   courseId: null,
+  sourceId: null,
   platform: null,
   url: null,
   color: '#64748B',

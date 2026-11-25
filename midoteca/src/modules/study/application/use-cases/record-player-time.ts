@@ -10,8 +10,9 @@ export interface RecordPlayerTimeInput {
 }
 
 /**
- * Credits time watched in the course player to the course track of the day,
- * creating (or restoring) that track on first use. While the stopwatch runs it
+ * Credits time watched in the course player to the track of that course; when
+ * the course has none, to the active track of its whole library; else creates
+ * (or restores) the course track on first use. While the stopwatch runs it
  * already counts the same wall time, so player time is not added twice.
  */
 export class RecordPlayerTime {
@@ -33,9 +34,16 @@ export class RecordPlayerTime {
     });
   }
 
-  private async trackFor(course: { courseId: string; title: string }, now: string) {
+  private async trackFor(
+    course: { courseId: string; title: string; sourceId: string | null },
+    now: string,
+  ) {
     const existing = await this.deps.repository.findTrackByCourse(course.courseId);
     if (existing && !existing.archivedAt) return existing;
+    if (course.sourceId) {
+      const library = await this.deps.repository.findTrackBySource(course.sourceId);
+      if (library && !library.archivedAt) return library;
+    }
     if (existing) {
       return this.deps.repository.saveTrack({ ...existing, archivedAt: null, updatedAt: now });
     }
@@ -44,6 +52,7 @@ export class RecordPlayerTime {
       title: course.title.slice(0, 80),
       kind: 'course',
       courseId: course.courseId,
+      sourceId: null,
       platform: null,
       url: null,
       color: await nextTrackColor(this.deps.repository),

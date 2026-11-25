@@ -92,7 +92,7 @@ export class GetStudyDay {
           loggedMinutes: progress.loggedMinutes,
           remainingMinutes: progress.remainingMinutes,
           progressPercent: progress.progressPercent,
-          nextLesson: track.courseId ? await this.deps.catalog.nextLesson(track.courseId) : null,
+          nextLesson: await this.nextLessonOf(track),
         };
       }),
     );
@@ -121,6 +121,13 @@ export class GetStudyDay {
           }
         : null,
     };
+  }
+
+  /** Where to continue: the course of the track, or the library's current course. */
+  private nextLessonOf(track: StudyTrack) {
+    if (track.courseId) return this.deps.catalog.nextLesson(track.courseId);
+    if (track.sourceId) return this.deps.catalog.nextLessonInLibrary(track.sourceId);
+    return Promise.resolve(null);
   }
 
   private trackTotals(

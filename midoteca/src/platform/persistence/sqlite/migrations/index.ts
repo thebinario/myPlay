@@ -11,6 +11,7 @@ import { migration0010ChunkEmbeddings } from './0010-chunk-embeddings';
 import { migration0011MediaPlayability } from './0011-media-playability';
 import { migration0012OrganizationSuggestions } from './0012-organization-suggestions';
 import { migration0013StudyPlanner } from './0013-study-planner';
+import { migration0014StudyLibraryTracks } from './0014-study-library-tracks';
 import type { Migration } from './types';
 
 /** Ordered, append-only list. Never reorder or renumber existing entries. */
@@ -28,4 +29,5 @@ export const MIGRATIONS: readonly Migration[] = [
   migration0011MediaPlayability,
   migration0012OrganizationSuggestions,
   migration0013StudyPlanner,
+  migration0014StudyLibraryTracks,
 ];

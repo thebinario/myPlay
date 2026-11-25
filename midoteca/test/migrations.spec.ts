@@ -17,8 +17,8 @@ describe('database initialization and migrations', () => {
     const app = createMidoteca({ databaseFile: temp.file });
     try {
       expect(app.migration).not.toBeNull();
-      expect(app.migration?.applied).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
-      expect(app.migration?.currentVersion).toBe(13);
+      expect(app.migration?.applied).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+      expect(app.migration?.currentVersion).toBe(14);
     } finally {
       app.close();
     }
@@ -31,7 +31,7 @@ describe('database initialization and migrations', () => {
     const second = createMidoteca({ databaseFile: temp.file });
     try {
       expect(second.migration?.applied).toEqual([]);
-      expect(second.migration?.currentVersion).toBe(13);
+      expect(second.migration?.currentVersion).toBe(14);
     } finally {
       second.close();
     }
@@ -73,6 +73,7 @@ describe('database initialization and migrations', () => {
         { id: 11, name: '0011-media-playability' },
         { id: 12, name: '0012-organization-suggestions' },
         { id: 13, name: '0013-study-planner' },
+        { id: 14, name: '0014-study-library-tracks' },
       ]);
     } finally {
       app.close();

@@ -1,11 +1,8 @@
 import React, { useId, useState } from 'react';
 import { Button } from '@/shared/ui/components/Button';
-import type {
-  SaveTrackCommand,
-  StudyCourseOptionView,
-  StudyTrackKind,
-} from '@/modules/study/domain/study';
-import { CoursePicker, coursePath } from './CoursePicker';
+import type { SaveTrackCommand, StudyTrackKind } from '@/modules/study/domain/study';
+import { CoursePicker } from './CoursePicker';
+import { selectionPath, type CourseSelection } from './CoursePickerOptions';
 import { TRACK_KIND_LABEL } from './study-format';
 import { Chip, Field, fieldStyle, STUDY_THEME } from './study-ui';
 
@@ -28,16 +25,17 @@ const KINDS: StudyTrackKind[] = ['course', 'external', 'other'];
 export const TrackForm: React.FC<TrackFormProps> = ({ busy = false, onSubmit }) => {
   const id = useId();
   const [kind, setKind] = useState<StudyTrackKind>('course');
-  const [course, setCourse] = useState<StudyCourseOptionView | null>(null);
+  const [selection, setSelection] = useState<CourseSelection | null>(null);
+  const selectionTitle =
+    selection?.kind === 'library' ? selection.libraryName : (selection?.course.title ?? '');
   const [title, setTitle] = useState('');
   const [platform, setPlatform] = useState('');
   const [url, setUrl] = useState('');
 
-  const effectiveTitle =
-    title.trim() || (kind === 'course' ? (course?.title ?? '') : platform.trim());
+  const effectiveTitle = title.trim() || (kind === 'course' ? selectionTitle : platform.trim());
   const ready =
     effectiveTitle !== '' &&
-    (kind !== 'course' || course !== null) &&
+    (kind !== 'course' || selection !== null) &&
     (kind !== 'external' || platform.trim() !== '');
 
   const applyPreset = (preset: (typeof PLATFORM_PRESETS)[number]) => {
@@ -46,7 +44,7 @@ export const TrackForm: React.FC<TrackFormProps> = ({ busy = false, onSubmit }) 
   };
 
   const reset = () => {
-    setCourse(null);
+    setSelection(null);
     setTitle('');
     setPlatform('');
     setUrl('');
@@ -57,7 +55,9 @@ export const TrackForm: React.FC<TrackFormProps> = ({ busy = false, onSubmit }) 
     const saved = await onSubmit({
       title: effectiveTitle,
       kind,
-      courseId: kind === 'course' ? (course?.courseId ?? null) : null,
+      courseId:
+        kind === 'course' && selection?.kind === 'course' ? selection.course.courseId : null,
+      sourceId: kind === 'course' && selection?.kind === 'library' ? selection.sourceId : null,
       platform: kind === 'course' ? null : platform.trim() || null,
       url: kind === 'course' ? null : url.trim() || null,
     });
@@ -87,13 +87,9 @@ export const TrackForm: React.FC<TrackFormProps> = ({ busy = false, onSubmit }) 
 
       {kind === 'course' && (
         <Field label="Curso" htmlFor={`${id}-course`}>
-          <CoursePicker
-            inputId={`${id}-course`}
-            selectedId={course?.courseId ?? null}
-            onSelect={setCourse}
-          />
+          <CoursePicker inputId={`${id}-course`} selection={selection} onSelect={setSelection} />
           <span style={{ fontSize: '12px', color: STUDY_THEME.muted }}>
-            {course ? coursePath(course) : 'Escolha um curso da biblioteca'}
+            {selection ? selectionPath(selection) : 'Escolha um curso ou a biblioteca inteira'}
           </span>
         </Field>
       )}

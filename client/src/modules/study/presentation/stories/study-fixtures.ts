@@ -18,6 +18,7 @@ export const htbTrack: StudyTrackView = {
   title: 'Hack The Box — Labs',
   kind: 'external',
   courseId: null,
+  sourceId: null,
   platform: 'Hack The Box',
   url: 'https://app.hackthebox.com',
   color: '#10B981',
@@ -29,6 +30,7 @@ export const clubTrack: StudyTrackView = {
   title: 'HackingClub — Aulas',
   kind: 'external',
   courseId: null,
+  sourceId: null,
   platform: 'HackingClub',
   url: 'https://app.hackingclub.com',
   color: '#F59E0B',
@@ -40,9 +42,23 @@ export const courseTrack: StudyTrackView = {
   title: 'Pentest Web',
   kind: 'course',
   courseId: 'course-web',
+  sourceId: null,
   platform: null,
   url: null,
   color: '#A594FF',
+  archivedAt: null,
+};
+
+/** Trilha de uma biblioteca inteira: todos os cursos dela. */
+export const libraryTrack: StudyTrackView = {
+  id: 'hacking',
+  title: 'Hacking',
+  kind: 'course',
+  courseId: null,
+  sourceId: 'src-hacking',
+  platform: null,
+  url: null,
+  color: '#F472B6',
   archivedAt: null,
 };
 
@@ -106,7 +122,13 @@ export function sampleDay(over: Partial<StudyDay> = {}): StudyDay {
         loggedMinutes: 60,
         remainingMinutes: 0,
         progressPercent: 100,
-        nextLesson: { lessonId: 'l2', title: 'Aula 2 — SQL Injection', moduleTitle: 'Módulo 1' },
+        nextLesson: {
+          courseId: 'course-web',
+          courseTitle: 'Pentest Web',
+          lessonId: 'l2',
+          title: 'Aula 2 — SQL Injection',
+          moduleTitle: 'Módulo 1',
+        },
       }),
       planned('b2', {
         status: 'now',
@@ -160,7 +182,13 @@ export const dayVariants = {
     blocks: [
       planned('b1', {
         status: 'missed',
-        nextLesson: { lessonId: 'l2', title: 'Aula 2 — SQL Injection', moduleTitle: 'Módulo 1' },
+        nextLesson: {
+          courseId: 'course-web',
+          courseTitle: 'Pentest Web',
+          lessonId: 'l2',
+          title: 'Aula 2 — SQL Injection',
+          moduleTitle: 'Módulo 1',
+        },
       }),
       planned('b2'),
     ],

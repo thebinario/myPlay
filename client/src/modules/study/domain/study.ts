@@ -14,6 +14,8 @@ export interface StudyTrackView {
   title: string;
   kind: StudyTrackKind;
   courseId: string | null;
+  /** Biblioteca inteira (trilha de todos os cursos dela). */
+  sourceId: string | null;
   platform: string | null;
   url: string | null;
   color: string;
@@ -44,6 +46,9 @@ export interface StudySessionView {
 }
 
 export interface NextLessonView {
+  /** Curso da aula (numa trilha de biblioteca, o curso atual dela). */
+  courseId: string;
+  courseTitle: string;
   lessonId: string;
   title: string;
   moduleTitle: string;
@@ -116,6 +121,7 @@ export interface SaveTrackCommand {
   title: string;
   kind: StudyTrackKind;
   courseId?: string | null;
+  sourceId?: string | null;
   platform?: string | null;
   url?: string | null;
   color?: string | null;

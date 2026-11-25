@@ -5,6 +5,8 @@ import { StudyView } from '@/modules/study/presentation/views/StudyView';
 import {
   createFakeStudyRepository,
   dayVariants,
+  libraryTrack,
+  sampleTracks,
   sampleWeek,
 } from '@/modules/study/presentation/stories/study-fixtures';
 import type { StudyDay } from '@/modules/study/domain/study';
@@ -45,6 +47,36 @@ describe('study/presentation — StudyView (Hoje)', () => {
     expect(within(card).getByText('Recuperar')).toBeInTheDocument();
     fireEvent.click(within(card).getByRole('button', { name: /Continuar: Aula 2/ }));
     expect(onOpenLesson).toHaveBeenCalledWith('course-web', 'l2');
+  });
+
+  it('numa trilha de biblioteca inteira, continua do curso atual dela', async () => {
+    const day = dayVariants.catchUp;
+    const { onOpenLesson } = renderView({
+      day: {
+        ...day,
+        blocks: day.blocks.map((item, index) =>
+          index === 0
+            ? {
+                ...item,
+                track: libraryTrack,
+                nextLesson: {
+                  courseId: 'course-android',
+                  courseTitle: 'Android Hacking',
+                  lessonId: 'la3',
+                  title: 'Aula 3 — Root',
+                  moduleTitle: 'Módulo 2',
+                },
+              }
+            : item,
+        ),
+      },
+    });
+    const card = await focusCard();
+    expect(
+      within(card).getByText(/Android Hacking · Módulo 2 · Aula 3 — Root/),
+    ).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole('button', { name: /Continuar: Aula 3/ }));
+    expect(onOpenLesson).toHaveBeenCalledWith('course-android', 'la3');
   });
 
   it('com tudo em dia, mostra o próximo bloco e permite adiantar', async () => {
@@ -247,6 +279,36 @@ describe('study/presentation — StudyView (Trilhas)', () => {
       target: { value: 'kubernetes' },
     });
     expect(await screen.findByText('Nenhum curso encontrado.')).toBeInTheDocument();
+  });
+
+  it('cria a trilha de uma biblioteca inteira', async () => {
+    const { repository } = renderView();
+    fireEvent.click(await screen.findByRole('button', { name: 'Trilhas' }));
+    const form = await screen.findByRole('form', { name: 'Nova trilha' });
+    const list = within(form).getByRole('listbox', { name: 'Cursos da biblioteca' });
+    const loose = await within(list).findByRole('group', { name: 'Cursos avulsos' });
+    expect(within(loose).queryByRole('option', { name: /Biblioteca inteira/ })).toBeNull();
+
+    fireEvent.click(within(list).getByRole('option', { name: /Biblioteca inteira: Hacking/ }));
+    expect(within(form).getByText('Hacking › todos os cursos')).toBeInTheDocument();
+    fireEvent.click(within(form).getByRole('button', { name: 'Criar trilha' }));
+    await waitFor(() =>
+      expect(repository.calls.saveTrack).toEqual([
+        expect.objectContaining({
+          kind: 'course',
+          sourceId: 'src-hacking',
+          courseId: null,
+          title: 'Hacking',
+        }),
+      ]),
+    );
+  });
+
+  it('identifica a trilha de biblioteca inteira na lista de trilhas', async () => {
+    renderView({ tracks: [...sampleTracks, libraryTrack] });
+    fireEvent.click(await screen.findByRole('button', { name: 'Trilhas' }));
+    const list = await screen.findByRole('region', { name: 'Suas trilhas' });
+    expect(await within(list).findByText(/Biblioteca inteira/)).toBeInTheDocument();
   });
 
   it('cria a trilha de um curso da biblioteca e arquiva outra', async () => {

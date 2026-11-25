@@ -130,13 +130,22 @@ export const FocusCard: React.FC<FocusCardProps> = ({
           )}
           {item.nextLesson && (
             <p style={{ margin: '8px 0 0', color: STUDY_THEME.muted, fontSize: '13px' }}>
-              Próxima aula: {item.nextLesson.moduleTitle} · {item.nextLesson.title}
+              Próxima aula:{' '}
+              {[
+                item.track.sourceId ? item.nextLesson.courseTitle : null,
+                item.nextLesson.moduleTitle,
+                item.nextLesson.title,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           )}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '18px' }}>
-            {item.track.courseId && item.nextLesson ? (
-              <Button onClick={() => onOpenLesson(item.track.courseId!, item.nextLesson!.lessonId)}>
+            {item.nextLesson ? (
+              <Button
+                onClick={() => onOpenLesson(item.nextLesson!.courseId, item.nextLesson!.lessonId)}
+              >
                 <Play size={15} style={{ marginRight: 8 }} aria-hidden="true" />
                 Continuar: {item.nextLesson.title}
               </Button>
@@ -172,7 +181,7 @@ export const FocusCard: React.FC<FocusCardProps> = ({
               </a>
             )}
           </div>
-          {item.track.courseId && (
+          {item.track.kind === 'course' && (
             <p style={{ margin: '12px 0 0', color: STUDY_THEME.faint, fontSize: '12px' }}>
               O tempo assistido no player entra sozinho no registro do dia.
             </p>

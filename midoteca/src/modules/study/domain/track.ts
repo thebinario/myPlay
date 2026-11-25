@@ -6,6 +6,8 @@ export interface SaveStudyTrackInput {
   title: string;
   kind: string;
   courseId?: string | null;
+  /** A whole library instead of one course (course tracks). */
+  sourceId?: string | null;
   platform?: string | null;
   url?: string | null;
   color?: string | null;
@@ -15,6 +17,7 @@ export interface TrackFields {
   title: string;
   kind: StudyTrackKind;
   courseId: string | null;
+  sourceId: string | null;
   platform: string | null;
   url: string | null;
   color: string | null;
@@ -67,7 +70,13 @@ export function normalizeTrackFields(input: SaveStudyTrackInput): TrackFields {
   if (color !== null && !COLOR_RE.test(color)) throw new ValidationError('Cor inválida');
 
   const courseId = kind === 'course' ? optionalText(input.courseId, 64) : null;
-  if (kind === 'course' && !courseId) throw new ValidationError('Escolha o curso da biblioteca');
+  const sourceId = kind === 'course' ? optionalText(input.sourceId, 64) : null;
+  if (kind === 'course' && !courseId && !sourceId) {
+    throw new ValidationError('Escolha o curso ou a biblioteca');
+  }
+  if (courseId && sourceId) {
+    throw new ValidationError('Escolha um curso ou uma biblioteca inteira, não os dois');
+  }
   const platform = kind === 'course' ? null : optionalText(input.platform, MAX_PLATFORM);
   if (kind === 'external' && !platform) {
     throw new ValidationError('Informe a plataforma (ex.: Hack The Box, HackingClub)');
@@ -76,6 +85,7 @@ export function normalizeTrackFields(input: SaveStudyTrackInput): TrackFields {
     title,
     kind,
     courseId,
+    sourceId,
     platform,
     url: kind === 'course' ? null : normalizeUrl(input.url),
     color: color?.toUpperCase() ?? null,
