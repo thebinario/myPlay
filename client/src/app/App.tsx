@@ -10,6 +10,7 @@ import { PdfViewer } from '@/modules/documents/presentation/PdfViewer';
 import { HomeView } from '@/modules/home/presentation/HomeView';
 import { SearchView } from '@/modules/search/presentation/SearchView';
 import { SettingsView } from '@/modules/settings/presentation/views/SettingsView';
+import { StudyView } from '@/modules/study/presentation/views/StudyView';
 import { NavigationTab, Course } from '@/core/domain/library';
 import { useLibrary } from '@/modules/library/presentation/LibraryProvider';
 import { LibrarySourcesPanel } from '@/modules/sources/presentation/components/LibrarySourcesPanel';
@@ -351,6 +352,8 @@ export const App: React.FC = () => {
               onEditCourse={handleEditCourse}
             />
           )}
+
+          {currentTab === 'study' && <StudyView onOpenLesson={handlePlayLesson} />}
 
           {currentTab === 'search' && (
             <SearchView

@@ -141,3 +141,69 @@ describe('LibrarySourcesPanel — seleção de pasta pelo SO (desktop)', () => {
     expect(screen.queryByRole('button', { name: /Procurar pasta/ })).not.toBeInTheDocument();
   });
 });
+
+describe('LibrarySourcesPanel — reescanear uma fonte já importada', () => {
+  function kernelSource(id: string, rootPath: string) {
+    return {
+      id,
+      rootPath,
+      displayName: null,
+      status: 'active' as const,
+      lastScanAt: '2026-11-22T16:52:22.858Z',
+    };
+  }
+
+  it('analisa de novo só a fonte escolhida e mostra o progresso', async () => {
+    const user = userEvent.setup();
+    const scan = vi.fn((params: unknown) => ({
+      sourceId: (params as { sourceId: string }).sourceId,
+      status: 'completed' as const,
+      discovered: 3,
+      created: 0,
+      updated: 0,
+      moved: 0,
+      unchanged: 3,
+      missing: 0,
+      errors: 0,
+      durationMs: 0,
+    }));
+    const bridge = createFakeBridge({
+      'sources.list': () => [kernelSource('a', 'E:/Cursos/A'), kernelSource('b', 'E:/Cursos/B')],
+      'indexing.status': () => null,
+      'indexing.scan': scan,
+    });
+    const repository = new IpcLibrarySourcesRepository(bridge);
+    await repository.hydrate();
+    render(
+      <SourcesProvider repository={repository} runner={new IpcImportRunner(bridge)}>
+        <Harness />
+      </SourcesProvider>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Reescanear fonte B' }));
+
+    expect(await screen.findByTestId('import-phase')).toHaveTextContent('Descoberta concluída');
+    expect(scan).toHaveBeenCalledTimes(1);
+    expect(scan).toHaveBeenCalledWith({ sourceId: 'b' });
+  });
+
+  it('não oferece reescanear uma fonte desconectada', async () => {
+    const repository = createInMemorySourcesRepository([
+      {
+        id: 'off',
+        path: 'F:/HD',
+        name: 'HD',
+        status: 'disconnected',
+        itemCount: 0,
+        lastScannedAt: null,
+      },
+    ]);
+    render(
+      <SourcesProvider repository={repository}>
+        <Harness />
+      </SourcesProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Reescanear fonte HD' })).toBeDisabled();
+  });
+});

@@ -167,7 +167,8 @@ export type NavigationTab =
   | 'search'
   | 'settings'
   | 'editor'
-  | 'pdf-viewer';
+  | 'pdf-viewer'
+  | 'study';
 
 // ─── Pesquisa Universal (Etapa 3B) ───────────────────────────────────────────
 

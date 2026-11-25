@@ -7,7 +7,7 @@
  */
 const path = require('node:path');
 const { realpath } = require('node:fs/promises');
-const { app, BrowserWindow, dialog, ipcMain, protocol } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol, shell } = require('electron');
 const { createMidoteca, createDesktopApi, DESKTOP_EVENTS } = require('@midoteca/core');
 const { createLibraryMediaResponse } = require('./library-media-response.cjs');
 const { runDesktopSmoke } = require('./desktop-smoke.cjs');
@@ -68,7 +68,10 @@ async function serveLibraryMedia(request) {
     if (!roots.some((root) => root && isInsideRoot(filePath, root))) {
       return new Response(null, { status: 403 });
     }
-    return createLibraryMediaResponse(filePath, request);
+    // Containers Chromium cannot open (e.g. MPEG-TS) are remuxed once into a
+    // cached MP4 by the kernel; native files are served as-is.
+    const prepared = await midoteca.playback.prepare(filePath);
+    return createLibraryMediaResponse(prepared.path, request);
   } catch {
     return new Response(null, { status: 404 });
   }
@@ -105,6 +108,13 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  // Links externos (ex.: plataformas de estudo) abrem no navegador do sistema,
+  // nunca numa janela do app com acesso ao preload.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
+    return { action: 'deny' };
   });
 
   const devUrl = process.env.MIDOTECA_DEV_URL;

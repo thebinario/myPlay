@@ -153,6 +153,13 @@ catalogada tem prioridade sobre a informada pelo player. `progress.savePlayback`
 guarda apenas o ponto de retomada; uma conclusão enviada pelo renderer é
 ignorada. Ver ADR [`adr/0006-watch-coverage-completion.md`](adr/0006-watch-coverage-completion.md).
 
+**Prioridade dos jobs.** O `JobRunner` roda um job por vez, por prioridade.
+A **análise de diretórios (scan) tem prioridade sobre todos os jobs**: enquanto
+um `RunScan` está ativo (`ResourceGovernor.beginPriorityWork`), nenhum job
+começa e os que estão rodando param no próximo `yieldToPlayback`/`waitForIdle`,
+retomando quando o scan termina (com sucesso ou erro). Trabalho pesado também
+espera o fim da reprodução.
+
 **Exemplo aplicado — conteúdo duplicado.** O núcleo analisa as mídias em
 segundo plano (`JobRunner` + job `media.analyze-source`: probe → hash parcial →
 SHA-256 dos candidatos → impressão perceptual dos vídeos de duração parecida),
@@ -186,6 +193,16 @@ conhece portas (`ContextRetriever`, `LlmClient`); a recuperação híbrida
 frontend envia a pergunta, exibe os tokens recebidos por eventos e abre as
 citações; não recupera nem gera nada. Ver ADR
 [`adr/0010-local-rag-assistant.md`](adr/0010-local-rag-assistant.md).
+
+**Exemplo aplicado — cronograma de estudos.** O contexto `study` do núcleo
+decide tudo o que a tela "Estudos" mostra: valida o cronograma semanal
+(`validateWeeklySchedule`), calcula status dos blocos, progresso e o foco
+único de "o que estudar agora" (`buildDayPlan`), a sequência de dias e o
+cronômetro persistido. O tempo do player chega pela porta
+`PlaybackActivityObserver` do contexto `progress`, ligada no composition root
+(os dois contextos não se importam). O frontend só lê `study.day`/`study.week`,
+envia comandos e mantém o rascunho local do cronograma até salvar. Ver ADR
+[`adr/0011-study-planner.md`](adr/0011-study-planner.md).
 
 Essa fronteira é aplicada incrementalmente: ao tocar uma funcionalidade, mova
 regras de negócio duplicadas para o backend sem reescrever módulos não
@@ -329,6 +346,13 @@ midoteca/src/
 │   │               # ActivityMonitor observa o JobRunner (incl. reportItem por aula, com o erro) e os eventos index:* e publica activity:changed
 │   │               # (em andamento, fila e os últimos 5 encerrados — histórico em memória da sessão)
 │   ├── settings/   domain/{entities,repositories}.ts · infrastructure/settings.repository.sqlite.ts
+│   ├── study/      # cronograma de estudos e registro de tempo (ADR 0011)
+│   │   ├── domain/                        # entities · types · repositories · contracts · read-models ·
+│   │   │                                  #   schedule.ts · day-plan.ts · track.ts · local-date.ts (regras puras)
+│   │   ├── application/                   # dependencies.ts · study.service.ts ·
+│   │   │                                  #   use-cases/{save-track,save-schedule,study-timer,log-session,record-player-time} ·
+│   │   │                                  #   queries/{get-study-day,get-study-week}
+│   │   └── infrastructure/                # study.repository.sqlite.ts · study-course-catalog.sqlite.ts
 │   └── search/     domain/contracts.ts     # SearchRepository (reservado, Fase 2)
 │
 └── platform/                              # adapters de 2+ contextos
@@ -438,6 +462,17 @@ client/src/
 │   │   ├── views/                         # HomeView.tsx · Sidebar.tsx
 │   │   ├── components/                    # (extraídos de HomeView)
 │   │   └── stories/*.stories.tsx
+│   │
+│   ├── study/                             # "Estudos" (menu com relógio) — ADR 0011
+│   │   ├── domain/study.ts                # read models + StudyRepository (contrato)
+│   │   ├── infrastructure/ipc/            # ipc-study.repository.ts (+ integração com o núcleo)
+│   │   └── presentation/
+│   │       ├── views/StudyView.tsx        # abas Hoje · Cronograma · Trilhas
+│   │       ├── components/                # FocusCard · TimerBar · DayAgenda · SessionLog · WeekSummary ·
+│   │       │                              #   ScheduleEditor · BlockForm · TrackManager · TrackForm
+│   │       ├── hooks/                     # useStudyToday · useScheduleDraft · useStudyTracks · useLiveElapsed
+│   │       ├── providers/StudyProvider.tsx
+│   │       └── stories/                   # StudyView.stories.tsx · study-fixtures.ts
 │   │
 │   └── settings/presentation/views/SettingsView.tsx
 │

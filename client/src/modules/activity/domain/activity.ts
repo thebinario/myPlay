@@ -9,6 +9,7 @@ export type ActivityKindView =
   | 'transcription'
   | 'content-extraction'
   | 'embeddings'
+  | 'course-organization'
   | 'other';
 
 export interface ActivityItemView {

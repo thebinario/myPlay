@@ -83,6 +83,10 @@ export const LibrarySourcesPanel: React.FC<LibrarySourcesPanelProps> = ({
               key={source.id}
               source={source}
               onCheck={viewModel.checkSource}
+              onRescan={(id) => {
+                setShowImport(true);
+                importFlow.startFor(id);
+              }}
               onReconnect={viewModel.reconnectSource}
               onDisconnect={viewModel.disconnectSource}
               onRemove={viewModel.removeSource}

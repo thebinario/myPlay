@@ -1,5 +1,7 @@
 import { compareCatalogTitles, naturalCompare } from '../../../core/catalog-order';
+import { splitFlatModule } from './flat-modules';
 import type { DiscoveredFile } from './types';
+import { sortVideosByQuality } from './video-quality';
 
 export { naturalCompare };
 
@@ -112,6 +114,9 @@ const COLLECTION_RE = /^cole[cç][ãa]o\b/i;
 const COURSE_RE = /^curso\b/i;
 const MODULE_RE = /^(m[óo]dulo|unidade|module|unit|cap[íi]tulo|chapter)\b/i;
 const LESSON_RE = /^(aula|lesson|epis[óo]dio|episode|v[íi]deo|video)\b/i;
+/** Folder names that only make sense inside a course (used to detect a course root). */
+const ROOT_MODULE_RE =
+  /^(m[óo]dulo|unidade|module|unit|cap[íi]tulo|chapter|section|se[çc][ãa]o|parte|part|semana|week)\b/i;
 
 export function organize(files: readonly DiscoveredFile[], options: OrganizeOptions): OrganizePlan {
   const videos = files.filter((f) => f.kind === 'video');
@@ -128,7 +133,7 @@ export function organize(files: readonly DiscoveredFile[], options: OrganizeOpti
   }
 
   const plan = new PlanBuilder();
-  const kind = resolveRootKind(options);
+  const kind = resolveRootKind(options, videos);
 
   const rootVideos = videos.filter((f) => segments(f.relativePath).length === 1);
   if (rootVideos.length > 0) {
@@ -229,12 +234,31 @@ interface Placement {
   lessonFileName: string;
 }
 
-/** Infers the role of the source root from its label when not given explicitly. */
-function resolveRootKind(options: OrganizeOptions): RootKind {
+/**
+ * Infers the role of the source root when not given explicitly: from its label
+ * ("Coleção…", "Curso…") or, failing that, from its content. A root whose
+ * first-level video folders are mostly named like modules ("Módulo 1",
+ * "01 Modulo 00", "Section 2"…) was imported pointing at the course itself, so
+ * those folders are its modules — not one course each.
+ */
+function resolveRootKind(options: OrganizeOptions, videos: readonly DiscoveredFile[]): RootKind {
   if (options.rootKind !== undefined) return options.rootKind;
   if (isCollection(options.rootLabel)) return 'collection';
   if (isCourse(options.rootLabel)) return 'course';
-  return null;
+  return rootFoldersAreModules(videos) ? 'course' : null;
+}
+
+function rootFoldersAreModules(videos: readonly DiscoveredFile[]): boolean {
+  const folders = new Set<string>();
+  for (const video of videos) {
+    const parts = segments(video.relativePath);
+    if (parts.length > 1) folders.add(parts[0]);
+  }
+  if (folders.size === 0) return false;
+  const modules = [...folders].filter((folder) =>
+    ROOT_MODULE_RE.test(cleanName(folder).title),
+  ).length;
+  return modules * 2 > folders.size;
 }
 
 /**
@@ -550,6 +574,13 @@ class CourseBuilder {
   }
 
   build(): PlannedCourse {
+    const documents = [...this.documents];
+    const sections = [...this.sections.values()].map((section) => {
+      const built = section.build();
+      const split = splitImplicitModule(built);
+      documents.push(...split.unplacedDocuments);
+      return split.section;
+    });
     return {
       relativePath: this.relativePath,
       title: this.title,
@@ -557,10 +588,28 @@ class CourseBuilder {
       collectionPath: this.collectionPath,
       category: this.category,
       provider: this.provider,
-      sections: [...this.sections.values()].map((section) => section.build()).sort(compareNamed),
-      documents: this.documents.sort(compareNamed),
+      sections: sections.sort(compareNamed),
+      documents: documents.sort(compareNamed),
     };
   }
+}
+
+/**
+ * Replaces the implicit module of a flat folder by the modules its file names
+ * state (see `flat-modules.ts`); returns materials no module claims.
+ */
+function splitImplicitModule(section: PlannedSection): {
+  section: PlannedSection;
+  unplacedDocuments: PlannedDocument[];
+} {
+  const implicit = section.modules.find((module) => module.relativePath === section.relativePath);
+  const split = implicit ? splitFlatModule(implicit, IMPLICIT_MODULE_TITLE) : null;
+  if (!implicit || !split) return { section, unplacedDocuments: [] };
+  const modules = [
+    ...section.modules.filter((module) => module !== implicit),
+    ...split.modules,
+  ].sort(compareNamed);
+  return { section: { ...section, modules }, unplacedDocuments: split.unplacedDocuments };
 }
 
 class SectionBuilder {
@@ -651,11 +700,7 @@ class LessonBuilder {
   }
 
   build(): PlannedLesson {
-    const videos = [...this.videos].sort((a, b) => {
-      const score = resolutionScore(b) - resolutionScore(a);
-      if (score !== 0) return score;
-      return naturalCompare(a, b);
-    });
+    const videos = sortVideosByQuality(this.videos);
     return {
       relativePath: this.relativePath,
       title: this.title,
@@ -745,13 +790,6 @@ export function scrubEncoding(rawName: string): string {
 /** Identity used to collapse several encodings of the same lesson. */
 function lessonIdentity(fileName: string): string {
   return scrubEncoding(stripExtension(fileName)).toLowerCase();
-}
-
-function resolutionScore(relativePath: string): number {
-  const match = relativePath.toLowerCase().match(/(\d{3,4})[pi]\b/);
-  if (match) return Number.parseInt(match[1], 10);
-  if (relativePath.toLowerCase().endsWith('.webm')) return 720;
-  return 0;
 }
 
 function stripExtension(name: string): string {

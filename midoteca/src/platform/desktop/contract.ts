@@ -1,5 +1,11 @@
 import type { JsonValue } from '../../core/json';
-import type { Course, CourseTree, SaveCourseOrganization } from '../../modules/courses';
+import type {
+  Course,
+  CourseTree,
+  OrganizationSuggestion,
+  OrganizationSuggestionState,
+  SaveCourseOrganization,
+} from '../../modules/courses';
 import type { Document } from '../../modules/documents';
 import type { IndexSummary, LibraryEvent } from '../../modules/indexing';
 import type {
@@ -35,6 +41,20 @@ import type { AppSetting } from '../../modules/settings';
 import type { ContentHit, ContentIndexStatus, ContentSearchQuery } from '../../modules/search';
 import type { LibraryType } from '../../modules/library';
 import type { ActivitySnapshot } from '../../modules/jobs';
+import type {
+  ActiveStudyTimer,
+  LogStudySessionInput,
+  SaveStudyScheduleInput,
+  SaveStudyTrackInput,
+  StartStudyTimerInput,
+  StopStudyTimerInput,
+  StudyBlock,
+  StudyDayView,
+  StudySession,
+  StudyTrack,
+  StudyCourseLibrary,
+  StudyWeekView,
+} from '../../modules/study';
 
 /**
  * Transport-agnostic contract of the desktop RPC surface.
@@ -68,6 +88,10 @@ export const DESKTOP_METHODS = [
   'catalog.getCourseTree',
   'courses.list',
   'courses.saveOrganization',
+  'courses.suggestion.get',
+  'courses.suggestion.request',
+  'courses.suggestion.apply',
+  'courses.suggestion.dismiss',
   'documents.list',
   'documents.updatePageCount',
   'documents.rename',
@@ -93,6 +117,18 @@ export const DESKTOP_METHODS = [
   'settings.get',
   'settings.set',
   'settings.list',
+  'study.tracks.list',
+  'study.courses',
+  'study.tracks.save',
+  'study.tracks.archive',
+  'study.schedule.get',
+  'study.schedule.save',
+  'study.timer.start',
+  'study.timer.stop',
+  'study.sessions.log',
+  'study.sessions.delete',
+  'study.day',
+  'study.week',
 ] as const;
 
 export type DesktopMethod = (typeof DESKTOP_METHODS)[number];
@@ -131,6 +167,10 @@ export interface DesktopParams {
   'catalog.getCourseTree': { courseId: string };
   'courses.list': undefined;
   'courses.saveOrganization': SaveCourseOrganization;
+  'courses.suggestion.get': { courseId: string };
+  'courses.suggestion.request': { courseId: string };
+  'courses.suggestion.apply': { courseId: string };
+  'courses.suggestion.dismiss': { courseId: string };
   'documents.list': undefined;
   'documents.updatePageCount': { documentId: string; pageCount: number };
   'documents.rename': { documentId: string; title: string };
@@ -161,6 +201,23 @@ export interface DesktopParams {
   'settings.get': { key: string };
   'settings.set': { key: string; value: JsonValue };
   'settings.list': undefined;
+  'study.tracks.list': { includeArchived?: boolean } | undefined;
+  'study.courses': { query?: string | null } | undefined;
+  'study.tracks.save': SaveStudyTrackInput;
+  'study.tracks.archive': { trackId: string };
+  'study.schedule.get': undefined;
+  /** Replaces the whole weekly schedule (validated as a whole). */
+  'study.schedule.save': SaveStudyScheduleInput;
+  /** Starts the stopwatch; a running one for another track is closed first. */
+  'study.timer.start': StartStudyTimerInput;
+  'study.timer.stop': StopStudyTimerInput;
+  /** Manual entry (time studied elsewhere: Hack The Box, HackingClub...). */
+  'study.sessions.log': LogStudySessionInput;
+  'study.sessions.delete': { sessionId: string };
+  /** A day of the planner with "o que estudar agora" (defaults to today). */
+  'study.day': { date?: string | null };
+  /** Monday–Sunday summary and streak (defaults to the current week). */
+  'study.week': { date?: string | null };
 }
 
 /** Response payload per method. */
@@ -185,6 +242,10 @@ export interface DesktopResults {
   'catalog.getCourseTree': CourseTree | null;
   'courses.list': Course[];
   'courses.saveOrganization': CourseTree;
+  'courses.suggestion.get': OrganizationSuggestionState;
+  'courses.suggestion.request': OrganizationSuggestion;
+  'courses.suggestion.apply': null;
+  'courses.suggestion.dismiss': null;
   'documents.list': Document[];
   'documents.updatePageCount': Document;
   'documents.rename': Document;
@@ -210,6 +271,19 @@ export interface DesktopResults {
   'settings.get': AppSetting | null;
   'settings.set': AppSetting;
   'settings.list': AppSetting[];
+  'study.tracks.list': StudyTrack[];
+  'study.courses': StudyCourseLibrary[];
+  'study.tracks.save': StudyTrack;
+  'study.tracks.archive': null;
+  'study.schedule.get': StudyBlock[];
+  'study.schedule.save': StudyBlock[];
+  'study.timer.start': ActiveStudyTimer;
+  /** null when nothing was running or the run was too short to log. */
+  'study.timer.stop': StudySession | null;
+  'study.sessions.log': StudySession;
+  'study.sessions.delete': null;
+  'study.day': StudyDayView;
+  'study.week': StudyWeekView;
 }
 
 /** Domain error kind, so the renderer can react without string matching. */

@@ -50,7 +50,17 @@ export class RunScan {
     });
   }
 
+  /** Background jobs wait from the start to the end of the scan (it has priority). */
   async execute(request: RunScanInput): Promise<IndexSummary> {
+    const release = this.deps.governor.beginPriorityWork();
+    try {
+      return await this.scan(request);
+    } finally {
+      release();
+    }
+  }
+
+  private async scan(request: RunScanInput): Promise<IndexSummary> {
     const { store, library, scanner, probe, events, governor } = this.deps;
     const { sourceId } = request;
     const startedAt = Date.now();

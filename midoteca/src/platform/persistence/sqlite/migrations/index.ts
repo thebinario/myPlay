@@ -9,6 +9,8 @@ import { migration0008ContentSearch } from './0008-content-search';
 import { migration0009Transcripts } from './0009-transcripts';
 import { migration0010ChunkEmbeddings } from './0010-chunk-embeddings';
 import { migration0011MediaPlayability } from './0011-media-playability';
+import { migration0012OrganizationSuggestions } from './0012-organization-suggestions';
+import { migration0013StudyPlanner } from './0013-study-planner';
 import type { Migration } from './types';
 
 /** Ordered, append-only list. Never reorder or renumber existing entries. */
@@ -24,4 +26,6 @@ export const MIGRATIONS: readonly Migration[] = [
   migration0009Transcripts,
   migration0010ChunkEmbeddings,
   migration0011MediaPlayability,
+  migration0012OrganizationSuggestions,
+  migration0013StudyPlanner,
 ];

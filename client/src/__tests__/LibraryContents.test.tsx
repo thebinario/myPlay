@@ -5,10 +5,11 @@ import {
   MOCK_COURSES,
   MOCK_LIBRARY,
 } from '@/modules/library/infrastructure/mock-library-repository';
-import { LibraryView } from '@/modules/library/presentation/LibraryView';
+import { LibraryContentsList } from '@/modules/library/presentation/components/LibraryContentsList';
 import { LibraryCourseContents } from '@/modules/library/presentation/components/LibraryCourseContents';
 
 describe('conteúdos da biblioteca', () => {
+  // Listagem inline de módulos e aulas (usada, p. ex., numa coleção com um único curso).
   it('mantém vídeos e PDFs juntos no módulo e permite abrir cada conteúdo', () => {
     const source: LibrarySource = {
       id: 'source-test',
@@ -48,9 +49,8 @@ describe('conteúdos da biblioteca', () => {
     const onEditCourse = vi.fn();
 
     render(
-      <LibraryView
+      <LibraryContentsList
         items={[course, movie, document]}
-        sources={[source]}
         onSelectCourse={onSelectCourse}
         onPlayLesson={onPlayLesson}
         onOpenMovie={onOpenMovie}
@@ -58,7 +58,6 @@ describe('conteúdos da biblioteca', () => {
         onEditCourse={onEditCourse}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /abrir biblioteca biblioteca de teste/i }));
 
     expect(screen.getByText('Módulo 1 · Módulo compartilhado')).toBeInTheDocument();
     expect(screen.getByText('2 vídeos · 1 PDFs')).toBeInTheDocument();

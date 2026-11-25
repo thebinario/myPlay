@@ -46,26 +46,51 @@ export interface PlayabilityAssessment {
 
 /** ffprobe `format_name` lists: any of these names opens natively. */
 const NATIVE_CONTAINERS = new Set(['mov', 'mp4', 'm4a', 'matroska', 'webm', 'ogg']);
+/**
+ * Containers Chromium cannot open directly but that the core can remux to MP4
+ * without re-encoding, as long as the codecs themselves are native.
+ */
+const REMUXABLE_CONTAINERS = new Set(['mpegts']);
 const NATIVE_VIDEO = new Set(['h264', 'vp8', 'vp9', 'av1', 'theora']);
 const NATIVE_AUDIO = new Set(['aac', 'mp3', 'opus', 'vorbis', 'flac']);
 
-function isNativeAudio(codec: string): boolean {
+function formatNames(container: string): string[] {
+  return container
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+/** Whether the container opens directly in the desktop player. */
+export function isNativeContainer(container: string): boolean {
+  return formatNames(container).some((name) => NATIVE_CONTAINERS.has(name));
+}
+
+/** Whether the core can remux the container to MP4 when codecs are native. */
+export function isRemuxableContainer(container: string): boolean {
+  return formatNames(container).some((name) => REMUXABLE_CONTAINERS.has(name));
+}
+
+export function isNativeVideoCodec(codec: string): boolean {
+  return NATIVE_VIDEO.has(codec);
+}
+
+export function isNativeAudioCodec(codec: string): boolean {
   return NATIVE_AUDIO.has(codec) || codec.startsWith('pcm_');
 }
 
 export function assessPlayability(inspection: MediaInspection): PlayabilityAssessment {
   if (!inspection.readable) return { playability: 'damaged', reason: inspection.error };
-  const containers = inspection.container.split(',');
-  if (!containers.some((name) => NATIVE_CONTAINERS.has(name))) {
+  if (!isNativeContainer(inspection.container) && !isRemuxableContainer(inspection.container)) {
     return { playability: 'unsupported', reason: `contêiner ${inspection.container}` };
   }
   if (!inspection.videoCodec) {
     return { playability: 'damaged', reason: 'nenhuma trilha de vídeo legível' };
   }
-  if (!NATIVE_VIDEO.has(inspection.videoCodec)) {
+  if (!isNativeVideoCodec(inspection.videoCodec)) {
     return { playability: 'unsupported', reason: `codec de vídeo ${inspection.videoCodec}` };
   }
-  if (inspection.audioCodec && !isNativeAudio(inspection.audioCodec)) {
+  if (inspection.audioCodec && !isNativeAudioCodec(inspection.audioCodec)) {
     return { playability: 'unsupported', reason: `codec de áudio ${inspection.audioCodec}` };
   }
   return { playability: 'playable', reason: null };

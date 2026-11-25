@@ -10,6 +10,7 @@ function viewModel(state: ImportState): ImportViewModel {
     state,
     isSimulated: true,
     start: noop,
+    startFor: noop,
     pause: noop,
     resume: noop,
     retry: noop,

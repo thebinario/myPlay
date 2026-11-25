@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, House, Library, PanelLeft, Search, Settings } from 'lucide-react';
+import { BookOpen, Clock3, House, Library, PanelLeft, Search, Settings } from 'lucide-react';
 import { NavigationTab } from '@/core/domain/library';
 import { SidebarAccount } from './SidebarAccount';
 import { SIDEBAR_GUTTER, SIDEBAR_THEME, SidebarNavButton } from './SidebarNavButton';
@@ -19,6 +19,7 @@ export const SIDEBAR_WIDTH = { expanded: 232, collapsed: 72 } as const;
 const MAIN_ITEMS = [
   { id: 'home', label: 'Início', icon: House },
   { id: 'library', label: 'Biblioteca', icon: Library },
+  { id: 'study', label: 'Estudos', icon: Clock3 },
   { id: 'search', label: 'Pesquisa', icon: Search, shortcut: 'Ctrl K' },
 ] as const;
 

@@ -19,13 +19,17 @@ partir de uma `LibrarySource` (tipicamente um HD externo), de forma incremental 
 
 ## 2. Formatos suportados
 
-| Categoria | Extensões                                        |
-| --------- | ------------------------------------------------ |
-| Vídeo     | `.mp4 .mkv .avi .mov .webm .wmv .m4v .mpg .mpeg` |
-| PDF       | `.pdf`                                           |
-| Legenda   | `.srt .vtt .ass .ssa`                            |
+| Categoria | Extensões                                           |
+| --------- | --------------------------------------------------- |
+| Vídeo     | `.mp4 .mkv .avi .mov .webm .wmv .m4v .mpg .mpeg .ts` |
+| PDF       | `.pdf`                                              |
+| Legenda   | `.srt .vtt .ass .ssa`                               |
 
 Qualquer outra extensão é ignorada na descoberta.
+
+> Vídeos MPEG-TS (`.ts`) com codecs nativos (H.264/AAC) são remuxados sob
+> demanda para MP4 em cache pelo núcleo, sem reencodificar e sem alterar o
+> arquivo original. O protocolo `midoteca-media://` serve o MP4 preparado.
 
 ## 3. Descoberta (`RecursiveFileScanner`)
 
@@ -76,6 +80,30 @@ da fonte não vista nesta execução (índice `ix_media_files_last_seen`).
   fonte); PDFs na raiz ficam soltos.
 - **Legendas** são pareadas ao vídeo irmão pelo nome-base (sufixo de idioma
   opcional) e registradas como `media_tracks(kind='subtitle')`.
+
+### 5.0 Módulos detectados pelo nome (pasta plana)
+
+Quando um curso tem todos os vídeos numa única pasta, o módulo implícito é
+dividido pelo que os **nomes dos arquivos já dizem** (`flat-modules.ts`, puro):
+
+| Sinal no nome                          | Resultado                                              |
+| -------------------------------------- | ------------------------------------------------------ |
+| `… - Live …`                           | módulo **"Lives"**                                     |
+| `<Série> - Ep.N - …`                   | um módulo por série; cada arquivo segue sendo uma aula (juntar arquivos deixaria aulas já indexadas órfãs) |
+| `Aula NN - Módulo N - <título>`        | abre o módulo N; aulas numeradas anteriores formam o módulo N-1 |
+| qualquer outra aula                    | fica no módulo ativo na sua posição                    |
+| material `Aula NN …` (PDF)             | vai para o módulo que contém a aula NN; sem par → curso |
+
+Só sinais objetivos entram aqui; agrupar por **assunto** é uma decisão humana e
+fica fora da indexação. Se sair menos de dois módulos, nada muda. Os módulos
+detectados têm caminho sintético estável (`<curso>/::lives`, `::modulo-2`,
+`::serie-…`; `::` não existe em nomes de pasta no Windows).
+
+No rescan, a aula é procurada **no curso inteiro** pelo `relative_path`: se já
+existe em outro módulo, ela **muda de módulo mantendo o id** (e o progresso),
+exceto quando o usuário a moveu/reordenou (`sort_source='manual'`). Módulos
+detectados que deixaram de ser planejados e ficaram **sem aulas** são removidos
+do catálogo (`removeEmptyDetectedModules`); renomeados pelo usuário ficam.
 
 ### 5.1 Limpeza de nomes
 

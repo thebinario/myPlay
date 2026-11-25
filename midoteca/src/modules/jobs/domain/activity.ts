@@ -11,6 +11,7 @@ export type ActivityKind =
   | 'transcription'
   | 'content-extraction'
   | 'embeddings'
+  | 'course-organization'
   | 'other';
 
 export type ActivityStatus = 'running' | 'queued' | 'completed' | 'failed';
@@ -58,6 +59,7 @@ const KIND_BY_JOB_TYPE: Record<string, ActivityKind> = {
   'media.transcribe-source': 'transcription',
   'search.extract-content': 'content-extraction',
   'search.embed-chunks': 'embeddings',
+  'courses.suggest-organization': 'course-organization',
 };
 
 const LABELS: Record<ActivityKind, string> = {
@@ -67,6 +69,7 @@ const LABELS: Record<ActivityKind, string> = {
   transcription: 'Transcrição',
   'content-extraction': 'Indexação de documentos',
   embeddings: 'Busca inteligente',
+  'course-organization': 'Organizando curso com IA',
   other: 'Processamento',
 };
 

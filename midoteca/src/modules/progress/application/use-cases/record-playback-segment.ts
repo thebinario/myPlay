@@ -38,7 +38,7 @@ export class RecordPlaybackSegment {
     const alreadyCompleted = existing?.completedAt ?? null;
     const completedNow = !alreadyCompleted && isWatchComplete(coverage, durationMs);
 
-    return this.deps.progress.saveWatchState({
+    const saved = await this.deps.progress.saveWatchState({
       lessonId,
       positionMs: Math.max(fromMs, toMs),
       durationMs,
@@ -50,5 +50,16 @@ export class RecordPlaybackSegment {
           ? 'watched'
           : null,
     });
+    await this.notifyPlayed(lessonId, toMs - fromMs);
+    return saved;
+  }
+
+  private async notifyPlayed(lessonId: string, playedMs: number): Promise<void> {
+    if (!this.deps.activity || playedMs <= 0) return;
+    try {
+      await this.deps.activity.segmentPlayed({ lessonId, playedMs });
+    } catch (error) {
+      console.error('[progress] falha ao registrar tempo de estudo', error);
+    }
   }
 }

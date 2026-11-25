@@ -17,7 +17,32 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-25
+
+### Adicionado
+
+- **Estudos: cronograma e registro de tempo** (ícone de relógio na barra
+  lateral). A aba **Hoje** responde "o que estudar agora" a qualquer hora —
+  bloco em andamento, o que ficou pendente, o próximo ou "meta cumprida" — com
+  atalho para continuar a próxima aula do curso ou abrir a plataforma. Tem
+  cronômetro (que sobrevive a fechar o app), agenda do dia com progresso,
+  registros do dia, resumo da semana e sequência de dias cumpridos. A aba
+  **Cronograma** monta a semana em blocos (dias, horário, duração, atividade e
+  foco); a aba **Trilhas** cadastra cursos da biblioteca e plataformas externas
+  (atalhos para Hack The Box, HackingClub, TryHackMe e PortSwigger Academy).
+  Ao criar a trilha de um curso, os cursos aparecem agrupados pela biblioteca
+  (Biblioteca › Coleção › Curso, com módulos e aulas) e podem ser pesquisados
+  pelo nome do curso, da coleção ou da biblioteca, sem diferenciar acentos.
+  O tempo assistido no player entra sozinho no dia; o tempo estudado fora do
+  app pode ser registrado manualmente. Links externos abrem no navegador do
+  sistema.
+
 ### Alterado
+
+- **A análise de pastas vem primeiro**: enquanto uma fonte é escaneada
+  (importação ou "Reescanear"), transcrição, extração de texto, busca
+  inteligente, análise de mídia e organização com IA esperam; quem já estava
+  rodando pausa no próximo ponto seguro e continua quando o scan termina.
 
 - **Nova barra lateral** (fiel ao protótipo): marca "Midoteca", Início,
   Biblioteca e Pesquisa (com o atalho `Ctrl K`), e no rodapé Configurações,
@@ -39,6 +64,14 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ### Corrigido
 
+- **Curso importado pela própria pasta aparecia como vários cursos:** quando as
+  pastas da raiz de uma biblioteca se chamam como módulos ("Módulo 1…",
+  "01 Modulo 00…", "Section 2"…), a raiz agora é o curso e essas pastas viram
+  seus módulos (antes cada módulo virava um curso). Ao reescanear, os cursos
+  antigos são unidos ao novo, preservando progresso, conclusão e títulos
+  editados; nenhum arquivo é alterado.
+- **Biblioteca com um único curso abria direto nas aulas:** agora mostra o card
+  do curso, como as demais bibliotecas.
 - **Processamento parado em bibliotecas antigas:** a análise de duplicados, a
   extração de texto (busca) e a transcrição só eram agendadas ao fim de um
   escaneamento, então bibliotecas indexadas antes dessas funções ficavam com
@@ -53,6 +86,10 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 - **Selo de transcrição na lista de aulas:** cada aula mostra "Transcrita",
   "Transcrevendo…" ou "Falha na transcrição" (com o motivo no tooltip), lido do
   estado persistido pelo núcleo — o diagnóstico sobrevive ao fechar o app.
+- **`npm run dev` no Windows:** a verificação do better-sqlite3 e a
+  recompilação para o Electron falhavam sempre (o Node recusa executar `.cmd`
+  sem shell). O modo dev agora chama Electron, npm e Vite pelos executáveis
+  reais e avisa para fechar o Midoteca se a recompilação falhar.
 
 - **Ordem do catálogo:** cursos, coleções, seções, módulos e aulas seguem a
   numeração do nome: "Módulo 2" vem antes de "Módulo 10", e itens sem número
@@ -68,6 +105,22 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ### Adicionado
 
+- **Módulos em pastas planas**: cursos com todos os vídeos numa pasta só deixam
+  de virar uma lista única. A indexação separa os módulos pelo que os nomes já
+  dizem — "Lives", séries (`Websérie - … - Ep.N`) e marcadores
+  `Aula NN - Módulo N` — e anexa cada material `Aula NN` ao módulo da aula.
+  Bibliotecas já indexadas são reagrupadas no próximo rescan sem perder o
+  progresso; aulas movidas pelo usuário ficam onde estão.
+- **Reorganizar com IA**: na página do curso, a IA local (offline) propõe
+  módulos por assunto para cursos que chegam como uma lista única. Roda em
+  segundo plano (aparece em Atividade como "Organizando curso com IA"), mostra
+  a proposta com as aulas de cada módulo e só muda algo quando você clica em
+  "Aplicar sugestão". O progresso das aulas é mantido e os arquivos não são
+  tocados; depois dá para ajustar em Editar Curso. Em máquinas com 16 GB de
+  RAM o app passa a usar o Qwen 2.5 7B (4,7 GB) como modelo local.
+- **Reescanear fonte**: botão "Reescanear" no card de cada fonte em
+  Configurações. Analisa de novo só aquela pasta (o progresso aparece no painel
+  de importação) e aplica a organização atual sem reimportar a biblioteca.
 - Versão do app visível no rodapé da barra lateral; um clique abre
   Configurações, onde fica o Sobre.
 - **Atividade em segundo plano:** um ícone animado na barra lateral mostra

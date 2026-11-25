@@ -83,6 +83,18 @@ export class ApplyOrganization {
           });
 
           for (const module of section.modules) {
+            // The user (or an applied AI suggestion) already placed every lesson
+            // of this not-yet-catalogued module elsewhere: recreating it would
+            // only bring back an empty module and duplicate its materials.
+            if (
+              module.lessons.length > 0 &&
+              !store.hasModule(courseResult.id, module.relativePath) &&
+              module.lessons.every((lesson) =>
+                store.isLessonPinned(courseResult.id, lesson.relativePath),
+              )
+            ) {
+              continue;
+            }
             const moduleResult = store.upsertModule({
               courseId: courseResult.id,
               sectionId: sectionResult.id,
@@ -94,6 +106,7 @@ export class ApplyOrganization {
 
             for (const lesson of module.lessons) {
               const lessonResult = store.upsertLesson({
+                courseId: courseResult.id,
                 moduleId: moduleResult.id,
                 relativePath: lesson.relativePath,
                 detectedTitle: lesson.title,
@@ -123,6 +136,11 @@ export class ApplyOrganization {
           }
         }
 
+        store.removeEmptyDetectedModules(
+          courseResult.id,
+          course.sections.flatMap((section) => section.modules.map((m) => m.relativePath)),
+        );
+
         for (const document of course.documents) {
           const media = store.findMediaByPath(sourceId, document.relativePath);
           if (!media) continue;
@@ -136,6 +154,13 @@ export class ApplyOrganization {
           });
         }
       }
+
+      // Courses the new plan absorbed (e.g. module folders once indexed as
+      // courses) give their progress to the new lessons and leave the catalog.
+      store.retireAbsorbedCourses(
+        sourceId,
+        plan.courses.map((course) => course.relativePath),
+      );
 
       for (const document of plan.looseDocuments) {
         const media = store.findMediaByPath(sourceId, document.relativePath);

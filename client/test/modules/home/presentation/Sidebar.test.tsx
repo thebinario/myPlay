@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import packageJson from '../../../../package.json';
 import { Sidebar } from '@/modules/home/presentation/Sidebar';
 
-const NAV = ['Início', 'Biblioteca', 'Pesquisa', 'Configurações'];
+const NAV = ['Início', 'Biblioteca', 'Estudos', 'Pesquisa', 'Configurações'];
 
 describe('home/presentation — Sidebar', () => {
   describe('expandida', () => {
@@ -21,7 +21,7 @@ describe('home/presentation — Sidebar', () => {
         'aria-current',
         'page',
       );
-      for (const name of ['Início', 'Pesquisa', 'Configurações']) {
+      for (const name of ['Início', 'Estudos', 'Pesquisa', 'Configurações']) {
         expect(screen.getByRole('button', { name })).not.toHaveAttribute('aria-current');
       }
     });
@@ -32,6 +32,21 @@ describe('home/presentation — Sidebar', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Pesquisa' }));
       fireEvent.click(screen.getByRole('button', { name: 'Midoteca — página inicial' }));
       expect(onNavigate.mock.calls).toEqual([['search'], ['home']]);
+    });
+
+    it('leva ao cronograma de estudos (menu com relógio)', () => {
+      const onNavigate = vi.fn();
+      render(<Sidebar currentTab="home" onNavigate={onNavigate} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Estudos' }));
+      expect(onNavigate).toHaveBeenCalledWith('study');
+    });
+
+    it('marca Estudos como ativo na tela do cronograma', () => {
+      render(<Sidebar currentTab="study" onNavigate={() => {}} />);
+      expect(screen.getByRole('button', { name: 'Estudos' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
     });
   });
 

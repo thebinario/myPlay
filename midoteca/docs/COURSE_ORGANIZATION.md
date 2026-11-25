@@ -112,3 +112,37 @@ Cada operação usa `db.transaction(...)` (better-sqlite3, síncrono):
 
 `test/indexer.spec.ts` (bloco _manual order precedence_) garante que um rescan
 não sobrescreve ordem manual de módulos nem de aulas.
+
+## 9. Reorganizar com IA (sugestão da IA local)
+
+Quando os nomes dos arquivos não dizem os módulos (ver `LIBRARY_INDEXING.md` §5.0),
+o agrupamento **por assunto** é uma decisão de julgamento: a IA local propõe e o
+usuário aprova. Nada é aplicado sozinho e nenhum arquivo é tocado.
+
+Fluxo:
+
+1. `courses.suggestion.request` grava a sugestão como `pending` e enfileira o job
+   `courses.suggest-organization` (prioridade 2; espera o fim da reprodução).
+2. O job lê as aulas **na ordem dos arquivos** (`orderLessonsForSuggestion`), pede à
+   LLM só **onde cada módulo começa** (`[{ title, start }]`, JSON forçado por
+   gramática) e monta módulos contíguos válidos (`buildSuggestedModules`): uma
+   resposta ruim nunca perde, duplica nem reordena aulas. Falha vira `failed`
+   (sem novas tentativas automáticas: o usuário pede de novo).
+3. A interface mostra a proposta (módulos, quantidade e intervalo de aulas).
+4. `apply` confere que o curso não mudou (`suggestionCoversCourse`) e o
+   `SqliteCourseRestructurer` troca os módulos **numa transação**: aulas mudam de
+   módulo mantendo o id (o progresso fica), módulos novos são `manual`, materiais
+   dos módulos removidos voltam a ser vinculados pela regra `Aula NN`
+   (`planDocumentTargets`) ou ao curso. Depois dá para ajustar em Editar Curso.
+5. No rescan, módulos detectados cujas aulas foram todas fixadas pelo usuário não
+   são recriados (`isLessonPinned`).
+
+Modelo: Qwen 2.5 **7B** com ≥ 15 GB de RAM, 3B com ≥ 8 GB, senão 1.5B
+(`defaultLlmModel`). Medido num curso real de 106 aulas sem pastas: o 7B acerta
+~7 das 12 fronteiras esperadas em ~4 s na GPU, com nomes bons; modelos menores
+erram as posições. Por isso o resultado é um **rascunho** para revisão. Cursos
+longos são enviados em janelas de até 120 aulas.
+
+Persistência: `course_organization_suggestions` (migração 0012, aditiva), uma
+linha por curso enquanto a sugestão é revisada.
+

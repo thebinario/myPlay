@@ -1,6 +1,17 @@
 import type { DiscoveredKind } from '@/core/domain/library-source';
 
-const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv', '.mov', '.avi', '.webm', '.m4v']);
+const VIDEO_EXTENSIONS = new Set([
+  '.mp4',
+  '.mkv',
+  '.mov',
+  '.avi',
+  '.webm',
+  '.wmv',
+  '.m4v',
+  '.mpg',
+  '.mpeg',
+  '.ts',
+]);
 const DOCUMENT_EXTENSIONS = new Set(['.pdf']);
 
 /**

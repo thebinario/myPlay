@@ -8,6 +8,8 @@ export interface JobPacer {
   throttle(): Promise<void>;
   /** Waits until no media is playing (heavy work). Defaults to the pause wait. */
   waitWhilePlaybackActive?(): Promise<void>;
+  /** Waits while a directory analysis runs (it has priority over every job). */
+  waitWhilePriorityWork?(): Promise<void>;
 }
 
 /** Progress a handler reports between units of work. */
@@ -166,8 +168,15 @@ export class JobRunner {
     this.loop = null;
   }
 
+  /** Pause first, then any running directory analysis. */
+  private async holdForPriority(): Promise<void> {
+    const { governor } = this.options;
+    await governor.waitWhilePaused();
+    await governor.waitWhilePriorityWork?.();
+  }
+
   private async processNext(): Promise<boolean> {
-    await this.options.governor.waitWhilePaused();
+    await this.holdForPriority();
     const [job] = await this.options.jobs.listByStatus('pending', 1);
     if (!job) return false;
 
@@ -195,12 +204,13 @@ export class JobRunner {
           await this.options.jobs.update(job.id, { checkpoint: next });
         },
         yieldToPlayback: async () => {
-          await this.options.governor.waitWhilePaused();
+          await this.holdForPriority();
           await this.options.governor.throttle();
         },
         waitForIdle: async () => {
           const { governor } = this.options;
           await (governor.waitWhilePlaybackActive?.() ?? governor.waitWhilePaused());
+          await governor.waitWhilePriorityWork?.();
         },
       });
       await this.options.jobs.update(job.id, { status: 'completed', checkpoint });

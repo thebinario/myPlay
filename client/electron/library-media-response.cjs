@@ -5,13 +5,20 @@ const { Readable } = require('node:stream');
 const path = require('node:path');
 
 const CONTENT_TYPES = {
+  '.avi': 'video/x-msvideo',
+  '.m4v': 'video/x-m4v',
   '.mkv': 'video/x-matroska',
   '.mov': 'video/quicktime',
   '.mp4': 'video/mp4',
+  '.mpeg': 'video/mpeg',
+  '.mpg': 'video/mpeg',
+  '.ogv': 'video/ogg',
   '.pdf': 'application/pdf',
   '.srt': 'text/plain; charset=utf-8',
+  '.ts': 'video/mp2t',
   '.vtt': 'text/vtt; charset=utf-8',
   '.webm': 'video/webm',
+  '.wmv': 'video/x-ms-wmv',
 };
 
 function parseByteRange(header, size) {

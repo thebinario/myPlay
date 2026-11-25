@@ -441,12 +441,18 @@ export class SqliteIndexingStore implements IndexingStore {
   }
 
   upsertLesson(input: UpsertLessonInput): UpsertTitleResult {
+    // Looked up across the course: when detection regroups a folder, the lesson
+    // keeps its id (and progress) and only changes module.
     const existing = this.db
       .prepare(
-        `SELECT id, title, title_source, sort_source FROM lessons
-         WHERE module_id = ? AND relative_path = ?`,
+        `SELECT l.id, l.title, l.title_source, l.sort_source, l.module_id FROM lessons l
+           JOIN course_modules m ON m.id = l.module_id
+         WHERE m.course_id = ? AND l.relative_path = ?
+         ORDER BY l.module_id = ? DESC
+         LIMIT 1`,
       )
-      .get(input.moduleId, input.relativePath) as SortableTitleRow | undefined;
+      .get(input.courseId, input.relativePath, input.moduleId) as
+      (SortableTitleRow & { module_id: string }) | undefined;
 
     if (existing) {
       const resolved = this.resolveTitle(
@@ -455,7 +461,7 @@ export class SqliteIndexingStore implements IndexingStore {
         input.detectedTitle,
         input.manifestTitle,
       );
-      // A user-defined order is never clobbered by a rescan.
+      // A user-defined order or placement is never clobbered by a rescan.
       if (existing.sort_source === 'manual') {
         this.db
           .prepare(
@@ -468,7 +474,8 @@ export class SqliteIndexingStore implements IndexingStore {
         this.db
           .prepare(
             `UPDATE lessons
-               SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected'
+               SET detected_title = ?, title = ?, title_source = ?, sort_order = ?, sort_source = 'detected',
+                   module_id = ?
              WHERE id = ?`,
           )
           .run(
@@ -476,6 +483,7 @@ export class SqliteIndexingStore implements IndexingStore {
             resolved.title,
             resolved.titleSource,
             input.sortOrder ?? 0,
+            input.moduleId,
             existing.id,
           );
       }
@@ -506,6 +514,134 @@ export class SqliteIndexingStore implements IndexingStore {
         titleSource,
       );
     return { id, title, titleSource, created: true };
+  }
+
+  removeEmptyDetectedModules(courseId: string, plannedRelativePaths: readonly string[]): void {
+    this.db
+      .prepare(
+        `DELETE FROM course_modules
+          WHERE course_id = ?
+            AND sort_source = 'detected'
+            AND title_source = 'detected'
+            AND relative_path IS NOT NULL
+            AND relative_path NOT IN (SELECT value FROM json_each(?))
+            AND NOT EXISTS (SELECT 1 FROM lessons WHERE lessons.module_id = course_modules.id)`,
+      )
+      .run(courseId, JSON.stringify(plannedRelativePaths));
+  }
+
+  retireAbsorbedCourses(sourceId: string, plannedRelativePaths: readonly string[]): number {
+    const planned = JSON.stringify(plannedRelativePaths);
+    const stale = this.db
+      .prepare(
+        `SELECT id, relative_path, title, title_source FROM courses
+          WHERE source_id = ? AND relative_path IS NOT NULL
+            AND relative_path NOT IN (SELECT value FROM json_each(?))`,
+      )
+      .all(sourceId, planned) as Array<{
+      id: string;
+      relative_path: string;
+      title: string;
+      title_source: string;
+    }>;
+    const lessonsOf = this.db.prepare(
+      `SELECT l.id, l.title, l.title_source,
+              (SELECT lm.media_file_id FROM lesson_media lm
+                WHERE lm.lesson_id = l.id AND lm.role = 'primary' LIMIT 1) AS media
+         FROM lessons l JOIN course_modules m ON m.id = l.module_id
+        WHERE m.course_id = ?`,
+    );
+    const successorOf = this.db.prepare(
+      `SELECT l.id, m.course_id AS courseId FROM lessons l
+         JOIN course_modules m ON m.id = l.module_id
+         JOIN courses c ON c.id = m.course_id
+         JOIN lesson_media lm ON lm.lesson_id = l.id AND lm.role = 'primary'
+        WHERE lm.media_file_id = ? AND c.source_id = ?
+          AND c.relative_path IN (SELECT value FROM json_each(?))
+        LIMIT 1`,
+    );
+
+    let retired = 0;
+    for (const course of stale) {
+      const lessons = lessonsOf.all(course.id) as Array<{
+        id: string;
+        title: string;
+        title_source: string;
+        media: string | null;
+      }>;
+      const moves = lessons.map((lesson) => ({
+        lesson,
+        successor: lesson.media
+          ? (successorOf.get(lesson.media, sourceId, planned) as
+              { id: string; courseId: string } | undefined)
+          : undefined,
+      }));
+      if (moves.length === 0 || moves.some((move) => !move.successor)) continue;
+
+      for (const { lesson, successor } of moves) {
+        this.moveProgress(lesson.id, successor!.id);
+        if (lesson.title_source === 'manual') {
+          this.db
+            .prepare(
+              `UPDATE lessons SET title = ?, title_source = 'manual'
+                WHERE id = ? AND title_source = 'detected'`,
+            )
+            .run(lesson.title, successor!.id);
+        }
+      }
+      if (course.title_source === 'manual') {
+        // The old course is now a module: keep the name the user gave it.
+        this.db
+          .prepare(
+            `UPDATE course_modules SET title = ?, title_source = 'manual'
+              WHERE relative_path = ? AND title_source = 'detected'
+                AND course_id IN (SELECT value FROM json_each(?))`,
+          )
+          .run(
+            course.title,
+            course.relative_path,
+            JSON.stringify([...new Set(moves.map((move) => move.successor!.courseId))]),
+          );
+      }
+      this.db.prepare('DELETE FROM courses WHERE id = ?').run(course.id);
+      retired += 1;
+    }
+    return retired;
+  }
+
+  /** Keeps the more advanced playback state when a lesson is re-catalogued. */
+  private moveProgress(fromLessonId: string, toLessonId: string): void {
+    const select = this.db.prepare(
+      'SELECT completed_at AS completedAt FROM playback_progress WHERE lesson_id = ?',
+    );
+    const old = select.get(fromLessonId) as { completedAt: string | null } | undefined;
+    if (!old) return;
+    const current = select.get(toLessonId) as { completedAt: string | null } | undefined;
+    if (current && (current.completedAt || !old.completedAt)) return;
+    if (current)
+      this.db.prepare('DELETE FROM playback_progress WHERE lesson_id = ?').run(toLessonId);
+    this.db
+      .prepare('UPDATE playback_progress SET lesson_id = ? WHERE lesson_id = ?')
+      .run(toLessonId, fromLessonId);
+  }
+
+  hasModule(courseId: string, relativePath: string): boolean {
+    return (
+      this.db
+        .prepare(`SELECT 1 FROM course_modules WHERE course_id = ? AND relative_path = ?`)
+        .get(courseId, relativePath) !== undefined
+    );
+  }
+
+  isLessonPinned(courseId: string, relativePath: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `SELECT 1 FROM lessons l JOIN course_modules m ON m.id = l.module_id
+            WHERE m.course_id = ? AND l.relative_path = ? AND l.sort_source = 'manual'`,
+        )
+        .get(courseId, relativePath) !== undefined
+    );
   }
 
   linkLessonMedia(lessonId: string, mediaFileId: string, role: LessonMediaRole): void {

@@ -102,6 +102,45 @@ describe('JobRunner (SQLite)', () => {
     expect(ran).toBe(true);
   });
 
+  it('does not start any job while a directory analysis runs (it has priority)', async () => {
+    let ran = false;
+    runner.register('test.job', async () => {
+      ran = true;
+    });
+    await app.jobs.enqueue({ type: 'test.job', priority: 9 });
+    const release = governor.beginPriorityWork();
+
+    const draining = runner.drain();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(ran).toBe(false);
+
+    release();
+    await draining;
+    expect(ran).toBe(true);
+  });
+
+  it('holds a running job at its next yield while a directory analysis runs', async () => {
+    const steps: string[] = [];
+    let release: () => void = () => {};
+    runner.register('test.job', async ({ yieldToPlayback, waitForIdle }) => {
+      steps.push('first');
+      release = governor.beginPriorityWork();
+      await yieldToPlayback();
+      steps.push('second');
+      await waitForIdle();
+      steps.push('third');
+    });
+    await app.jobs.enqueue({ type: 'test.job' });
+
+    const draining = runner.drain();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(steps).toEqual(['first']);
+
+    release();
+    await draining;
+    expect(steps).toEqual(['first', 'second', 'third']);
+  });
+
   it('fails jobs without a registered handler instead of looping', async () => {
     const job = await app.jobs.enqueue({ type: 'test.unknown' });
     await runner.drain();

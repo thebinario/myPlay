@@ -28,6 +28,10 @@ import { AssistantProvider } from '@/modules/assistant/presentation/AssistantPro
 import { IpcOnboardingRepository } from '@/modules/onboarding/infrastructure/ipc/ipc-onboarding.repository';
 import { IpcActivityRepository } from '@/modules/activity/infrastructure/ipc/ipc-activity.repository';
 import { ActivityProvider } from '@/modules/activity/presentation/ActivityProvider';
+import { OrganizationSuggestionProvider } from '@/modules/courses/presentation/OrganizationSuggestionProvider';
+import { IpcOrganizationSuggestionRepository } from '@/modules/courses/infrastructure/ipc/ipc-organization-suggestion.repository';
+import { IpcStudyRepository } from '@/modules/study/infrastructure/ipc/ipc-study.repository';
+import { StudyProvider } from '@/modules/study/presentation/providers/StudyProvider';
 import '@/index.css';
 
 // Composition root: adapters concretos (mock persistente sobrevive a recarregamentos).
@@ -64,7 +68,11 @@ const subtitlesRepository = runtimeBridge ? new IpcSubtitlesRepository(runtimeBr
 const localAiRepository = runtimeBridge ? new IpcLocalAiRepository(runtimeBridge) : undefined;
 const assistantRepository = runtimeBridge ? new IpcAssistantRepository(runtimeBridge) : undefined;
 const activityRepository = runtimeBridge ? new IpcActivityRepository(runtimeBridge) : undefined;
+const organizationSuggestionRepository = runtimeBridge
+  ? new IpcOrganizationSuggestionRepository(runtimeBridge)
+  : undefined;
 if (activityRepository) void activityRepository.hydrate();
+const studyRepository = runtimeBridge ? new IpcStudyRepository(runtimeBridge) : undefined;
 const contentSearchRepository = runtimeBridge
   ? new IpcContentSearchRepository(runtimeBridge)
   : undefined;
@@ -85,7 +93,13 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                   >
                     <OnboardingProvider repository={onboardingRepository}>
                       <ActivityProvider repository={activityRepository}>
-                        <App />
+                        <OrganizationSuggestionProvider
+                          repository={organizationSuggestionRepository}
+                        >
+                          <StudyProvider repository={studyRepository}>
+                            <App />
+                          </StudyProvider>
+                        </OrganizationSuggestionProvider>
                       </ActivityProvider>
                     </OnboardingProvider>
                   </SourcesProvider>

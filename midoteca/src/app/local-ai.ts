@@ -10,6 +10,7 @@ import {
 import { AI_ENABLED_SETTING } from '../modules/media/application/transcription.service';
 import type { SettingsRepository } from '../modules/settings/domain/ports';
 import type { LlmClient } from '../modules/assistant/domain/ports';
+import { isStructuredLlm, type StructuredLlm } from '../core/structured-llm';
 import type { Embedder } from '../modules/search/domain/ports';
 import { E5_MODEL, E5Embedder } from '../platform/ai/e5-embedder';
 import { createDefaultLlm, defaultLlmModel, ggufFileName } from '../platform/ai/llama-llm-client';
@@ -41,6 +42,8 @@ export interface LocalAiTools {
   transcription: TranscriptionTools | undefined;
   embedder: Embedder | undefined;
   llm: LlmClient | undefined;
+  /** Same model, JSON-constrained (course organization). */
+  structured: StructuredLlm | undefined;
 }
 
 export interface LocalAiStatus {
@@ -100,13 +103,22 @@ export function createLocalAi(
   const service = new TranscriptionService(store, settings);
   const ai = new LocalAi(settings, service, registry, cacheDir);
   if (!options.enabled) {
-    return { ai, tools: { transcription: undefined, embedder: undefined, llm: undefined } };
+    return {
+      ai,
+      tools: {
+        transcription: undefined,
+        embedder: undefined,
+        llm: undefined,
+        structured: undefined,
+      },
+    };
   }
 
   const modelOptions = { cacheDir, onProgress: registry.report };
   const defaults = options.useDefaultModels;
   const transcriber =
     options.transcriber ?? (defaults ? new WhisperTranscriber(modelOptions) : undefined);
+  const llm = options.llm ?? (defaults ? createDefaultLlm(modelOptions, llmModel) : undefined);
   return {
     ai,
     tools: {
@@ -114,7 +126,8 @@ export function createLocalAi(
         ? { store, service, transcriber, audio: options.audio ?? new FfmpegAudioDecoder() }
         : undefined,
       embedder: options.embedder ?? (defaults ? new E5Embedder(modelOptions) : undefined),
-      llm: options.llm ?? (defaults ? createDefaultLlm(modelOptions, llmModel) : undefined),
+      llm,
+      structured: isStructuredLlm(llm) ? llm : undefined,
     },
   };
 }

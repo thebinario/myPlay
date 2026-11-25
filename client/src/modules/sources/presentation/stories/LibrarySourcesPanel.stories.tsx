@@ -23,6 +23,7 @@ const importViewModel: ImportViewModel = {
   state: INITIAL_IMPORT_STATE,
   isSimulated: true,
   start: noop,
+  startFor: noop,
   pause: noop,
   resume: noop,
   retry: noop,

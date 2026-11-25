@@ -16,6 +16,7 @@ import { LessonMediaIssueBadge } from '@/modules/courses/presentation/LessonMedi
 import { LessonTranscriptBadge } from '@/modules/courses/presentation/LessonTranscriptBadge';
 import { WatchedElsewhereNotice } from '@/modules/courses/presentation/WatchedElsewhereNotice';
 import { CourseProgressCard } from './CourseProgressCard';
+import { CourseAiOrganizer } from '@/modules/courses/presentation/CourseAiOrganizer';
 
 interface CourseDetailsViewProps {
   course: Course;
@@ -141,6 +142,11 @@ export const CourseDetailsView: React.FC<CourseDetailsViewProps> = ({
         spacingAfter={32}
         onPlayLesson={onPlayLesson}
         onEditCourse={onEditCourse}
+      />
+
+      <CourseAiOrganizer
+        courseId={course.id}
+        lessons={course.modules.flatMap((module) => module.lessons)}
       />
 
       {/* Modules and Lessons Section */}

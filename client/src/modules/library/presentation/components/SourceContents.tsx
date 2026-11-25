@@ -21,8 +21,8 @@ interface SourceContentsProps {
 /**
  * Conteúdo de uma fonte (biblioteca): segue o drill-down
  * `Fontes › Coleções › Curso`. Mostra as coleções da fonte e, abaixo, os cursos
- * que não pertencem a nenhuma coleção. Quando a fonte não tem coleções e possui
- * um único curso, abre direto o conteúdo (módulos e aulas) desse curso.
+ * que não pertencem a nenhuma coleção — sempre como cards, mesmo quando a fonte
+ * é um único curso, para que toda biblioteca seja navegada do mesmo jeito.
  */
 export const SourceContents: React.FC<SourceContentsProps> = ({
   items,
@@ -42,7 +42,6 @@ export const SourceContents: React.FC<SourceContentsProps> = ({
   const looseCourses = courses.filter(
     (course) => !course.collectionId || !collectionIds.has(course.collectionId),
   );
-  const singleCourse = collections.length === 0 && courses.length === 1;
 
   const listProps = {
     onSelectCourse,
@@ -62,24 +61,17 @@ export const SourceContents: React.FC<SourceContentsProps> = ({
     });
   }
 
-  if (singleCourse) {
+  if (looseCourses.length > 0) {
     sections.push({
-      key: 'single-course',
-      node: <LibraryContentsList items={items} {...listProps} />,
+      key: 'courses',
+      node: <CoursesGrid courses={looseCourses} onSelectCourse={onSelectCourse} />,
     });
-  } else {
-    if (looseCourses.length > 0) {
-      sections.push({
-        key: 'courses',
-        node: <CoursesGrid courses={looseCourses} onSelectCourse={onSelectCourse} />,
-      });
-    }
-    if (standalone.length > 0) {
-      sections.push({
-        key: 'standalone',
-        node: <LibraryContentsList items={standalone} {...listProps} />,
-      });
-    }
+  }
+  if (standalone.length > 0) {
+    sections.push({
+      key: 'standalone',
+      node: <LibraryContentsList items={standalone} {...listProps} />,
+    });
   }
 
   if (sections.length === 0) {

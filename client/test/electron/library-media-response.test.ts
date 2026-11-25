@@ -30,4 +30,24 @@ describe('createLibraryMediaResponse', () => {
     expect(response.headers.get('content-length')).toBe('4');
     await expect(response.text()).resolves.toBe('3456');
   });
+
+  it('declara o tipo de mídia correto para MP4 e MPEG-TS', async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'midoteca-media-'));
+    const mp4Path = path.join(directory, 'video.mp4');
+    const tsPath = path.join(directory, 'aula.ts');
+    await writeFile(mp4Path, 'mp4');
+    await writeFile(tsPath, 'ts');
+
+    const mp4 = await createLibraryMediaResponse(
+      mp4Path,
+      new Request('midoteca-media://media/video.mp4'),
+    );
+    const ts = await createLibraryMediaResponse(
+      tsPath,
+      new Request('midoteca-media://media/aula.ts'),
+    );
+
+    expect(mp4.headers.get('content-type')).toBe('video/mp4');
+    expect(ts.headers.get('content-type')).toBe('video/mp2t');
+  });
 });

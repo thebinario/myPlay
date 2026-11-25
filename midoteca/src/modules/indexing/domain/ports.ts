@@ -58,6 +58,11 @@ export interface UpsertModuleInput extends UpsertTitleInput {
 }
 
 export interface UpsertLessonInput extends UpsertTitleInput {
+  /**
+   * Course the lesson belongs to: a lesson already catalogued in another module
+   * of this course is the same lesson (same id, same progress), not a new one.
+   */
+  courseId: string;
   moduleId: string;
 }
 
@@ -109,6 +114,22 @@ export interface IndexingStore {
   upsertSection(input: UpsertSectionInput): UpsertTitleResult;
   upsertModule(input: UpsertModuleInput): UpsertTitleResult;
   upsertLesson(input: UpsertLessonInput): UpsertTitleResult;
+  /**
+   * Removes the course's detected modules that are no longer planned and hold
+   * no lesson (catalog only; lessons, progress and files are never touched).
+   */
+  removeEmptyDetectedModules(courseId: string, plannedRelativePaths: readonly string[]): void;
+  /**
+   * Retires catalogued courses of the source that are no longer planned and
+   * whose every lesson now lives (same primary video) in a planned course —
+   * e.g. module folders once indexed as courses. Progress, completion and
+   * manual titles move to the new rows first. A stale course with any lesson
+   * not absorbed (files gone, drive offline) is kept. Catalog only.
+   */
+  retireAbsorbedCourses(sourceId: string, plannedRelativePaths: readonly string[]): number;
+  hasModule(courseId: string, relativePath: string): boolean;
+  /** The lesson exists in the course and its placement was chosen manually. */
+  isLessonPinned(courseId: string, relativePath: string): boolean;
   linkLessonMedia(lessonId: string, mediaFileId: string, role: LessonMediaRole): void;
   upsertDocument(input: UpsertDocumentInput): UpsertTitleResult;
   linkDocument(input: LinkDocumentInput): void;

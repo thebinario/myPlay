@@ -26,6 +26,8 @@ export class ResourceGovernor {
   private paused = false;
   private cancelled = false;
   private resumeWaiters: Array<() => void> = [];
+  private priorityWork = 0;
+  private priorityWaiters: Array<() => void> = [];
 
   constructor(private readonly options: { throttleMs?: number } = {}) {}
 
@@ -74,6 +76,37 @@ export class ResourceGovernor {
       this.signals.memoryPressure ||
       this.signals.onBattery
     );
+  }
+
+  /**
+   * Directory analysis (scan) has priority over every background job: while
+   * one runs, jobs neither start nor continue past their next yield. Returns
+   * the release (idempotent); `reset()`/`cancel()` never clear it.
+   */
+  beginPriorityWork(): () => void {
+    this.priorityWork += 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.priorityWork -= 1;
+      if (this.priorityWork > 0) return;
+      const waiters = this.priorityWaiters;
+      this.priorityWaiters = [];
+      for (const resolve of waiters) resolve();
+    };
+  }
+
+  get isPriorityWorkActive(): boolean {
+    return this.priorityWork > 0;
+  }
+
+  /** Background jobs wait here until no directory analysis is running. */
+  waitWhilePriorityWork(): Promise<void> {
+    if (this.priorityWork === 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      this.priorityWaiters.push(resolve);
+    });
   }
 
   /** Resolves once indexing is allowed to continue (or was cancelled). */

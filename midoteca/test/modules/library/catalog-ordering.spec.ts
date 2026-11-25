@@ -18,6 +18,21 @@ const EXPECTED = [
   'Módulo 10 - Bônus',
   'Bônus',
 ];
+// Pastas de curso na raiz da fonte (pastas "Módulo N" na raiz fazem da raiz o curso).
+const COURSE_FOLDERS = [
+  'Bônus',
+  'Curso 1 - Introdução',
+  'Curso 10 - Bônus',
+  'Curso 2 - Alta Performance',
+  'Curso 3 - Priorização',
+];
+const EXPECTED_COURSES = [
+  'Curso 1 - Introdução',
+  'Curso 2 - Alta Performance',
+  'Curso 3 - Priorização',
+  'Curso 10 - Bônus',
+  'Bônus',
+];
 
 describe('Ordenação do catálogo (escaneamento real + SQLite)', () => {
   let temp: TempDatabase;
@@ -37,7 +52,7 @@ describe('Ordenação do catálogo (escaneamento real + SQLite)', () => {
   });
 
   it('lista cursos numerados em ordem numérica e os sem número por último', async () => {
-    for (const folder of MODULE_FOLDERS) {
+    for (const folder of COURSE_FOLDERS) {
       library.write(`${folder}/Aula A.mp4`, `${folder}-a`, FIXED_MTIME);
       library.write(`${folder}/Aula B.mp4`, `${folder}-b`, FIXED_MTIME);
     }
@@ -45,11 +60,11 @@ describe('Ordenação do catálogo (escaneamento real + SQLite)', () => {
     await app.indexer.runScan({ sourceId: source.id });
 
     const all = app.queries.listCourses({ sourceId: source.id, limit: 50 });
-    expect(all.items.map((course) => course.title)).toEqual(EXPECTED);
+    expect(all.items.map((course) => course.title)).toEqual(EXPECTED_COURSES);
 
     const page = app.queries.listCourses({ sourceId: source.id, limit: 2, offset: 2 });
     expect(page.total).toBe(5);
-    expect(page.items.map((course) => course.title)).toEqual(EXPECTED.slice(2, 4));
+    expect(page.items.map((course) => course.title)).toEqual(EXPECTED_COURSES.slice(2, 4));
   });
 
   it('ordena os módulos e as aulas da árvore do curso pela mesma regra', async () => {

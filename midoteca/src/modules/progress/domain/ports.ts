@@ -17,3 +17,11 @@ export interface ProgressRepository {
 export interface LessonMediaDurations {
   primaryDurationMs(lessonId: string): Promise<number | null>;
 }
+
+/**
+ * Notified after a really-played segment is recorded (e.g. to credit study
+ * time). Failures never affect the watch progress.
+ */
+export interface PlaybackActivityObserver {
+  segmentPlayed(input: { lessonId: string; playedMs: number }): Promise<void>;
+}

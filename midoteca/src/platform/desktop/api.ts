@@ -3,6 +3,7 @@ import { resolveAppDataDir } from '../../core/app-paths';
 import { ConflictError, NotFoundError, PersistenceError, ValidationError } from '../../core/errors';
 import type { Midoteca } from '../../app/composition-root';
 import { getCurrentVersion } from '../persistence/sqlite/migrator';
+import { dispatchStudy } from './study-handlers';
 import {
   DESKTOP_METHODS,
   type DesktopErrorPayload,
@@ -23,6 +24,13 @@ export interface DesktopApi {
 }
 
 const METHOD_SET = new Set<string>(DESKTOP_METHODS);
+
+function courseIdOf(params: unknown): string {
+  const courseId = (params as { courseId?: unknown } | null)?.courseId;
+  if (typeof courseId !== 'string' || courseId === '')
+    throw new ValidationError('courseId é obrigatório');
+  return courseId;
+}
 
 function isMethod(value: unknown): value is DesktopMethod {
   return typeof value === 'string' && METHOD_SET.has(value);
@@ -179,6 +187,16 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
       case 'courses.list':
         return midoteca.courses.list();
 
+      case 'courses.suggestion.get':
+        return midoteca.organizationSuggestions.get(courseIdOf(params));
+      case 'courses.suggestion.request':
+        return midoteca.organizationSuggestions.request(courseIdOf(params));
+      case 'courses.suggestion.apply':
+        await midoteca.organizationSuggestions.apply(courseIdOf(params));
+        return null;
+      case 'courses.suggestion.dismiss':
+        await midoteca.organizationSuggestions.dismiss(courseIdOf(params));
+        return null;
       case 'courses.saveOrganization':
         return midoteca.courseOrganization.saveCourseOrganization(
           params as Parameters<Midoteca['courseOrganization']['saveCourseOrganization']>[0],
@@ -302,6 +320,9 @@ export function createDesktopApi(midoteca: Midoteca): DesktopApi {
 
       case 'settings.list':
         return midoteca.settings.list();
+
+      default:
+        return dispatchStudy(midoteca, method, params);
     }
   }
 

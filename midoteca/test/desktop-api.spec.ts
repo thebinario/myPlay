@@ -452,3 +452,74 @@ describe('desktop API — atividade em segundo plano', () => {
     }
   });
 });
+
+describe('desktop API — cronograma de estudos', () => {
+  it('cria trilha, salva o cronograma, cronometra e devolve o dia e a semana', async () => {
+    const temp = createTempDatabase();
+    let now = new Date(2026, 10, 25, 19, 0);
+    const app = createMidoteca({ databaseFile: temp.file, clock: () => now });
+    const api = createDesktopApi(app);
+    try {
+      const { DESKTOP_METHODS } = await import('../src/index');
+      expect(DESKTOP_METHODS).toEqual(
+        expect.arrayContaining([
+          'study.tracks.list',
+          'study.courses',
+          'study.tracks.save',
+          'study.tracks.archive',
+          'study.schedule.get',
+          'study.schedule.save',
+          'study.timer.start',
+          'study.timer.stop',
+          'study.sessions.log',
+          'study.sessions.delete',
+          'study.day',
+          'study.week',
+        ]),
+      );
+
+      const track = unwrap<{ id: string }>(
+        await api.handle({
+          method: 'study.tracks.save',
+          params: { title: 'Hack The Box', kind: 'external', platform: 'Hack The Box' },
+        }),
+      );
+      unwrap(
+        await api.handle({
+          method: 'study.schedule.save',
+          params: {
+            blocks: [{ trackId: track.id, weekday: 3, startMinute: 19 * 60, durationMinutes: 60 }],
+          },
+        }),
+      );
+      unwrap(await api.handle({ method: 'study.timer.start', params: { trackId: track.id } }));
+      now = new Date(2026, 10, 25, 19, 40);
+      const day = unwrap<{ focus: { kind: string }; timer: { elapsedMs: number } }>(
+        await api.handle({ method: 'study.day', params: {} }),
+      );
+      expect(day.focus.kind).toBe('now');
+      expect(day.timer.elapsedMs).toBe(40 * 60_000);
+
+      const session = unwrap<{ id: string; durationMs: number }>(
+        await api.handle({ method: 'study.timer.stop', params: {} }),
+      );
+      expect(session.durationMs).toBe(40 * 60_000);
+      unwrap(
+        await api.handle({ method: 'study.sessions.delete', params: { sessionId: session.id } }),
+      );
+      const week = unwrap<{ totalLoggedMinutes: number }>(
+        await api.handle({ method: 'study.week', params: {} }),
+      );
+      expect(week.totalLoggedMinutes).toBe(0);
+
+      const invalid = await api.handle({
+        method: 'study.sessions.log',
+        params: { trackId: track.id, date: '2026-12-01', minutes: 30 },
+      });
+      expect(invalid).toMatchObject({ ok: false, error: { kind: 'validation' } });
+    } finally {
+      app.close();
+      temp.cleanup();
+    }
+  });
+});

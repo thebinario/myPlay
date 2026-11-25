@@ -29,6 +29,8 @@ export interface ImportViewModel {
   /** Falso quando o runner é o real: esconde controles de demonstração. */
   isSimulated: boolean;
   start(): void;
+  /** Analisa de novo só a fonte indicada (ex.: depois de mudar a organização). */
+  startFor(sourceId: string): void;
   pause(): void;
   resume(): void;
   retry(): void;

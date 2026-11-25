@@ -15,6 +15,7 @@ const STATUS_META: Record<SourceStatus, { label: string; color: string }> = {
 export interface SourceCardProps {
   source: LibrarySource;
   onCheck: (id: string) => void;
+  onRescan?: (id: string) => void;
   onReconnect: (id: string) => void;
   onDisconnect: (id: string) => void;
   onRemove: (id: string) => void;
@@ -32,6 +33,7 @@ function formatLastScan(value: string | null): string {
 export const SourceCard: React.FC<SourceCardProps> = ({
   source,
   onCheck,
+  onRescan,
   onReconnect,
   onDisconnect,
   onRemove,
@@ -104,6 +106,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
         source={source}
         showDisconnectSimulation={showDisconnectSimulation}
         onCheck={onCheck}
+        onRescan={onRescan}
         onReconnect={onReconnect}
         onDisconnect={onDisconnect}
         onRemove={onRemove}

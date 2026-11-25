@@ -248,4 +248,67 @@ describe('organize', () => {
     expect(plan.courses).toHaveLength(0);
     expect(plan.looseDocuments.map((d) => d.title)).toEqual(['nota']);
   });
+
+  describe('source root whose folders are modules', () => {
+    const moduleTitles = (plan: ReturnType<typeof organize>) =>
+      plan.courses[0].sections.flatMap((section) => section.modules.map((m) => m.title));
+
+    it('is a single course when the first-level folders are named "Módulo N"', () => {
+      const plan = organize(
+        [
+          file('Módulo 1 - Introdução/Boas-vindas.mp4', 'video'),
+          file('Módulo 1 - Introdução/Guia de Estudo.pdf', 'pdf'),
+          file('Módulo 2 - Alta Performance/1. Produtividade para quê.mp4', 'video'),
+          file('modulo 10 - Bônus/1. Qual a sua vontade.mp4', 'video'),
+        ],
+        { rootLabel: 'Produtividade e Gestão do Tempo - Escola Conquer' },
+      );
+      expect(plan.courses).toHaveLength(1);
+      expect(plan.courses[0]).toMatchObject({
+        relativePath: '',
+        title: 'Produtividade e Gestão do Tempo - Escola Conquer',
+      });
+      expect(moduleTitles(plan)).toEqual([
+        'Módulo 1 - Introdução',
+        'Módulo 2 - Alta Performance',
+        'modulo 10 - Bônus',
+      ]);
+    });
+
+    it('recognizes numbered "Modulo" folders and "Section N" folders', () => {
+      const android = organize(
+        [
+          file('01 Modulo 00 - Apresentação/aula.mp4', 'video'),
+          file('02 Modulo 01 - Configurando ambiente -/aula.mp4', 'video'),
+          file('06 Módulo 05 - Criando Malware para android -/aula.mp4', 'video'),
+        ],
+        { rootLabel: 'Android Hacking' },
+      );
+      expect(android.courses.map((course) => course.relativePath)).toEqual(['']);
+
+      const sans = organize(
+        [file('Section 1/Day 1/a.mp4', 'video'), file('Section 2/b.mp4', 'video')],
+        { rootLabel: 'SANS SEC542 Web App Penetration Testing' },
+      );
+      expect(sans.courses.map((course) => course.relativePath)).toEqual(['']);
+    });
+
+    it('keeps a library of courses as several courses', () => {
+      const plan = organize(
+        [
+          file('AUD 507 - Auditing/a.mp4', 'video'),
+          file('FOR 508 - Forensics/b.mp4', 'video'),
+          file('MGT 414 - CISSP/c.mp4', 'video'),
+          file('Módulo extra/d.mp4', 'video'),
+        ],
+        { rootLabel: 'SANS_Collection' },
+      );
+      expect(plan.courses.map((course) => course.relativePath).sort()).toEqual([
+        'AUD 507 - Auditing',
+        'FOR 508 - Forensics',
+        'MGT 414 - CISSP',
+        'Módulo extra',
+      ]);
+    });
+  });
 });

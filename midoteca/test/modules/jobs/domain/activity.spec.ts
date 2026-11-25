@@ -16,12 +16,14 @@ describe('jobs/domain — activity', () => {
     expect(activityKindOf('media.transcribe-source')).toBe('transcription');
     expect(activityKindOf('search.extract-content')).toBe('content-extraction');
     expect(activityKindOf('search.embed-chunks')).toBe('embeddings');
+    expect(activityKindOf('courses.suggest-organization')).toBe('course-organization');
     expect(activityKindOf('qualquer.outro')).toBe('other');
   });
 
   it('descreve cada atividade em pt-BR com o nome da biblioteca', () => {
     expect(describeActivity('scan', 'Cursos')).toBe('Atualizando biblioteca · Cursos');
     expect(describeActivity('transcription', 'Cursos')).toBe('Transcrição · Cursos');
+    expect(describeActivity('course-organization', null)).toBe('Organizando curso com IA');
     expect(describeActivity('media-analysis', 'Cursos')).toBe('Análise de mídia · Cursos');
     expect(describeActivity('content-extraction', 'Cursos')).toBe(
       'Indexação de documentos · Cursos',

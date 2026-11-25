@@ -24,12 +24,18 @@ export function useImportFlow(autoAdvance = true): ImportViewModel {
   }, [autoAdvance, isSimulated, runner, state.phase]);
 
   const start = useCallback(() => runner.start(repository.list()), [runner, repository]);
+  const startFor = useCallback(
+    (sourceId: string) =>
+      runner.start(repository.list().filter((source) => source.id === sourceId)),
+    [runner, repository],
+  );
 
   return useMemo<ImportViewModel>(
     () => ({
       state,
       isSimulated,
       start,
+      startFor,
       pause: () => runner.pause(),
       resume: () => runner.resume(),
       retry: () => runner.retry(),
@@ -37,6 +43,6 @@ export function useImportFlow(autoAdvance = true): ImportViewModel {
       advance: () => runner.advance(),
       reset: () => runner.reset(),
     }),
-    [state, isSimulated, runner, start],
+    [state, isSimulated, runner, start, startFor],
   );
 }

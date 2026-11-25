@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlugZap, RefreshCw, Trash2, Unplug } from 'lucide-react';
+import { FolderSync, PlugZap, RefreshCw, Trash2, Unplug } from 'lucide-react';
 import type { LibrarySource } from '@/core/domain/library-source';
 import { Button } from '@/shared/ui/components/Button';
 import { SourceRemoveConfirmation } from '@/modules/sources/presentation/components/SourceRemoveConfirmation';
@@ -8,6 +8,8 @@ interface SourceActionsProps {
   source: LibrarySource;
   showDisconnectSimulation: boolean;
   onCheck(id: string): void;
+  /** Ausente quando o painel não oferece nova análise (ex.: stories antigas). */
+  onRescan?(id: string): void;
   onReconnect(id: string): void;
   onDisconnect(id: string): void;
   onRemove(id: string): void;
@@ -17,6 +19,7 @@ export const SourceActions: React.FC<SourceActionsProps> = ({
   source,
   showDisconnectSimulation,
   onCheck,
+  onRescan,
   onReconnect,
   onDisconnect,
   onRemove,
@@ -49,6 +52,19 @@ export const SourceActions: React.FC<SourceActionsProps> = ({
         <RefreshCw size={13} style={{ marginRight: '6px' }} aria-hidden />
         Verificar
       </Button>
+      {onRescan && (
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={`Reescanear fonte ${source.name}`}
+          title="Analisa a pasta de novo e atualiza cursos, módulos e aulas"
+          onClick={() => onRescan(source.id)}
+          disabled={!isConnected}
+        >
+          <FolderSync size={13} style={{ marginRight: '6px' }} aria-hidden />
+          Reescanear
+        </Button>
+      )}
       {isConnected ? (
         showDisconnectSimulation && (
           <Button variant="secondary" size="sm" onClick={() => onDisconnect(source.id)}>

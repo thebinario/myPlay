@@ -81,4 +81,26 @@ describe('media/domain — playability', () => {
       }),
     ).toEqual({ playability: 'unsupported', reason: 'contêiner avi' });
   });
+
+  it('considera reproduzível MPEG-TS com codecs nativos (remux para MP4)', () => {
+    expect(
+      assessPlayability({
+        readable: true,
+        container: 'mpegts',
+        videoCodec: 'h264',
+        audioCodec: 'aac',
+      }),
+    ).toEqual({ playability: 'playable', reason: null });
+  });
+
+  it('mantém como não suportado MPEG-TS com codec que o Chromium não decodifica', () => {
+    expect(
+      assessPlayability({
+        readable: true,
+        container: 'mpegts',
+        videoCodec: 'mpeg2video',
+        audioCodec: 'mp2',
+      }),
+    ).toEqual({ playability: 'unsupported', reason: 'codec de vídeo mpeg2video' });
+  });
 });

@@ -1,4 +1,5 @@
-import { resolveDefaultDatabasePath } from '../core/app-paths';
+import { join } from 'node:path';
+import { resolveAppDataDir, resolveDefaultDatabasePath } from '../core/app-paths';
 import {
   CourseOrganizationService,
   SqliteCourseRepository,
@@ -25,9 +26,12 @@ import {
   SqliteLessonSubtitleLookup,
   SqliteMediaAnalysisStore,
   SqlitePlayabilityStore,
+  PrepareMediaPlayback,
   SqliteMediaRepository,
   SqliteTranscriptCueReader,
   type AudioDecoder,
+  type MediaPlaybackService,
+  type MediaRemuxer,
   type MediaRepository,
   type Transcriber,
 } from '../modules/media';
@@ -55,6 +59,9 @@ import { FsSubtitleReader } from '../platform/text/fs-subtitle-reader';
 import { FfmpegFrameSampler } from '../platform/media/ffmpeg-frame-sampler';
 import { FfprobeMediaProber } from '../platform/media/ffprobe-prober';
 import { FfprobeMediaInspector } from '../platform/media/ffprobe-inspector';
+import { FfmpegMediaRemuxer } from '../platform/media/ffmpeg-remuxer';
+import { createOrganizationSuggestions } from './organization-suggestions';
+import type { OrganizationSuggestionService } from '../modules/courses';
 import { nowIso } from '../core/clock';
 import {
   SqliteLessonMediaDurations,
@@ -63,6 +70,12 @@ import {
   type ProgressRepository,
 } from '../modules/progress';
 import { SqliteSettingsRepository, type SettingsRepository } from '../modules/settings';
+import {
+  SqliteStudyCourseCatalog,
+  SqliteStudyRepository,
+  StudyService,
+  type StudyClock,
+} from '../modules/study';
 import { TypedEventBus } from '../platform/events/typed-event-bus';
 import { FsManifestLoader } from '../platform/fs/manifest-loader';
 import { RecursiveFileScanner } from '../platform/fs/recursive-scanner';
@@ -85,6 +98,8 @@ export interface MidotecaOptions {
    * ffmpeg; tests may inject deterministic fakes.
    */
   mediaTools?: Partial<MediaTools>;
+  /** Playback preparation adapters; tests may inject a deterministic remuxer. */
+  playbackTools?: { remuxer?: MediaRemuxer };
   /** Start the background job loop (desktop runtime). Defaults to false. */
   backgroundJobs?: boolean;
   /**
@@ -94,6 +109,8 @@ export interface MidotecaOptions {
   localAi?: boolean;
   /** Folder for downloaded models. Defaults to `<appData>/models`. */
   aiCacheDir?: string;
+  /** Local clock of the study planner; tests inject a fixed one. */
+  clock?: StudyClock;
   aiTools?: {
     transcriber?: Transcriber;
     audio?: AudioDecoder;
@@ -138,6 +155,11 @@ export interface Midoteca {
   readonly jobRunner: JobRunner;
   /** Live picture of background work (scans, analysis, transcription...). */
   readonly activity: ActivityMonitor;
+  /**
+   * Resolves a library video to a file Chromium can stream, remuxing
+   * non-native containers (e.g. MPEG-TS) into a cached MP4 when needed.
+   */
+  readonly playback: MediaPlaybackService;
   /** Queues the playability check of videos not verified yet (e.g. older libraries). */
   checkPlayability(): Promise<void>;
   /**
@@ -158,6 +180,10 @@ export interface Midoteca {
   readonly transcription: LocalAi['transcription'];
   /** Questions about the library answered locally from cited sources (RAG). */
   readonly assistant: AssistantService;
+  /** "Reorganizar com IA": module suggestions by the local model, applied on approval. */
+  readonly organizationSuggestions: OrganizationSuggestionService;
+  /** Study planner: tracks, weekly schedule, time log and "o que estudar agora". */
+  readonly study: StudyService;
   close(): void;
 }
 
@@ -192,10 +218,16 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
   const courses = new SqliteCourseRepository(database);
   const documents = new SqliteDocumentRepository(database);
   const progress = new SqliteProgressRepository(database);
+  const study = new StudyService({
+    repository: new SqliteStudyRepository(database),
+    catalog: new SqliteStudyCourseCatalog(database),
+    clock: options.clock ?? (() => new Date()),
+  });
   const watchProgress = new WatchProgressService({
     progress,
     durations: new SqliteLessonMediaDurations(database),
     now: nowIso,
+    activity: { segmentPlayed: (input) => study.recordPlayerTime(input) },
   });
   const jobs = new SqliteJobRepository(database);
   const analysis = new SqliteMediaAnalysisStore(database);
@@ -220,6 +252,12 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
         return source ? (source.displayName ?? fileNameOf(source.rootPath)) : null;
       },
     },
+  });
+  const mediaInspector = options.mediaTools?.inspector ?? new FfprobeMediaInspector();
+  const playback = new PrepareMediaPlayback({
+    inspector: mediaInspector,
+    remuxer: options.playbackTools?.remuxer ?? new FfmpegMediaRemuxer(),
+    cacheDir: join(resolveAppDataDir(), 'playback-cache'),
   });
   const jobRunner = createBackgroundJobs({
     jobs,
@@ -246,8 +284,18 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
       hasher: options.mediaTools?.hasher ?? new NodeFileHasher(),
       prober: options.mediaTools?.prober ?? new FfprobeMediaProber(),
       sampler: options.mediaTools?.sampler ?? new FfmpegFrameSampler(),
-      inspector: options.mediaTools?.inspector ?? new FfprobeMediaInspector(),
+      inspector: mediaInspector,
     },
+  });
+  const organizationSuggestions = createOrganizationSuggestions({
+    database,
+    courses,
+    jobs,
+    runner: jobRunner,
+    events,
+    llm: localAi.tools.structured,
+    isEnabled: () => localAi.ai.transcription.isEnabled(),
+    now: nowIso,
   });
   const resumeProcessing = async (): Promise<void> => {
     if (readonly) return;
@@ -295,6 +343,7 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
     queries,
     jobRunner,
     activity,
+    playback,
     resumeProcessing,
     checkPlayability: async () => {
       if (readonly) return;
@@ -303,6 +352,8 @@ export function createMidoteca(options: MidotecaOptions = {}): Midoteca {
       await enqueue;
     },
     duplicates,
+    organizationSuggestions,
+    study,
     contentSearch: new ContentSearchService(content),
     subtitles: new LessonSubtitlesService({
       lookup: new SqliteLessonSubtitleLookup(database),

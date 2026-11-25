@@ -18,3 +18,11 @@ export interface MediaRepository {
   listTracks(mediaFileId: string): Promise<MediaTrack[]>;
   deleteTrack(id: string): Promise<void>;
 }
+
+/**
+ * Copies the audio/video streams of a file into a Chromium-friendly container
+ * without re-encoding. Read-only on the source; writes only to `destination`.
+ */
+export interface MediaRemuxer {
+  remux(sourcePath: string, destinationPath: string): Promise<void>;
+}

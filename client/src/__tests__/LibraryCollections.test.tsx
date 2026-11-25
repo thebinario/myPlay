@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { Course } from '@/core/domain/library';
 import type { Collection } from '@/core/domain/collection';
 import type { LibrarySource } from '@/core/domain/library-source';
@@ -122,6 +122,24 @@ describe('LibraryView — drill-down da fonte', () => {
     expect(screen.getByText('Curso A')).toBeInTheDocument();
     expect(screen.getByText('Curso B')).toBeInTheDocument();
     expect(screen.queryByText('Aula do Curso A')).not.toBeInTheDocument();
+  });
+
+  it('mostra o card do curso quando a fonte é um único curso (ex.: pasta do próprio curso)', () => {
+    const onSelectCourse = vi.fn();
+    render(
+      <LibraryView
+        items={[course('c1', 'Profissão Trader', 'Aula 01 - Seja bem-vindo')]}
+        sources={[source]}
+        collections={[]}
+        onSelectCourse={onSelectCourse}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('HD'));
+
+    expect(screen.queryByText('Aula 01 - Seja bem-vindo')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Profissão Trader'));
+    expect(onSelectCourse).toHaveBeenCalledWith('c1');
   });
 
   it('mostra cards de curso quando a fonte tem vários cursos e nenhuma coleção', () => {
