@@ -13,7 +13,18 @@ function unpacked(binaryPath: string): string {
   return binaryPath.replace(/app\.asar([\\/])/, 'app.asar.unpacked$1');
 }
 
+/**
+ * Another ffmpeg/ffprobe build, when set. The Linux CI uses the distro build:
+ * the static ffmpeg 6.0 of ffmpeg-static crashes (SIGSEGV) remuxing MPEG-TS
+ * on Ubuntu 24.04. The Windows app keeps the bundled binaries.
+ */
+function overridden(name: 'MIDOTECA_FFMPEG_PATH' | 'MIDOTECA_FFPROBE_PATH'): string | null {
+  return process.env[name]?.trim() || null;
+}
+
 export function resolveFfmpegPath(): string {
+  const custom = overridden('MIDOTECA_FFMPEG_PATH');
+  if (custom) return custom;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('ffmpeg-static') as string | null;
   if (!path) throw new Error('ffmpeg-static não possui binário para esta plataforma');
@@ -21,6 +32,8 @@ export function resolveFfmpegPath(): string {
 }
 
 export function resolveFfprobePath(): string {
+  const custom = overridden('MIDOTECA_FFPROBE_PATH');
+  if (custom) return custom;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { path } = require('ffprobe-static') as { path: string };
   return unpacked(path);

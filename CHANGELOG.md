@@ -24,6 +24,11 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
   `unit`/`integration` de `client/`) e interrompe o commit se algum falhar.
   Funciona com o `better-sqlite3` compilado tanto para o Node quanto para o
   Electron.
+- **ffmpeg configurável:** `MIDOTECA_FFMPEG_PATH` e `MIDOTECA_FFPROBE_PATH`
+  apontam para outro ffmpeg/ffprobe (o padrão continua sendo o empacotado). A
+  CI (Ubuntu 24.04) usa o ffmpeg da distribuição, porque o binário estático
+  6.0 do `ffmpeg-static` dá SIGSEGV ao converter MPEG-TS para MP4 lá; o app
+  para Windows não é afetado.
 
 ### Corrigido
 
