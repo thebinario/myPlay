@@ -73,7 +73,8 @@ describe('preparação de reprodução (ffmpeg real)', () => {
 
     const result = await useCase.prepare(source);
 
-    // Se falhar, o diff mostra `failure` (o erro real do ffmpeg/sistema de arquivos).
+    // Primeiro o motivo: se o remux falhar, a mensagem mostra o erro real do ffmpeg.
+    expect(result.failure).toBeUndefined();
     expect(result).toMatchObject({ prepared: true, path: expect.stringMatching(/\.mp4$/) });
     expect(readFileSync(source)).toEqual(before);
 
