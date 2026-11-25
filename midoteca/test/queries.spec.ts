@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createMidoteca, type Midoteca } from '../src/index';
 import { createTempDatabase, type TempDatabase } from './helpers/temp-db';
 
+/** Search hits carry native paths (`\` on Windows); compare them with `/`. */
+const slashes = (path: string | undefined) => path?.replace(/\\/g, '/');
+
 describe('LibraryQueryService', () => {
   let temp: TempDatabase;
   let app: Midoteca;
@@ -65,9 +68,11 @@ describe('LibraryQueryService', () => {
 
     const result = app.queries.search('curso');
     expect(result.filter((hit) => hit.kind === 'course')).toHaveLength(5);
-    expect(result.find((hit) => hit.kind === 'course')?.filePath).toContain('/hd/Curso 1');
+    expect(slashes(result.find((hit) => hit.kind === 'course')?.filePath)).toContain('/hd/Curso 1');
     expect(result.find((hit) => hit.kind === 'document')?.title).toBe('Curso Manual');
-    expect(result.find((hit) => hit.kind === 'document')?.filePath).toContain('/hd/doc.pdf');
+    expect(slashes(result.find((hit) => hit.kind === 'document')?.filePath)).toContain(
+      '/hd/doc.pdf',
+    );
 
     expect(app.queries.search('   ')).toHaveLength(0);
     expect(

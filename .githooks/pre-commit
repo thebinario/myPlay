@@ -1,5 +1,6 @@
 #!/bin/sh
-# Formata com Prettier os arquivos preparados (staged) antes do commit.
+# Antes do commit: formata com Prettier os arquivos preparados (staged) e roda
+# os testes relacionados a eles (.githooks/run-tests.cjs).
 #
 # Instalado por `npm install`/`npm ci` (script `prepare` de client/ e midoteca/),
 # que aponta `core.hooksPath` para este diretório. Ver docs/CONVENTIONS.md §2.
@@ -49,4 +50,6 @@ for project in client midoteca; do
   printf '%s\n' "$changed" | sed "s|^|$project/|" | tr '\n' '\0' | xargs -0 git add --
 done
 
-exit $status
+[ "$status" -ne 0 ] && exit "$status"
+
+node "$root/.githooks/run-tests.cjs"

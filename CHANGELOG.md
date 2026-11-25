@@ -17,6 +17,23 @@ Todas as mudanças relevantes da Midoteca. Formato baseado em
 
 ## [Unreleased]
 
+### Alterado
+
+- **Pre-commit roda os testes:** além de formatar com Prettier, o hook roda os
+  testes relacionados aos arquivos do commit (`midoteca/` e os projetos
+  `unit`/`integration` de `client/`) e interrompe o commit se algum falhar.
+  Funciona com o `better-sqlite3` compilado tanto para o Node quanto para o
+  Electron.
+
+### Corrigido
+
+- **Vídeo .ts não convertido no Windows:** se o antivírus (ou o indexador)
+  segurava por um instante o MP4 recém-gerado, a cópia para o cache falhava e
+  o player recebia o MPEG-TS original. Agora a operação é repetida algumas
+  vezes, e quando a preparação falha o motivo vem junto do resultado.
+- Testes do núcleo que falhavam no Windows (separador de caminho e criação de
+  link simbólico) agora rodam em qualquer sistema.
+
 ## [1.2.0] - 2026-11-25
 
 ### Adicionado

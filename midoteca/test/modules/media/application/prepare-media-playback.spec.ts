@@ -98,7 +98,7 @@ describe('media/application — PrepareMediaPlayback', () => {
 
     const result = await useCase.prepare(source);
 
-    expect(result).toEqual({ path: source, prepared: false });
+    expect(result).toEqual({ path: source, prepared: false, failure: 'ffmpeg falhou' });
   });
 
   it('não prepara arquivo ilegível', async () => {

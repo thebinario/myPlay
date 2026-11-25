@@ -32,7 +32,8 @@ describe('LibrarySourceService', () => {
     app.events.on('source:added', (p) => events.push(p.sourceId));
 
     const source = await app.sources.addSource({ rootPath: library.root });
-    expect(source.rootPath).toBe(library.root.replace(/\/$/, ''));
+    // Roots are stored with `/` on every OS.
+    expect(source.rootPath).toBe(library.root.replace(/\\/g, '/').replace(/\/$/, ''));
     expect(source.status).toBe('active');
     expect(source.displayName).toBeTruthy();
     expect(events).toEqual([source.id]);
@@ -55,7 +56,7 @@ describe('LibrarySourceService', () => {
     const anotherLibrary = createTempLibrary();
     try {
       const source = await app.sources.addSource({ rootPath: anotherLibrary.root });
-      expect(source.rootPath).toBe(anotherLibrary.root);
+      expect(source.rootPath).toBe(anotherLibrary.root.replace(/\\/g, '/'));
       expect(source.volumeId).toBeNull();
     } finally {
       anotherLibrary.cleanup();

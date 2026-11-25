@@ -38,7 +38,15 @@ Ferramenta padrão da comunidade para formatação. Config única na raiz
   estilo do ESLint.
 - **Pre-commit:** `.githooks/pre-commit` formata com Prettier os arquivos
   preparados de `client/` e `midoteca/` e os re-adiciona ao stage, evitando
-  falha de `format:check` na CI/release. O `prepare` de cada pacote aponta
+  falha de `format:check` na CI/release. Em seguida roda os testes
+  **relacionados** aos arquivos preparados (`vitest related`;
+  `.githooks/run-tests.cjs`): todos os de `midoteca/` e os projetos `unit` e
+  `integration` de `client/` (o `storybook` fica para a CI). Se algum falhar,
+  o commit é interrompido. Como o `better-sqlite3` pode estar compilado para o
+  Node ou para o Electron, o hook usa o runtime que consegue carregá-lo
+  (Electron com `ELECTRON_RUN_AS_NODE=1` quando o app de desenvolvimento o
+  recompilou). `MIDOTECA_HOOK_TESTS=all git commit …` roda as suítes inteiras
+  dos pacotes tocados. O `prepare` de cada pacote aponta
   `core.hooksPath` para `.githooks/` automaticamente em `npm install`/`npm ci`;
   para instalar manualmente: `node .githooks/install.cjs`.
 

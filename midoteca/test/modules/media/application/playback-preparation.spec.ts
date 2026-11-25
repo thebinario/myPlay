@@ -73,8 +73,8 @@ describe('preparação de reprodução (ffmpeg real)', () => {
 
     const result = await useCase.prepare(source);
 
-    expect(result.prepared).toBe(true);
-    expect(result.path).toMatch(/\.mp4$/);
+    // Se falhar, o diff mostra `failure` (o erro real do ffmpeg/sistema de arquivos).
+    expect(result).toMatchObject({ prepared: true, path: expect.stringMatching(/\.mp4$/) });
     expect(readFileSync(source)).toEqual(before);
 
     const probed = execFileSync(resolveFfprobePath(), [
